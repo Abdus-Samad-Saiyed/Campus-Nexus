@@ -197,4 +197,4 @@ class ApplicationLifecycleAndEmailsTests(TestCase):
         rejection_mail = next(m for m in mail.outbox if "Verification Application Status Update" in m.subject)
         self.assertIn("farhan851@nitsri.ac.in", rejection_mail.to)
         self.assertIn("Name does not match enrollment record in CSE department roster", rejection_mail.body)
-        self.assertIn("Institute Proctorial Office", rejection_mail.body)
+        self.assertIn("asaiyed_2024BCSE065@nitsri.ac.in", rejection_mail.body)

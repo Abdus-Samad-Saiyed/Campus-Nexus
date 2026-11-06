@@ -21,15 +21,11 @@
                         <input type="hidden" name="next" value="{{ next }}">
                     {% endif %}
 
-                    <!-- Strict Institutional Disciplinary Warning Banner -->
-                    <div class="alert alert-warning border border-warning-subtle py-2 px-3 mb-3 small d-flex align-items-start gap-2">
-                        <i class="bi bi-shield-exclamation text-warning fs-5 flex-shrink-0 mt-1"></i>
-                        <div>
-                            <strong class="d-block text-warning-emphasis">STRICT DISCIPLINARY NOTICE:</strong>
-                            <span class="text-white-50">
-                                Never share your enrollment credentials or 2FA codes with anyone. Sharing credentials violates the Institute IT &amp; Discipline Code.
-                                You are legally and academically accountable for all platform activities, rides, and messages originating from your account.
-                            </span>
+                    <!-- Account Security Reminder -->
+                    <div class="alert alert-dark border border-secondary py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock text-success fs-5 flex-shrink-0"></i>
+                        <div class="text-secondary small">
+                            Keep your login credentials secure. Never share your password or 2FA codes with anyone.
                         </div>
                     </div>
 

@@ -1132,9 +1132,8 @@ def apply_account(request):
                                 f'Status: Under Review\n\n'
                                 f'A temporary campus access account has been activated for you immediately. '
                                 f'You can coordinate rides, browse campus activities, and connect with peers right away '
-                                f'while your permanent verification is pending physical review.\n\n'
-                                f'You will receive future communication regarding physical in-person verification '
-                                f'with designated campus administrators or the Institute Proctorial Office.\n\n'
+                                f'while your permanent verification is pending review.\n\n'
+                                f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
                                 f'— The Campus Nexus Team, NIT Srinagar'
                             ),
                             from_email=None,
@@ -1152,7 +1151,7 @@ def apply_account(request):
 
                     messages.success(
                         request,
-                        f'Application #{application.application_number} submitted! Temporary campus access activated. You can coordinate rides immediately while awaiting physical admin verification.'
+                        f'Application #{application.application_number} submitted! Temporary campus access activated. You can coordinate rides immediately while awaiting admin verification.'
                     )
                     return render(request, 'accounts/application_success.html', {
                         'application': application,
@@ -2119,7 +2118,7 @@ def reject_application(request, application_id):
     custom_reason = request.POST.get('rejection_reason_custom', '').strip()
 
     if choice == 'CUSTOM' or not choice:
-        final_reason = custom_reason or 'Institute administrative criteria not met upon physical review.'
+        final_reason = custom_reason or 'Verification criteria not met upon review.'
     else:
         predefined = REJECTION_CHOICES.get(choice, choice)
         final_reason = f"{predefined}. Additional notes: {custom_reason}" if custom_reason else predefined
@@ -2156,7 +2155,7 @@ def reject_application(request, application_id):
                 f'------------------------------------------------------------\n\n'
                 f'Next Steps:\n'
                 f'• You may submit a corrected application at https://dev.campus-nexus.online/apply/ or your campus portal.\n'
-                f'• For inquiries or to clarify your credentials, please consult with designated student coordinators or the Institute Proctorial Office during working hours.\n\n'
+                f'• For inquiries or to clarify your credentials, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
                 f'— The Campus Nexus Team, NIT Srinagar'
             ),
             from_email=None,

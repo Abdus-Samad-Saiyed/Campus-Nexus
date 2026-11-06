@@ -172,8 +172,8 @@ class AuthenticationAndSecurityPageTests(TestCase):
     def test_login_page_renders_disciplinary_warning(self):
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "STRICT DISCIPLINARY NOTICE")
-        self.assertContains(response, "Never share your enrollment credentials")
+        self.assertContains(response, "Keep your login credentials secure")
+        self.assertContains(response, "Never share your password or 2FA codes")
 
     def test_apply_page_lists_designated_application_approvers(self):
         response = self.client.get(reverse("apply_account"))
