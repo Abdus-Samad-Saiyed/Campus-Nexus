@@ -754,7 +754,7 @@ def export_applications_csv(request: HttpRequest) -> HttpResponse:
     response["Content-Disposition"] = 'attachment; filename="campus_nexus_applications_export.csv"'
 
     include_phone = request.GET.get("include_phone") == "1"
-    headers = ["ID", "Application Number", "Enrollment", "Full Name", "Gender"]
+    headers = ["ID", "Application Number", "Enrollment", "Full Name", "Email", "Gender"]
     if include_phone:
         headers.append("Phone Number")
     headers.extend(["Created At", "Approved"])
@@ -769,6 +769,7 @@ def export_applications_csv(request: HttpRequest) -> HttpResponse:
             sanitize_csv_cell(a.application_number),
             sanitize_csv_cell(a.enrollment_number),
             sanitize_csv_cell(a.full_name),
+            sanitize_csv_cell(a.email),
             sanitize_csv_cell(a.gender),
         ]
         if include_phone:

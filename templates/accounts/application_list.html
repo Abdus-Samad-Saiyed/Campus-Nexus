@@ -30,6 +30,7 @@
                             <th>App No.</th>
                             <th>Enrollment</th>
                             <th>Name</th>
+                            <th>Email</th>
                             <th>Phone</th>
                             <th>Gender</th>
                             <th>Applied At</th>
@@ -49,6 +50,15 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ app.full_name }}</td>
+                                <td>
+                                    {% if app.email %}
+                                        <a href="mailto:{{ app.email }}" class="small font-monospace text-secondary text-decoration-none" title="Send email to {{ app.email }}">
+                                            <i class="bi bi-envelope me-1 text-success"></i>{{ app.email }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ app.phone_number }}</td>
                                 <td><span class="badge bg-secondary">{{ app.get_gender_display }}</span></td>
                                 <td class="text-secondary small">{{ app.created_at|date:"M j, H:i" }}</td>
@@ -74,6 +84,7 @@
                                                 data-app-id="{{ app.id }}"
                                                 data-enrollment="{{ app.enrollment_number }}"
                                                 data-applicant-name="{{ app.full_name }}"
+                                                data-applicant-email="{{ app.email }}"
                                                 title="Reject application and specify reason">
                                             <i class="bi bi-x-lg me-1"></i> Reject
                                         </button>
@@ -109,7 +120,7 @@
                     {% csrf_token %}
                     <div class="modal-body">
                         <p class="text-secondary small mb-3">
-                            Rejecting verification application for <strong class="text-white" id="rejectModalEnrollment"></strong> (<span id="rejectModalApplicantName"></span>). An official email notification will be dispatched to their registered email with this decision and your specified reason.
+                            Rejecting verification application for <strong class="text-white" id="rejectModalEnrollment"></strong> (<span id="rejectModalApplicantName"></span>). An official email notification will be dispatched to <strong class="text-info font-monospace" id="rejectModalApplicantEmail"></strong> with this decision and your specified reason.
                         </p>
                         <div class="mb-3">
                             <label for="rejectionReasonChoice" class="form-label small fw-semibold text-light">Rejection Reason Category *</label>
@@ -206,13 +217,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const appId = button.getAttribute('data-app-id');
             const enrollment = button.getAttribute('data-enrollment');
             const name = button.getAttribute('data-applicant-name');
+            const email = button.getAttribute('data-applicant-email');
 
             const enrEl = document.getElementById('rejectModalEnrollment');
             const nameEl = document.getElementById('rejectModalApplicantName');
+            const emailEl = document.getElementById('rejectModalApplicantEmail');
             const formEl = document.getElementById('rejectApplicationForm');
 
             if (enrEl) enrEl.textContent = enrollment || '';
             if (nameEl) nameEl.textContent = name || '';
+            if (emailEl) emailEl.textContent = email || 'registered email';
             if (formEl) formEl.action = '/applications/' + appId + '/reject/';
         });
     }
