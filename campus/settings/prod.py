@@ -80,6 +80,14 @@ else:
         DATABASES['default'] = env.db('EARLY_LAUNCH_DATABASE_URL', default=f'sqlite:///{EARLY_LAUNCH_DB_PATH}')
 
 # --- 4. Distributed Cache / Channel Layer (Redis or Local) -------------------
+# Production strictly retains high-iteration standard PBKDF2 algorithm for credential safety
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+]
 REDIS_URL = env('REDIS_URL', default='redis://dummy:6379/0' if IS_BUILD_PHASE else '')
 allow_local_cache = env.bool('DJANGO_ALLOW_LOCAL_CACHE', default=False)
 

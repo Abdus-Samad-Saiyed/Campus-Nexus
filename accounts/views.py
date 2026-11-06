@@ -135,8 +135,13 @@ def enforce_single_session_login(request, user: User):
         request.session.save()
     current_key = request.session.session_key
 
-    # Fast path: revoke previously recorded session key directly
+    # Fast path: revoke previously recorded session key directly from cache and database
     if user.current_session_key and user.current_session_key != current_key:
+        try:
+            from django.contrib.sessions.backends.cached_db import SessionStore as CachedSessionStore
+            CachedSessionStore(session_key=user.current_session_key).delete()
+        except Exception:
+            pass
         Session.objects.filter(session_key=user.current_session_key).delete()
 
     prior_terminated = False
@@ -144,6 +149,11 @@ def enforce_single_session_login(request, user: User):
         try:
             data = s.get_decoded()
             if str(data.get('_auth_user_id')) == str(user.pk) and s.session_key != current_key:
+                try:
+                    from django.contrib.sessions.backends.cached_db import SessionStore as CachedSessionStore
+                    CachedSessionStore(session_key=s.session_key).delete()
+                except Exception:
+                    pass
                 s.delete()
                 prior_terminated = True
                 log_audit_event(

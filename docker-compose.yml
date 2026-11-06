@@ -27,7 +27,7 @@ services:
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             daphne -b 0.0.0.0 -p 8000 campus.asgi:application"
+             python scripts/run_multiworker_cluster.py --bind 0.0.0.0 --port 8000 --workers $${ASGI_WORKERS:-4} --settings campus.settings.prod"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media

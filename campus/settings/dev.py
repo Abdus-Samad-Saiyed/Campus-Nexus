@@ -36,6 +36,26 @@ if not os.environ.get('REDIS_URL'):
         },
     }
 
+# Tune PBKDF2 Password Hasher Iterations for Dev / Staging / Load Testing
+# Cuts login CPU duration from ~500ms down to ~5-10ms per auth operation,
+# preventing single-core CPU saturation during concurrent login bursts while
+# strictly preserving PBKDF2 verification compatibility for existing hashes.
+from django.contrib.auth.hashers import PBKDF2PasswordHasher
+
+
+class FastPBKDF2PasswordHasher(PBKDF2PasswordHasher):
+    iterations = int(os.environ.get('DJANGO_PBKDF2_ITERATIONS', 10000))
+
+
+PASSWORD_HASHERS = [
+    'campus.settings.dev.FastPBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+]
+
 # Email configuration:
 # Uses SMTP if EMAIL_HOST_PASSWORD is provided, otherwise falls back to console in dev.
 if EMAIL_HOST_PASSWORD and EMAIL_HOST_USER:

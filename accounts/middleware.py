@@ -40,7 +40,12 @@ class SingleSessionMiddleware:
                         request,
                         "You have been logged out because this account was logged into from another device or browser."
                     )
-                    return redirect('login')
+                    from django.urls import reverse
+                    redirect_url = reverse('login')
+                    next_url = request.get_full_path()
+                    if next_url and next_url != '/':
+                        redirect_url += f'?next={next_url}'
+                    return redirect(redirect_url)
 
         return self.get_response(request)
 

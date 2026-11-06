@@ -47,8 +47,30 @@ class Command(DaphneRunserverCommand):
             default=False,
             help='Run server in Early Launch Mode (temporary isolated database, untrusted self-declarations)',
         )
+        parser.add_argument(
+            '-w',
+            '--workers',
+            type=int,
+            dest='workers',
+            default=1,
+            help='Number of concurrent Daphne ASGI worker processes (set > 1 to launch multi-worker cluster)',
+        )
 
     def handle(self, *args, **options):
+        workers = options.get('workers', 1)
+        if workers and workers > 1:
+            from django.core.management import call_command
+            port_val = options.get('port') or 8000
+            addr_val = options.get('addr') or '0.0.0.0'
+            call_command(
+                'run_cluster',
+                workers=workers,
+                port=int(port_val),
+                bind=str(addr_val),
+                early_launch=options.get('early_launch', False),
+            )
+            return
+
         if options.get('early_launch'):
             os.environ['CAMPUS_EARLY_LAUNCH_MODE'] = 'True'
             settings.EARLY_LAUNCH_MODE = True
