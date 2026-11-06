@@ -523,6 +523,21 @@
 
                 <!-- Right Utility Bar & User Controls -->
                 <div class="d-flex align-items-center gap-2 ms-lg-auto pt-2 pt-lg-0 navbar-utility-bar">
+                    {% if user.is_staff or user.is_superuser %}
+                        <!-- Admin Quick Pending Applications Badge Button -->
+                        <a href="{% url 'application_list' %}"
+                           class="btn btn-icon-nav position-relative d-inline-flex align-items-center justify-content-center text-decoration-none {% if pending_applications_count > 0 %}border-warning text-warning{% endif %}"
+                           title="Pending Student Applications Queue ({{ pending_applications_count }} waiting review)"
+                           aria-label="Pending student applications">
+                            <i class="bi bi-card-checklist fs-6"></i>
+                            {% if pending_applications_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark" style="font-size: 0.65rem; padding: 0.25em 0.45em;">
+                                    {{ pending_applications_count }}
+                                    <span class="visually-hidden">pending applications</span>
+                                </span>
+                            {% endif %}
+                        </a>
+                    {% endif %}
                     <!-- Direct Dedicated Theme Toggle Button -->
                     <button class="btn btn-icon-nav theme-toggle-btn" id="theme-toggle-btn" type="button" onclick="window.toggleNexusTheme()" title="Switch Light/Dark Mode" aria-label="Toggle theme">
                         <i class="bi bi-sun-fill text-warning theme-toggle-icon" id="theme-toggle-icon"></i>
@@ -757,8 +772,13 @@
                                         </li>
                                     {% endif %}
                                     <li>
-                                        <a class="dropdown-item py-1" href="{% url 'application_list' %}">
-                                            <i class="bi bi-card-checklist me-2 text-info"></i>Pending Applications
+                                        <a class="dropdown-item py-1 d-flex align-items-center justify-content-between" href="{% url 'application_list' %}">
+                                            <span><i class="bi bi-card-checklist me-2 text-info"></i>Pending Applications</span>
+                                            {% if pending_applications_count > 0 %}
+                                                <span class="badge bg-danger rounded-pill px-2 py-0.5" style="font-size: 0.72rem;">{{ pending_applications_count }}</span>
+                                            {% else %}
+                                                <span class="badge bg-dark border border-secondary text-secondary rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">0</span>
+                                            {% endif %}
                                         </a>
                                     </li>
                                     <li>

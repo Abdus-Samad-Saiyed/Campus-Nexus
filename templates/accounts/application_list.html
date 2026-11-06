@@ -6,7 +6,14 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold mb-1">Student Applications</h2>
+            <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                Student Applications
+                {% if applications %}
+                    <span class="badge bg-danger rounded-pill fs-6">{{ applications|length }}</span>
+                {% else %}
+                    <span class="badge bg-secondary rounded-pill fs-6">0</span>
+                {% endif %}
+            </h2>
             <p class="text-secondary small mb-0">Pending verification and approval for campus access</p>
         </div>
         <a href="{% url 'admin_analytics' %}" class="btn btn-dark-custom">

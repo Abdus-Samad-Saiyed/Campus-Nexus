@@ -200,9 +200,17 @@ class AccountApplication(models.Model):
         verbose_name = 'Account Application'
         verbose_name_plural = 'Account Applications'
 
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        if self.enrollment_number and self.enrollment_number.strip().upper() == 'GUEST_DEMO':
+            raise ValidationError('Applications cannot be submitted for GUEST_DEMO.')
+
     def save(self, *args, **kwargs):
         if self.enrollment_number:
             self.enrollment_number = self.enrollment_number.strip().upper()
+            if self.enrollment_number == 'GUEST_DEMO':
+                raise ValueError('Applications cannot be submitted for GUEST_DEMO.')
         if self.email:
             self.email = self.email.strip().lower()
         super().save(*args, **kwargs)

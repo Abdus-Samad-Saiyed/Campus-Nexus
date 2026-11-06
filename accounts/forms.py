@@ -84,6 +84,9 @@ class AccountApplicationForm(forms.ModelForm):
         }
 
     def __init__(self, *args, user=None, **kwargs):
+        from accounts.demo import is_guest_demo
+        if user and is_guest_demo(user):
+            user = None
         self.user = user
         super().__init__(*args, **kwargs)
         if self.user and self.user.is_authenticated:
@@ -94,10 +97,16 @@ class AccountApplicationForm(forms.ModelForm):
 
     def clean_enrollment_number(self):
         from django.conf import settings
-        if self.user and self.user.is_authenticated:
+        from accounts.demo import is_guest_demo
+        if self.user and self.user.is_authenticated and not is_guest_demo(self.user):
             enrollment = self.user.enrollment_number.strip().upper()
         else:
             enrollment = self.cleaned_data.get('enrollment_number', '').strip().upper()
+
+        if enrollment == 'GUEST_DEMO':
+            raise forms.ValidationError(
+                'Guest demo accounts cannot apply for permanent status. Please enter your valid student enrollment number.'
+            )
 
         if not ENROLLMENT_VALIDATOR.regex.match(enrollment):
             raise forms.ValidationError(
@@ -251,6 +260,11 @@ class EarlyLaunchDeclarationForm(forms.Form):
     def clean_enrollment_number(self):
         from django.conf import settings
         enrollment = self.cleaned_data.get('enrollment_number', '').strip().upper()
+
+        if enrollment == 'GUEST_DEMO':
+            raise forms.ValidationError(
+                'GUEST_DEMO is reserved for preview demo sessions and cannot be registered as an account.'
+            )
 
         if not ENROLLMENT_VALIDATOR.regex.match(enrollment):
             raise forms.ValidationError(

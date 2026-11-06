@@ -944,6 +944,9 @@ def forgot_password_view(request):
 def apply_account(request):
     """Student account application or Early Launch self-declaration."""
     early_launch = getattr(settings, 'EARLY_LAUNCH_MODE', False)
+    from accounts.demo import is_guest_demo
+    in_guest_demo = is_guest_demo(request) or (request.user.is_authenticated and getattr(request.user, 'enrollment_number', '') == 'GUEST_DEMO')
+    is_real_authenticated = request.user.is_authenticated and not in_guest_demo
 
     mode = (
         request.POST.get('registration_mode')
@@ -953,7 +956,7 @@ def apply_account(request):
     if not early_launch:
         mode = 'permanent'
 
-    if request.user.is_authenticated:
+    if is_real_authenticated:
         # Verified students cannot re-apply
         if request.user.verified:
             messages.info(request, "Your account is already permanently verified.")
@@ -986,6 +989,8 @@ def apply_account(request):
                         description=f'Self-declaration under Early Launch Mode for {user.enrollment_number}',
                         target_id=user.enrollment_number,
                     )
+                if in_guest_demo and hasattr(request, 'session'):
+                    request.session.pop('is_guest_demo', None)
                 from django.contrib.auth import login
                 login(request, user, backend='accounts.backends.EnrollmentBackend')
                 messages.warning(
@@ -999,11 +1004,12 @@ def apply_account(request):
                 'early_launch_mode': early_launch,
                 'active_tab': 'early',
                 'designated_admins': designated_admins,
+                'is_guest_demo': in_guest_demo,
             })
 
         else:
-            form = AccountApplicationForm(request.POST, user=request.user if request.user.is_authenticated else None)
-            enrollment = request.user.enrollment_number if request.user.is_authenticated else request.POST.get('enrollment_number', '').strip().upper()
+            form = AccountApplicationForm(request.POST, user=request.user if is_real_authenticated else None)
+            enrollment = request.user.enrollment_number if is_real_authenticated else request.POST.get('enrollment_number', '').strip().upper()
             phone_otp = request.POST.get('phone_otp', '').strip()
             phone_num = request.POST.get('phone_number', '').strip()
             email_addr = request.POST.get('email', '').strip().lower()
@@ -1014,7 +1020,7 @@ def apply_account(request):
             if form.is_valid():
                 if is_debug:
                     phone_verified = True
-                elif request.user.is_authenticated and not phone_otp and phone_num == request.user.phone_number:
+                elif is_real_authenticated and not phone_otp and phone_num == request.user.phone_number:
                     phone_verified = True
                 else:
                     if not phone_otp:
@@ -1031,7 +1037,7 @@ def apply_account(request):
                         application.application_number = uuid.uuid4().hex[:8].upper()
                         if form.cleaned_data.get('password'):
                             application.password = make_password(form.cleaned_data['password'])
-                        elif request.user.is_authenticated:
+                        elif is_real_authenticated:
                             application.password = request.user.password
                         application.phone_verified = True
                         application.save()
@@ -1064,6 +1070,7 @@ def apply_account(request):
                 'early_launch_mode': early_launch,
                 'active_tab': 'permanent',
                 'designated_admins': designated_admins,
+                'is_guest_demo': in_guest_demo,
             })
 
     # GET request
@@ -1071,7 +1078,7 @@ def apply_account(request):
         form = EarlyLaunchDeclarationForm()
     else:
         initial_data = {}
-        if request.user.is_authenticated:
+        if is_real_authenticated:
             initial_data = {
                 'enrollment_number': request.user.enrollment_number,
                 'full_name': request.user.get_full_name() or f"{request.user.first_name} {request.user.last_name}".strip(),
@@ -1079,15 +1086,14 @@ def apply_account(request):
                 'phone_number': request.user.phone_number,
                 'gender': request.user.gender,
             }
-            form = AccountApplicationForm(initial=initial_data, user=request.user)
-        else:
-            form = AccountApplicationForm(initial=initial_data)
+        form = AccountApplicationForm(user=request.user if is_real_authenticated else None, initial=initial_data)
 
     return render(request, 'accounts/apply.html', {
         'form': form,
         'early_launch_mode': early_launch,
         'active_tab': mode,
         'designated_admins': designated_admins,
+        'is_guest_demo': in_guest_demo,
     })
 
 
@@ -1866,6 +1872,15 @@ def approve_application(request, application_id):
 
     with transaction.atomic():
         application = get_object_or_404(AccountApplication, id=application_id, approved=False)
+        if application.enrollment_number == 'GUEST_DEMO':
+            messages.error(request, "Cannot approve applications for GUEST_DEMO. The application is invalid and has been purged.")
+            application.delete()
+            if 'permanent' in connections:
+                try:
+                    AccountApplication.objects.using('permanent').filter(enrollment_number='GUEST_DEMO').delete()
+                except Exception:
+                    pass
+            return redirect('application_list')
 
         parts = application.full_name.strip().split() if application.full_name else []
         first_name = parts[0][:150] if parts else ''

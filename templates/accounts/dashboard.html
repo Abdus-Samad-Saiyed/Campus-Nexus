@@ -493,7 +493,30 @@
                     </div>
                 </a>
             </div>
-            {% if user.is_superuser %}
+            {% if user.is_superuser or user.is_staff %}
+            <div class="col-sm-6 col-lg-3">
+                <a href="{% url 'application_list' %}" class="d-block text-decoration-none glass p-3 app-card h-100 position-relative">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="feature-icon position-relative">
+                            <i class="bi bi-card-checklist text-info"></i>
+                            {% if pending_applications_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                                    {{ pending_applications_count }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white d-flex align-items-center gap-2">
+                                Applications
+                                {% if pending_applications_count > 0 %}
+                                    <span class="badge bg-danger rounded-pill" style="font-size: 0.68rem;">{{ pending_applications_count }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-secondary small">Pending student IDs</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
             <div class="col-sm-6 col-lg-3">
                 <a href="{% url 'admin_analytics' %}" class="d-block text-decoration-none glass p-3 app-card h-100">
                     <div class="d-flex align-items-center gap-3">

@@ -8,6 +8,33 @@
         <!-- Application Form Column -->
         <div class="col-lg-7">
             <div class="glass p-4 p-md-5 h-100">
+                {% if is_guest_demo %}
+                    <!-- Guest Demo Account Application Callout -->
+                    <div class="glass p-4 mb-4 border-info glass-glow" style="background: rgba(14, 165, 233, 0.08); border: 1.5px solid rgba(14, 165, 233, 0.45); box-shadow: 0 0 24px rgba(14, 165, 233, 0.12);">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="feature-icon flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.25rem; background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-1 text-light">Create Your Student Account</h5>
+                                <p class="text-secondary small mb-3">
+                                    You are currently exploring Campus Nexus in <strong>Guest Demo Mode</strong>. Guest demo sessions cannot apply directly for permanent account elevation. To start coordinating rides as a student, please create an account using your actual NIT Srinagar enrollment number:
+                                </p>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% if early_launch_mode %}
+                                    <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark btn-sm fw-semibold">
+                                        <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Early Access (Skip Verification For Now)
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-green btn-sm fw-semibold">
+                                        <i class="bi bi-shield-check me-1"></i> Permanent Account (Admin Physical Verification)
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
                 {% if early_launch_mode %}
                     <!-- High-Precision Responsive Mode Switcher -->
                     <div class="apply-mode-switcher mb-4">
@@ -99,14 +126,14 @@
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="{{ form.password.id_for_label }}" class="form-label">Password {% if user.is_authenticated %}(Optional){% endif %}</label>
+                                <label for="{{ form.password.id_for_label }}" class="form-label">Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.password }}
                                     <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
-                                {% if user.is_authenticated %}
+                                {% if user.is_authenticated and not is_guest_demo %}
                                     <div class="form-text text-secondary small">Leave blank to keep your current password.</div>
                                 {% endif %}
                                 {% if form.password.errors %}
@@ -114,7 +141,7 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password {% if user.is_authenticated %}(Optional){% endif %}</label>
+                                <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.confirm_password }}
                                     <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
@@ -167,7 +194,7 @@
 
                         <div class="mb-3">
                             <label for="{{ form.enrollment_number.id_for_label }}" class="form-label">Enrollment Number</label>
-                            {% if user.is_authenticated %}
+                            {% if user.is_authenticated and not is_guest_demo %}
                                 <input type="text" class="form-control" value="{{ user.enrollment_number }}" readonly disabled style="opacity: 0.85; background: rgba(0,0,0,0.4);">
                                 <input type="hidden" name="enrollment_number" value="{{ user.enrollment_number }}">
                                 <div class="form-text text-info small"><i class="bi bi-info-circle me-1"></i> Bound to your active temporary account ({{ user.enrollment_number }}).</div>
