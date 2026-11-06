@@ -59,7 +59,6 @@ class Command(DaphneRunserverCommand):
     def handle(self, *args, **options):
         workers = options.get('workers', 1)
         if workers and workers > 1:
-            from django.core.management import call_command
             port_val = options.get('port') or 8000
             addr_val = options.get('addr') or '0.0.0.0'
             call_command(
