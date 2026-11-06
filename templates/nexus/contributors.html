@@ -74,61 +74,79 @@
     </div>
 
     {% if contributors %}
-        <div class="row g-4 mb-5">
+        <div class="d-flex flex-column gap-4 mb-5">
             {% for c in contributors %}
-                <div class="col-md-6 col-lg-4">
-                    <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white bg-dark border border-secondary"
-                                     style="width: 48px; height: 48px;">
-                                    {{ c.name|slice:":2"|upper }}
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    {% if c.nominated_by %}
-                                        <span class="badge bg-dark border border-secondary text-secondary small" title="Added by {{ c.nominated_by.enrollment_number }}">
-                                            Added by {{ c.nominated_by.enrollment_number }}
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-success-subtle text-success small">Founding</span>
-                                    {% endif %}
-                                    {% if can_manage_contributors %}
-                                        <form action="{% url 'remove_contributor' c.id %}" method="POST" class="d-inline" onsubmit="return confirm('Remove {{ c.name|escapejs }} from recognized contributors?');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2" title="Remove Contributor">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    {% endif %}
-                                </div>
+                <div class="glass p-4 p-md-4 border border-secondary-subtle">
+                    <div class="d-flex flex-column flex-md-row align-items-center align-items-md-start gap-4">
+                        <!-- Large Avatar with Initials and Contributor Badge -->
+                        <div class="position-relative flex-shrink-0">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-3 text-white bg-dark border border-success"
+                                 style="width: 85px; height: 85px; box-shadow: 0 0 20px rgba(8, 183, 79, 0.25);">
+                                {{ c.name|slice:":2"|upper }}
                             </div>
-
-                            <h5 class="fw-bold text-white mb-1">{{ c.name }}</h5>
-                            <div class="text-emerald small fw-semibold mb-2">{{ c.role }}</div>
-                            {% if c.enrollment_number %}
-                                <div class="text-secondary small mb-2"><code>{{ c.enrollment_number }}</code></div>
-                            {% endif %}
-                            {% if c.bio %}
-                                <p class="text-secondary small mb-3">{{ c.bio }}</p>
-                            {% endif %}
+                            <span class="position-absolute bottom-0 end-0 badge bg-success text-white rounded-pill px-2 py-1 small" title="Recognized Contributor">
+                                <i class="bi bi-award-fill"></i>
+                            </span>
                         </div>
 
-                        <div class="d-flex gap-2 pt-3 border-top border-secondary">
-                            {% if c.github_url %}
-                                <a href="{{ c.github_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm flex-grow-1" title="GitHub">
-                                    <i class="bi bi-github me-1"></i> GitHub
-                                </a>
+                        <!-- Full-width Details & Bio -->
+                        <div class="flex-grow-1 text-center text-md-start w-100">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2">
+                                    <h4 class="fw-bold text-white mb-0">{{ c.name }}</h4>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle small fw-semibold">
+                                        <i class="bi bi-patch-check-fill me-1"></i>{{ c.role }}
+                                    </span>
+                                    {% if c.enrollment_number %}
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small font-monospace">
+                                            {{ c.enrollment_number }}
+                                        </span>
+                                    {% endif %}
+                                    {% if c.nominated_by %}
+                                        <span class="badge bg-dark border border-secondary text-secondary small" title="Added by {{ c.nominated_by.enrollment_number }}">
+                                            Recognized by {{ c.nominated_by.get_full_name|default:c.nominated_by.enrollment_number }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                                            Founding Contributor
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                {% if can_manage_contributors %}
+                                    <form action="{% url 'remove_contributor' c.id %}" method="POST" class="d-inline" onsubmit="return confirm('Remove {{ c.name|escapejs }} from recognized contributors?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm px-2" title="Remove Contributor">
+                                            <i class="bi bi-trash me-1"></i>Remove
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+
+                            {% if c.bio %}
+                                <p class="text-secondary small mb-3" style="line-height: 1.6; max-width: 950px;">
+                                    {{ c.bio }}
+                                </p>
                             {% endif %}
-                            {% if c.linkedin_url %}
-                                <a href="{{ c.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm flex-grow-1 text-info" title="LinkedIn">
-                                    <i class="bi bi-linkedin me-1"></i> LinkedIn
-                                </a>
-                            {% endif %}
-                            {% if c.enrollment_number %}
-                                <a href="{% url 'profile' c.enrollment_number %}" class="btn btn-outline-secondary btn-sm" title="View Profile">
-                                    <i class="bi bi-person"></i>
-                                </a>
-                            {% endif %}
+
+                            <!-- Action Links -->
+                            <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                                {% if c.github_url %}
+                                    <a href="{{ c.github_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm">
+                                        <i class="bi bi-github me-1"></i> GitHub Profile
+                                    </a>
+                                {% endif %}
+                                {% if c.linkedin_url %}
+                                    <a href="{{ c.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm text-info">
+                                        <i class="bi bi-linkedin me-1"></i> LinkedIn
+                                    </a>
+                                {% endif %}
+                                {% if c.enrollment_number %}
+                                    <a href="{% url 'profile' c.enrollment_number %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-person me-1"></i> View Student Profile
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
