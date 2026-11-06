@@ -81,3 +81,18 @@ def broadcast_user_session_revocation(user_id: int, reason: str = 'Session termi
             )
     except Exception:
         pass
+
+
+def clean_person_name(name: str) -> str:
+    from accounts.two_factor import clean_person_name as _clean
+    return _clean(name)
+
+
+def normalize_phone_number(phone: str) -> str:
+    from accounts.two_factor import normalize_phone_number as _norm
+    return _norm(phone)
+
+
+def validate_phone_number(phone: str) -> str:
+    from accounts.two_factor import validate_phone_number as _val
+    return _val(phone)

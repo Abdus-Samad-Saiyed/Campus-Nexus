@@ -145,7 +145,7 @@ class IdentitySecurityArchitectureTests(TestCase):
 
         self.assertContains(res, "Profile and security settings updated successfully.")
         self.student.refresh_from_db()
-        self.assertEqual(self.student.phone_number, "+918888877777")
+        self.assertEqual(self.student.phone_number, "8888877777")
         self.assertTrue(self.student.check_password("NewSecretPass@123"))
 
     def test_verify_security_otp_inline_activates_grace(self):
@@ -181,7 +181,7 @@ class IdentitySecurityArchitectureTests(TestCase):
 
         self.assertContains(res, "Profile and security settings updated successfully.")
         self.student.refresh_from_db()
-        self.assertEqual(self.student.phone_number, "+917777766666")
+        self.assertEqual(self.student.phone_number, "7777766666")
 
     def test_password_change_still_requires_current_password(self):
         """Changing password still strictly enforces verification of current password."""

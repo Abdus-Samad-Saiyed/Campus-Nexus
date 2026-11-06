@@ -143,6 +143,20 @@ class AccountApplicationForm(forms.ModelForm):
 
         return enrollment
 
+    def clean_full_name(self):
+        name = self.cleaned_data.get('full_name', '').strip()
+        if not name:
+            raise forms.ValidationError('Full name is required.')
+        from accounts.two_factor import clean_person_name
+        return clean_person_name(name)
+
+    def clean_phone_number(self):
+        from accounts.two_factor import normalize_phone_number, validate_phone_number
+        phone = self.cleaned_data.get('phone_number', '').strip()
+        normalized = normalize_phone_number(phone)
+        validate_phone_number(normalized)
+        return normalized
+
     def clean_email(self):
         email = self.cleaned_data.get('email', '').strip().lower()
         if not email:
@@ -283,12 +297,18 @@ class EarlyLaunchDeclarationForm(forms.Form):
 
         return enrollment
 
+    def clean_full_name(self):
+        name = self.cleaned_data.get('full_name', '').strip()
+        if not name:
+            raise forms.ValidationError('Full name is required.')
+        from accounts.two_factor import clean_person_name
+        return clean_person_name(name)
+
     def clean_phone_number(self):
-        from .two_factor import normalize_phone_number
+        from accounts.two_factor import normalize_phone_number, validate_phone_number
         phone = self.cleaned_data.get('phone_number', '').strip()
         normalized = normalize_phone_number(phone)
-        if not normalized or len(normalized) < 10:
-            raise forms.ValidationError('Please enter a valid 10-digit phone number.')
+        validate_phone_number(normalized)
         return normalized
 
     def clean_email(self):

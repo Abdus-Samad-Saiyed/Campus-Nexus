@@ -1,2 +1,1 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,/coordinate/[id]/message/ [POST],HTTPError('403 Client Error: Forbidden for url: /coordinate/[id]/message/ [POST]'),2,2026-11-06T21:45:37Z,2026-11-06T21:45:41Z

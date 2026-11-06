@@ -27,19 +27,44 @@ RESEND_COOLDOWN_SECONDS = 60   # 1 minute
 MAX_ATTEMPTS = 3
 
 
+def clean_person_name(name: str) -> str:
+    """Format person names so each word has an initial capital letter (e.g. 'muhammed Farahi' -> 'Muhammed Farahi')."""
+    if not name:
+        return ''
+    words = str(name).strip().split()
+    cleaned_words = []
+    for word in words:
+        if '-' in word:
+            subwords = [w.capitalize() if w.isupper() else (w[0].upper() + w[1:] if w else '') for w in word.split('-')]
+            cleaned_words.append('-'.join(subwords))
+        else:
+            if word.isupper():
+                cleaned_words.append(word.capitalize())
+            else:
+                cleaned_words.append(word[0].upper() + word[1:] if word else '')
+    return ' '.join(cleaned_words)
+
+
 def normalize_phone_number(phone: str) -> str:
-    """Normalize phone number to standard E.164 (+91XXXXXXXXXX) format."""
+    """Normalize phone number to clean 10-digit format, stripping +91, 91 prefix, leading 0, spaces, and formatting characters."""
     if not phone:
         return ''
-    cleaned = re.sub(r'[\s\-\(\)]', '', phone.strip())
-    if cleaned.startswith('+'):
-        return cleaned
+    cleaned = re.sub(r'[\s\-\(\)\+]', '', str(phone).strip())
     digits = re.sub(r'\D', '', cleaned)
-    if len(digits) == 10:
-        return f'+91{digits}'
-    elif len(digits) == 12 and digits.startswith('91'):
-        return f'+{digits}'
-    return f'+{digits}' if digits else cleaned
+    if len(digits) == 12 and digits.startswith('91'):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith('0'):
+        digits = digits[1:]
+    return digits
+
+
+def validate_phone_number(phone: str) -> str:
+    """Validate that phone number is a valid 10-digit Indian mobile number."""
+    from django.core.exceptions import ValidationError
+    normalized = normalize_phone_number(phone)
+    if not re.match(r'^[6-9]\d{9}$', normalized):
+        raise ValidationError('Enter a valid 10-digit Indian mobile number (e.g., 9876543210).')
+    return normalized
 
 
 def _get_salt() -> bytes:

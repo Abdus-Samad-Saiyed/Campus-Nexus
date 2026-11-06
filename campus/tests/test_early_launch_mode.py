@@ -58,7 +58,7 @@ class EarlyLaunchFormTests(TestCase):
         self.assertEqual(user.enrollment_number, "2024BCSE901")
         self.assertEqual(user.first_name, "Zaid")
         self.assertEqual(user.last_name, "Khan")
-        self.assertEqual(user.phone_number, "+919876543210")
+        self.assertEqual(user.phone_number, "9876543210")
         self.assertEqual(user.email, "zaid901@nitsri.ac.in")
         # Early access accounts are untrusted
         self.assertFalse(user.verified)

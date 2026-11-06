@@ -88,7 +88,28 @@ class User(AbstractUser):
         super().__init__(*args, **kwargs)
         self._initial_profile_photo_name = self.profile_photo.name if (self.pk and self.profile_photo) else ''
 
+    def clean(self):
+        super().clean()
+        if self.first_name:
+            from accounts.two_factor import clean_person_name
+            self.first_name = clean_person_name(self.first_name)
+        if self.last_name:
+            from accounts.two_factor import clean_person_name
+            self.last_name = clean_person_name(self.last_name)
+        if self.phone_number:
+            from accounts.two_factor import normalize_phone_number
+            self.phone_number = normalize_phone_number(self.phone_number)
+
     def save(self, *args, **kwargs):
+        if self.first_name:
+            from accounts.two_factor import clean_person_name
+            self.first_name = clean_person_name(self.first_name)
+        if self.last_name:
+            from accounts.two_factor import clean_person_name
+            self.last_name = clean_person_name(self.last_name)
+        if self.phone_number:
+            from accounts.two_factor import normalize_phone_number
+            self.phone_number = normalize_phone_number(self.phone_number)
         if self.email:
             self.email = self.email.strip().lower()
         if self.enrollment_number:
@@ -205,12 +226,24 @@ class AccountApplication(models.Model):
         from django.core.exceptions import ValidationError
         if self.enrollment_number and self.enrollment_number.strip().upper() == 'GUEST_DEMO':
             raise ValidationError('Applications cannot be submitted for GUEST_DEMO.')
+        if self.full_name:
+            from accounts.two_factor import clean_person_name
+            self.full_name = clean_person_name(self.full_name)
+        if self.phone_number:
+            from accounts.two_factor import normalize_phone_number
+            self.phone_number = normalize_phone_number(self.phone_number)
 
     def save(self, *args, **kwargs):
         if self.enrollment_number:
             self.enrollment_number = self.enrollment_number.strip().upper()
             if self.enrollment_number == 'GUEST_DEMO':
                 raise ValueError('Applications cannot be submitted for GUEST_DEMO.')
+        if self.full_name:
+            from accounts.two_factor import clean_person_name
+            self.full_name = clean_person_name(self.full_name)
+        if self.phone_number:
+            from accounts.two_factor import normalize_phone_number
+            self.phone_number = normalize_phone_number(self.phone_number)
         if self.email:
             self.email = self.email.strip().lower()
         super().save(*args, **kwargs)
@@ -410,6 +443,12 @@ class PhoneOTP(models.Model):
             models.Index(fields=['user', 'purpose', 'is_used', '-created_at'], name='idx_otp_user_lookup'),
             models.Index(fields=['phone_number', 'purpose', 'is_used', '-created_at'], name='idx_otp_phone_lookup'),
         ]
+
+    def save(self, *args, **kwargs):
+        if self.phone_number:
+            from accounts.two_factor import normalize_phone_number
+            self.phone_number = normalize_phone_number(self.phone_number)
+        super().save(*args, **kwargs)
 
     def is_valid(self) -> bool:
         return (not self.is_used) and (self.attempts_left > 0) and (timezone.now() < self.expires_at)

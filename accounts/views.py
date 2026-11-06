@@ -1030,7 +1030,7 @@ def apply_account(request):
             if form.is_valid():
                 if is_debug:
                     phone_verified = True
-                elif is_real_authenticated and not phone_otp and phone_num == request.user.phone_number:
+                elif is_real_authenticated and not phone_otp and normalize_phone_number(phone_num) == normalize_phone_number(request.user.phone_number):
                     phone_verified = True
                 else:
                     if not phone_otp:
@@ -1052,7 +1052,36 @@ def apply_account(request):
                         application.phone_verified = True
                         application.save()
 
-                        # Mirror to permanent DB if running with isolated early launch temporary DB
+                        # Immediately create active temporary user account so student can use campus facilities while pending physical review
+                        name_parts = application.full_name.strip().split()
+                        first_name = name_parts[0] if name_parts else ''
+                        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+                        user, user_created = User.objects.get_or_create(
+                            enrollment_number=enrollment,
+                            defaults={
+                                'username': enrollment,
+                                'first_name': first_name,
+                                'last_name': last_name,
+                                'email': application.email,
+                                'phone_number': application.phone_number,
+                                'gender': application.gender,
+                                'password': application.password,
+                                'verified': False,
+                                'is_active': True,
+                            }
+                        )
+                        if not user_created and not user.verified:
+                            user.first_name = first_name
+                            user.last_name = last_name
+                            user.email = application.email
+                            user.phone_number = application.phone_number
+                            user.gender = application.gender
+                            user.password = application.password
+                            user.is_active = True
+                            user.save()
+
+                        # Mirror application and temporary user to permanent DB if running with isolated early launch temporary DB
                         if 'permanent' in connections:
                             try:
                                 AccountApplication.objects.using('permanent').update_or_create(
@@ -1068,9 +1097,63 @@ def apply_account(request):
                                         'approved': False,
                                     }
                                 )
+                                User.objects.using('permanent').update_or_create(
+                                    enrollment_number=enrollment,
+                                    defaults={
+                                        'username': enrollment,
+                                        'first_name': first_name,
+                                        'last_name': last_name,
+                                        'email': application.email,
+                                        'phone_number': application.phone_number,
+                                        'gender': application.gender,
+                                        'password': application.password,
+                                        'verified': False,
+                                        'is_active': True,
+                                    }
+                                )
                             except Exception as e:
-                                logger.warning("Could not mirror permanent application: %s", e)
+                                logger.warning("Could not mirror permanent records: %s", e)
 
+                        log_audit_event(
+                            event_type='APP_SUBMITTED',
+                            actor_enrollment=enrollment,
+                            description=f'Application #{application.application_number} submitted; temporary account activated for {enrollment}',
+                            target_id=enrollment,
+                        )
+
+                    # Send application received confirmation email
+                    try:
+                        send_mail(
+                            subject='Campus Nexus — Student Verification Application Received',
+                            message=(
+                                f'Hi {first_name},\n\n'
+                                f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
+                                f'Application Reference: #{application.application_number}\n'
+                                f'Status: Under Review\n\n'
+                                f'A temporary campus access account has been activated for you immediately. '
+                                f'You can coordinate rides, browse campus activities, and connect with peers right away '
+                                f'while your permanent verification is pending physical review.\n\n'
+                                f'You will receive future communication regarding physical in-person verification '
+                                f'with designated campus administrators or the Institute Proctorial Office.\n\n'
+                                f'— The Campus Nexus Team, NIT Srinagar'
+                            ),
+                            from_email=None,
+                            recipient_list=[application.email] if application.email else [],
+                            fail_silently=True,
+                        )
+                    except Exception:
+                        pass
+
+                    # Clean guest session if applicable and log user in immediately
+                    if in_guest_demo and hasattr(request, 'session'):
+                        request.session.pop('is_guest_demo', None)
+                    from django.contrib.auth import login
+                    login(request, user, backend='accounts.backends.EnrollmentBackend')
+
+                    messages.success(
+                        request,
+                        f'Application #{application.application_number} submitted! Temporary campus access activated. You can coordinate rides immediately while awaiting physical admin verification.'
+                    )
                     return render(request, 'accounts/application_success.html', {
                         'application': application,
                     })
@@ -2026,9 +2109,26 @@ def reject_application(request, application_id):
         messages.error(request, "Privileged session expired. Please re-authenticate before rejecting applications.")
         return redirect('application_list')
 
+    REJECTION_CHOICES = {
+        'DETAILS_MISMATCH': 'Student profile details (name, branch, or year) do not match institute academic roster',
+        'UNREADABLE_DOCUMENTS': 'Submitted student credentials or ID documentation could not be verified',
+        'CONTACT_UNVERIFIABLE': 'Unable to verify provided phone number or student email address',
+        'DUPLICATE_APPLICATION': 'Duplicate application detected or previous verified record already active',
+    }
+    choice = request.POST.get('rejection_reason_choice', '').strip()
+    custom_reason = request.POST.get('rejection_reason_custom', '').strip()
+
+    if choice == 'CUSTOM' or not choice:
+        final_reason = custom_reason or 'Institute administrative criteria not met upon physical review.'
+    else:
+        predefined = REJECTION_CHOICES.get(choice, choice)
+        final_reason = f"{predefined}. Additional notes: {custom_reason}" if custom_reason else predefined
+
     with transaction.atomic():
         application = get_object_or_404(AccountApplication, id=application_id, approved=False)
         enrollment = application.enrollment_number
+        applicant_name = application.full_name
+        applicant_email = application.email
         application.delete()
         if 'permanent' in connections:
             try:
@@ -2038,14 +2138,38 @@ def reject_application(request, application_id):
         log_audit_event(
             event_type='APP_REJECTED',
             actor_enrollment=request.user.enrollment_number,
-            description=f'Application rejected for {enrollment}',
+            description=f'Application rejected for {enrollment}. Reason: {final_reason}',
             target_id=enrollment,
         )
+
+    # Dispatch rejection notification email with specified reason
+    try:
+        send_mail(
+            subject='Campus Nexus — Verification Application Status Update',
+            message=(
+                f'Hi {applicant_name},\n\n'
+                f'Your application for permanent student ID verification ({enrollment}) '
+                f'could not be approved at this time.\n\n'
+                f'Reason Specified by Administrator:\n'
+                f'------------------------------------------------------------\n'
+                f'{final_reason}\n'
+                f'------------------------------------------------------------\n\n'
+                f'Next Steps:\n'
+                f'• You may submit a corrected application at https://dev.campus-nexus.online/apply/ or your campus portal.\n'
+                f'• For inquiries or to clarify your credentials, please consult with designated student coordinators or the Institute Proctorial Office during working hours.\n\n'
+                f'— The Campus Nexus Team, NIT Srinagar'
+            ),
+            from_email=None,
+            recipient_list=[applicant_email] if applicant_email else [],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 
     if request.htmx:
         return HttpResponse('')
 
-    messages.info(request, f'Application for {enrollment} was rejected and removed.')
+    messages.info(request, f'Application for {enrollment} was rejected. Reason: {final_reason}. Rejection email dispatched.')
     return redirect('application_list')
 
 

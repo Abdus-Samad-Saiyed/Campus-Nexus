@@ -86,7 +86,7 @@ class ReactNativeApiTest(TestCase):
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.bio, "React Native Android developer")
-        self.assertEqual(self.user.phone_number, "+919999988888")
+        self.assertEqual(self.user.phone_number, "9999988888")
 
     def test_mobile_photo_upload(self):
         """POST /api/v1/me/photo/ uploads profile image from mobile multipart payload."""
