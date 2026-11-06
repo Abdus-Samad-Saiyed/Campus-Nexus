@@ -272,6 +272,105 @@
         </div>
     </div>
 
+    <!-- Direct Messages & Conversations Section -->
+    <div class="glass p-4 mt-4 {% if total_unread_messages > 0 %}border-success-subtle glass-glow{% endif %}">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="feature-icon" style="width: 38px; height: 38px; font-size: 1.15rem;">
+                    <i class="bi bi-chat-left-dots-fill green-accent"></i>
+                </span>
+                <div>
+                    <h5 class="fw-bold mb-0 text-white d-flex align-items-center gap-2">
+                        Direct Messages
+                        {% if total_unread_messages > 0 %}
+                            <span class="badge bg-success rounded-pill" style="font-size: 0.72rem;">
+                                {{ total_unread_messages }} new
+                            </span>
+                        {% endif %}
+                    </h5>
+                    <span class="text-secondary small">1-on-1 private coordination with your verified friends</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'messages_inbox' %}" class="btn btn-dark-custom btn-sm">
+                    <i class="bi bi-inbox me-1"></i> Inbox & All Chats &rarr;
+                </a>
+            </div>
+        </div>
+
+        {% if recent_conversations %}
+            <div class="row g-3">
+                {% for conv in recent_conversations %}
+                    <div class="col-md-6">
+                        <a href="{% url 'direct_chat' conv.friend.enrollment_number %}" class="d-block text-decoration-none p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-50 h-100 hover-glass transition-all">
+                            <div class="d-flex align-items-center justify-content-between gap-3">
+                                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                    <div class="position-relative flex-shrink-0">
+                                        {% if conv.friend.profile_photo %}
+                                            <img src="{{ conv.friend.profile_photo.url }}" class="rounded-circle object-fit-cover shadow" style="width: 44px; height: 44px;" alt="{{ conv.friend.enrollment_number }}" onerror="this.onerror=null; this.style.display='none';">
+                                        {% else %}
+                                            <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                                <i class="bi bi-person-fill text-secondary fs-5"></i>
+                                            </div>
+                                        {% endif %}
+                                        {% if conv.unread_count > 0 %}
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 0.65rem;">
+                                                {{ conv.unread_count }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="overflow-hidden">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <strong class="text-white text-truncate" style="font-size: 0.92rem;">
+                                                {{ conv.friend.display_name }}
+                                            </strong>
+                                            <span class="badge bg-dark border border-secondary text-secondary small py-0 px-1 font-monospace" style="font-size: 0.65rem;">
+                                                {{ conv.friend.enrollment_number }}
+                                            </span>
+                                        </div>
+                                        <div class="small text-truncate mt-1 {% if conv.unread_count > 0 %}text-white fw-semibold{% else %}text-secondary{% endif %}" style="font-size: 0.82rem;">
+                                            {% if conv.latest_message %}
+                                                {% if conv.latest_message.sender == request.user %}
+                                                    <span class="text-secondary opacity-75">You: </span>
+                                                {% endif %}
+                                                {{ conv.latest_message.content }}
+                                            {% else %}
+                                                <span class="fst-italic text-secondary">Start a conversation</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    {% if conv.latest_message %}
+                                        <div class="text-secondary small mb-1" style="font-size: 0.72rem;">
+                                            {{ conv.latest_message.created_at|date:"M j, H:i" }}
+                                        </div>
+                                    {% endif %}
+                                    <span class="btn btn-outline-green btn-sm py-0 px-2" style="font-size: 0.72rem;">
+                                        Chat &rarr;
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-4 bg-black bg-opacity-25 rounded border border-secondary border-opacity-25">
+                <i class="bi bi-chat-square-text text-secondary fs-3 d-block mb-2"></i>
+                <p class="text-secondary small mb-2">No active message threads yet. Connect with classmates from your shared rides to chat privately.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{% url 'user_search' %}" class="btn btn-outline-green btn-sm">
+                        <i class="bi bi-people me-1"></i> Student Directory
+                    </a>
+                    <a href="{% url 'messages_inbox' %}" class="btn btn-dark-custom btn-sm">
+                        <i class="bi bi-inbox me-1"></i> View Inbox
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
     <!-- Quick Shortcuts Card -->
     <div class="glass p-4 mt-4">
         <h5 class="fw-bold mb-3"><i class="bi bi-grid-fill green-accent me-2"></i>Campus Utilities</h5>
@@ -294,6 +393,24 @@
                         <div>
                             <div class="fw-bold text-white">Offer Ride</div>
                             <div class="text-secondary small">Share your taxi/cab</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <a href="{% url 'messages_inbox' %}" class="d-block text-decoration-none glass p-3 app-card h-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="feature-icon position-relative">
+                            <i class="bi bi-chat-left-dots"></i>
+                            {% if total_unread_messages > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 0.6rem;">
+                                    {{ total_unread_messages }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white">Direct Messages</div>
+                            <div class="text-secondary small">Friend chat & inbox</div>
                         </div>
                     </div>
                 </a>

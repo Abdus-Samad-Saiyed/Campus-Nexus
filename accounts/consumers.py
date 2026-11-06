@@ -170,6 +170,23 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+            # Global notification broadcast to recipient's personal notification channel
+            sender_name = await self._get_user_display_name()
+            avatar_url = await self._get_user_avatar_url()
+            await self.channel_layer.group_send(
+                f'user_notifications_{self.friend.id}',
+                {
+                    'type': 'chat.notification',
+                    'message_id': msg.id,
+                    'sender': self.user.enrollment_number,
+                    'sender_name': sender_name,
+                    'sender_avatar': avatar_url,
+                    'content': msg.content[:120],
+                    'url': f'/messages/{self.user.enrollment_number}/',
+                    'timestamp': msg.created_at.strftime('%H:%M'),
+                }
+            )
+
             await self.send(text_data=json.dumps({
                 'type': 'ack',
                 'status': 'sent',
@@ -226,6 +243,10 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                 'status': event['status'],
             }))
 
+    async def chat_notification(self, event):
+        '''No-op when connected to direct chat room.'''
+        pass
+
     # ------------------------------------------------------------------
     # Database queries
     # ------------------------------------------------------------------
@@ -254,6 +275,17 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             recipient=self.friend,
             content=content,
         )
+
+    @database_sync_to_async
+    def _get_user_display_name(self) -> str:
+        return self.user.get_full_name() or self.user.enrollment_number
+
+    @database_sync_to_async
+    def _get_user_avatar_url(self) -> str:
+        try:
+            return self.user.profile_photo.url if self.user.profile_photo else ''
+        except Exception:
+            return ''
 
     @database_sync_to_async
     def _user_hides_online(self) -> bool:
@@ -344,3 +376,56 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
         valid_history.append(now)
         cache.set(cache_key, valid_history, timeout=period_sec + 2)
         return True
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    """Global user notification consumer for real-time popups and user-level events.
+
+    Path: /ws/notifications/
+    Channel groups:
+      - user_notifications_<user_id>
+      - user_<user_id>
+    """
+
+    async def connect(self):
+        self.user = self.scope.get('user')
+        if not self.user or not self.user.is_authenticated or not self.user.is_active or getattr(self.user, 'is_deleted', False):
+            await self.close(code=4001)
+            return
+        if getattr(self.user, 'is_guest_demo', False) or getattr(self.user, 'username', '') == 'GUEST_DEMO':
+            await self.close(code=4001)
+            return
+
+        self.notification_group_name = f'user_notifications_{self.user.id}'
+        self.user_group_name = f'user_{self.user.id}'
+
+        await self.channel_layer.group_add(self.notification_group_name, self.channel_name)
+        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, 'notification_group_name') and self.channel_layer:
+            await self.channel_layer.group_discard(self.notification_group_name, self.channel_name)
+        if hasattr(self, 'user_group_name') and self.channel_layer:
+            await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
+
+    async def chat_notification(self, event):
+        """Receive incoming direct message notification and push to client."""
+        await self.send(text_data=json.dumps({
+            'type': 'chat_notification',
+            'message_id': event.get('message_id'),
+            'sender': event['sender'],
+            'sender_name': event.get('sender_name', event['sender']),
+            'sender_avatar': event.get('sender_avatar', ''),
+            'content': event['content'],
+            'url': event['url'],
+            'timestamp': event.get('timestamp', ''),
+        }))
+
+    async def user_session_revoked(self, event):
+        """Handle push-based session termination."""
+        await self.send(text_data=json.dumps({
+            'type': 'session_terminated',
+            'reason': event.get('reason', 'Session terminated by security policy.'),
+        }))
+        await self.close(code=4003)
+

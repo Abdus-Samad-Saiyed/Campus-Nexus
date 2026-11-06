@@ -10,6 +10,7 @@ where unauthenticated requests display N.A. for enrollment and name.
 import collections
 import datetime
 import logging
+import os
 import threading
 import time
 
@@ -21,6 +22,24 @@ CLIENT_META_TTL_SECONDS = 120
 # Thread-safe mapping: client_key (e.g. '127.0.0.1:65521') -> collections.deque of request metadata dicts
 _CLIENT_REGISTRY = collections.defaultdict(collections.deque)
 _REGISTRY_LOCK = threading.Lock()
+
+# Tracks whether Daphne's custom Command.log_action is active in the current process
+_DAPHNE_ACTION_LOGGER_ACTIVE = False
+
+
+def set_action_logger_active(active: bool = True):
+    """Mark Daphne's custom Command.log_action as active to coordinate with middleware logging."""
+    global _DAPHNE_ACTION_LOGGER_ACTIVE
+    _DAPHNE_ACTION_LOGGER_ACTIVE = active
+    if active:
+        os.environ['DAPHNE_ACTION_LOGGER_ACTIVE'] = '1'
+    else:
+        os.environ.pop('DAPHNE_ACTION_LOGGER_ACTIVE', None)
+
+
+def is_action_logger_active() -> bool:
+    """Return True if Daphne's custom Command.log_action is currently driving console request logging."""
+    return _DAPHNE_ACTION_LOGGER_ACTIVE or os.environ.get('DAPHNE_ACTION_LOGGER_ACTIVE') == '1'
 
 
 def resolve_client_display(client_key: str | None, real_ip: str | None = None) -> str:
@@ -137,6 +156,27 @@ def pop_client_request(client_key: str | None) -> dict:
                 _CLIENT_REGISTRY.pop(client_key, None)
             return item
 
+        # Robust fallback matching:
+        # 1. Match by host address without port (e.g. '127.0.0.1' vs '127.0.0.1:54321')
+        host = client_key.rsplit(":", 1)[0] if ":" in client_key else client_key
+        for k, q in list(_CLIENT_REGISTRY.items()):
+            k_host = k.rsplit(":", 1)[0] if ":" in k else k
+            if (k_host == host or k == client_key) and q:
+                item = q.popleft()
+                if not q:
+                    _CLIENT_REGISTRY.pop(k, None)
+                return item
+
+        # 2. If there is only one client registry queue with pending requests, pop from that
+        if len(_CLIENT_REGISTRY) == 1:
+            k = next(iter(_CLIENT_REGISTRY.keys()))
+            q = _CLIENT_REGISTRY[k]
+            if q:
+                item = q.popleft()
+                if not q:
+                    _CLIENT_REGISTRY.pop(k, None)
+                return item
+
     return {
         "enrollment": "N.A.",
         "name": "N.A.",
@@ -160,7 +200,8 @@ class ClientLoggingASGIWrapper:
             client = scope.get("client")
             if client:
                 client_key = f"{client[0]}:{client[1]}"
-                headers = dict(scope.get("headers", []))
+                raw_headers = scope.get("headers", [])
+                headers = {k.lower(): v for k, v in raw_headers}
                 real_ip = None
                 if b"cf-connecting-ip" in headers:
                     real_ip = headers[b"cf-connecting-ip"].decode("latin1").strip()

@@ -242,6 +242,50 @@ class RunserverCommandLogActionTests(TestCase):
             logged = cm.output[0]
             self.assertRegex(logged, r"\[\d{2}/[A-Za-z]{3}/\d{4} \d{2}:\d{2}:\d{2}\] WebSocket CONNECT /ws/ride/1/ \[127.0.0.1:44444, 2024BCSE065, Abdus Samad Saiyed\]")
 
+    def test_log_action_in_production_debug_false(self):
+        """Under DEBUG=False, django.channels.server outputs the exact enriched completion string."""
+        with override_settings(DEBUG=False):
+            client_key = "14.139.61.131:19440"
+            update_or_record_client_request(
+                client_key,
+                enrollment="2024BCSE065",
+                name="Abdus Samad Saiyed",
+                real_client=client_key,
+            )
+            details = {
+                "method": "GET",
+                "path": "/media/profiles/f0294f7153af4070a8ba234777339724.jpg",
+                "status": 200,
+                "time_taken": 0.01,
+                "client": client_key,
+            }
+            with self.assertLogs("django.channels.server", level="INFO") as cm:
+                self.cmd.log_action("http", "complete", details)
+                logged = cm.output[0]
+                self.assertIn("HTTP GET /media/profiles/f0294f7153af4070a8ba234777339724.jpg 200 [0.01, 14.139.61.131:19440, 2024BCSE065, Abdus Samad Saiyed]", logged)
+
+    def test_guest_demo_user_logs_as_na(self):
+        """Guest demo user requests are masked as N.A. to preserve student privacy."""
+        factory = RequestFactory()
+        request = factory.get("/coordinate/")
+        session = SessionStore()
+        session["is_guest_demo"] = True
+        session.create()
+        request.session = session
+
+        from accounts.demo import ensure_guest_demo_user
+        demo_user = ensure_guest_demo_user("default")
+        request.user = demo_user
+        request.META["REMOTE_ADDR"] = "127.0.0.1"
+        request.META["REMOTE_PORT"] = 49152
+
+        middleware = ClientIdentityLoggingMiddleware(lambda req: MagicMock(status_code=200))
+        middleware(request)
+
+        item = pop_client_request("127.0.0.1:49152")
+        self.assertEqual(item["enrollment"], "N.A.")
+        self.assertEqual(item["name"], "N.A.")
+
 
 class ClientLoggingASGIWrapperTests(TestCase):
     """Test ASGI application wrapper metadata interception."""

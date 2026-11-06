@@ -247,3 +247,34 @@ class Stage5DirectChatWebSocketTests(TransactionTestCase):
             'timestamp': 'Oct 28, 12:00',
         }))
         self.assertEqual(closed_code, 4003)
+    def test_notification_consumer_receives_chat_notification(self):
+        """NotificationConsumer receives chat.notification and sends JSON to client."""
+        from accounts.consumers import NotificationConsumer
+        import json
+
+        consumer = NotificationConsumer()
+        consumer.user = self.user1
+
+        sent_payloads = []
+
+        async def fake_send(text_data=None):
+            sent_payloads.append(json.loads(text_data))
+
+        consumer.send = fake_send
+
+        asyncio.run(consumer.chat_notification({
+            'type': 'chat.notification',
+            'message_id': 42,
+            'sender': self.user2.enrollment_number,
+            'sender_name': 'Friend User',
+            'sender_avatar': '',
+            'content': 'Hey, are you taking the ride?',
+            'url': f'/messages/{self.user2.enrollment_number}/',
+            'timestamp': '14:20',
+        }))
+
+        self.assertEqual(len(sent_payloads), 1)
+        self.assertEqual(sent_payloads[0]['type'], 'chat_notification')
+        self.assertEqual(sent_payloads[0]['content'], 'Hey, are you taking the ride?')
+        self.assertEqual(sent_payloads[0]['sender'], self.user2.enrollment_number)
+

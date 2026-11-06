@@ -218,6 +218,41 @@ class AccountWorkflowTests(TestCase):
         self.assertEqual(Friendship.objects.count(), 1)
         self.assertEqual(FriendRequest.objects.count(), 0)
 
+        # Resubmitting the same accepted request ID redirects gracefully with info message (no 404)
+        repeat_res = self.client.post(
+            reverse('accept_friend_request', args=[friend_request.id])
+        )
+        self.assertEqual(repeat_res.status_code, 302)
+
+    def test_accept_friend_request_by_user_id_and_enrollment(self):
+        """accept_friend_request accepts by sender User ID or enrollment number without 404."""
+        # 1. Accept by user ID
+        self.client.force_login(self.user)
+        self.client.post(reverse('send_friend_request', args=[self.friend.enrollment_number]))
+        self.client.force_login(self.friend)
+        res1 = self.client.post(reverse('accept_friend_request', args=[self.user.id]))
+        self.assertEqual(res1.status_code, 302)
+        self.assertTrue(Friendship.objects.filter(user1=self.user, user2=self.friend).exists() or
+                        Friendship.objects.filter(user1=self.friend, user2=self.user).exists())
+
+        # Clean up friendship for enrollment test
+        Friendship.objects.all().delete()
+
+        # 2. Accept by enrollment number string
+        self.client.force_login(self.user)
+        self.client.post(reverse('send_friend_request', args=[self.friend.enrollment_number]))
+        self.client.force_login(self.friend)
+        res2 = self.client.post(reverse('accept_friend_request', args=[self.user.enrollment_number]))
+        self.assertEqual(res2.status_code, 302)
+        self.assertTrue(Friendship.objects.filter(user1=self.user, user2=self.friend).exists() or
+                        Friendship.objects.filter(user1=self.friend, user2=self.user).exists())
+
+    def test_accept_nonexistent_friend_request_does_not_404(self):
+        """Accepting an unknown or expired friend request redirects gracefully without throwing 404."""
+        self.client.force_login(self.user)
+        res = self.client.post(reverse('accept_friend_request', args=[999999]))
+        self.assertEqual(res.status_code, 302)
+
     def test_profile_photo_replaces_and_deletes_old_file_from_storage(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
         from django.core.files.storage import default_storage
@@ -307,4 +342,46 @@ class AccountWorkflowTests(TestCase):
         resp = self.client.post(reverse('two_factor_verify'), {'action': 'verify', 'otp_code': '123456'})
         self.assertRedirects(resp, reverse('login'))
         self.assertNotIn('_auth_user_id', self.client.session)
+    def test_dashboard_displays_recent_conversations_and_unread_counts(self):
+        """Dashboard displays friend conversations with unread badges and snippets."""
+        from accounts.models import DirectMessage
+        Friendship.objects.create(user1=self.user, user2=self.friend)
+        DirectMessage.objects.create(
+            sender=self.friend,
+            recipient=self.user,
+            content="Hey are you ready for the commute?",
+            is_read=False,
+        )
+
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('recent_conversations', resp.context)
+        self.assertEqual(len(resp.context['recent_conversations']), 1)
+        self.assertEqual(resp.context['total_unread_messages'], 1)
+        self.assertIn("Hey are you ready for the commute?", resp.content.decode())
+
+    def test_direct_chat_post_creates_message_and_marks_read_on_view(self):
+        """Direct chat HTTP POST saves message and viewing chat marks them read."""
+        from accounts.models import DirectMessage
+        Friendship.objects.create(user1=self.user, user2=self.friend)
+
+        self.client.force_login(self.user)
+        post_resp = self.client.post(
+            reverse('direct_chat', args=[self.friend.enrollment_number]),
+            {'content': 'Hello from sender!'}
+        )
+        self.assertRedirects(post_resp, reverse('direct_chat', args=[self.friend.enrollment_number]))
+
+        msg = DirectMessage.objects.get(sender=self.user, recipient=self.friend)
+        self.assertEqual(msg.content, 'Hello from sender!')
+        self.assertFalse(msg.is_read)
+
+        # Recipient opens chat room
+        self.client.force_login(self.friend)
+        get_resp = self.client.get(reverse('direct_chat', args=[self.user.enrollment_number]))
+        self.assertEqual(get_resp.status_code, 200)
+
+        msg.refresh_from_db()
+        self.assertTrue(msg.is_read)
 

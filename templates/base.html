@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>{% block title %}Campus Nexus — Centralized Student Digital Services{% endblock %}</title>
 
     <!-- Favicon & Dynamic Accent-Matched Brand Icons -->
@@ -857,10 +857,186 @@
         </button>
     </div>
 
+    <!-- Global Notification Toasts Container -->
+    <div id="nexus-toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1095; pointer-events: none;" aria-live="polite" aria-atomic="true">
+    </div>
+
     <!-- Bootstrap Bundle JS with Subresource Integrity (SRI) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <!-- Clockwork Watermark Engine -->
     <script src="{% static 'js/watermark.js' %}?v=3.0.0"></script>
+
+    {% if user.is_authenticated and not is_guest_demo %}
+    <!-- Real-time Incoming Message & User Notifications Engine -->
+    <script>
+    (function() {
+        let notifSocket = null;
+        let reconnectDelay = 2000;
+        const maxReconnectDelay = 30000;
+        const originalTitle = document.title;
+        let unreadNotifCount = 0;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function playMessageChime() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                const now = ctx.currentTime;
+                osc.frequency.setValueAtTime(587.33, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } catch (e) {}
+        }
+
+        function showIncomingMessageToast(data) {
+            const currentPath = window.location.pathname.replace(/\/+$/, '');
+            if (currentPath === '/messages/' + data.sender) {
+                return;
+            }
+
+            if (document.hidden) {
+                unreadNotifCount++;
+                document.title = '(' + unreadNotifCount + ') New Message — ' + originalTitle.replace(/^\(\d+\)\s*/, '');
+            }
+
+            playMessageChime();
+
+            const container = document.getElementById('nexus-toast-container');
+            if (!container) return;
+
+            const toastId = 'toast-msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            const avatarHtml = data.sender_avatar
+                ? '<img src="' + escapeHtml(data.sender_avatar) + '" class="rounded-circle object-fit-cover flex-shrink-0" style="width: 40px; height: 40px;" alt="' + escapeHtml(data.sender) + '">'
+                : '<div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;"><i class="bi bi-person-fill green-accent fs-5"></i></div>';
+
+            const toastEl = document.createElement('div');
+            toastEl.id = toastId;
+            toastEl.className = 'toast show border-0 mb-2 glass-toast';
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.style.pointerEvents = 'auto';
+            toastEl.style.minWidth = '290px';
+            toastEl.style.maxWidth = '380px';
+            toastEl.style.boxShadow = '0 12px 32px rgba(0,0,0,0.55), 0 0 16px rgba(8,183,79,0.22)';
+            toastEl.style.borderRadius = '14px';
+            toastEl.style.overflow = 'hidden';
+            toastEl.style.border = '1px solid var(--border, rgba(255,255,255,0.14))';
+            toastEl.style.background = 'rgba(15, 23, 18, 0.96)';
+            toastEl.style.backdropFilter = 'blur(16px)';
+            toastEl.style.webkitBackdropFilter = 'blur(16px)';
+            toastEl.style.color = '#fff';
+            toastEl.style.cursor = 'pointer';
+            toastEl.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+
+            toastEl.innerHTML = `
+                <div class="toast-header border-0 bg-transparent text-white pb-0 d-flex align-items-center justify-content-between pt-2 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle green-accent border border-success-subtle py-0 px-1" style="font-size: 0.68rem;">
+                            <i class="bi bi-chat-fill me-1"></i> New Direct Message
+                        </span>
+                        <small class="text-secondary" style="font-size: 0.72rem;">${escapeHtml(data.timestamp || 'Just now')}</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white small ms-auto" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.7rem;"></button>
+                </div>
+                <div class="toast-body d-flex align-items-center gap-3 p-3">
+                    ${avatarHtml}
+                    <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+                        <div class="d-flex align-items-center justify-content-between gap-1">
+                            <strong class="text-truncate text-white" style="font-size: 0.88rem;">${escapeHtml(data.sender_name || data.sender)}</strong>
+                            <span class="text-secondary small font-monospace flex-shrink-0" style="font-size: 0.7rem;">${escapeHtml(data.sender)}</span>
+                        </div>
+                        <div class="small text-truncate mt-1 text-light" style="font-size: 0.82rem; opacity: 0.9;">
+                            ${escapeHtml(data.content)}
+                        </div>
+                    </div>
+                </div>
+                <div class="px-3 pb-2 pt-0 d-flex justify-content-between align-items-center">
+                    <span class="small text-secondary" style="font-size: 0.7rem;">Tap to open conversation</span>
+                    <span class="btn btn-green btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem;">
+                        <i class="bi bi-reply-fill me-1"></i> Reply
+                    </span>
+                </div>
+            `;
+
+            toastEl.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-close')) return;
+                window.location.href = data.url;
+            });
+
+            const closeBtn = toastEl.querySelector('.btn-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toastEl.remove();
+                });
+            }
+
+            container.appendChild(toastEl);
+
+            setTimeout(function() {
+                if (toastEl && toastEl.parentElement) {
+                    toastEl.style.opacity = '0';
+                    toastEl.style.transform = 'translateY(-10px)';
+                    setTimeout(function() { toastEl.remove(); }, 300);
+                }
+            }, 7500);
+        }
+
+        window.addEventListener('focus', function() {
+            unreadNotifCount = 0;
+            document.title = originalTitle;
+        });
+
+        function connectNotifSocket() {
+            const proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const url = proto + window.location.host + '/ws/notifications/';
+            notifSocket = new WebSocket(url);
+
+            notifSocket.onopen = function() {
+                reconnectDelay = 2000;
+            };
+
+            notifSocket.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'chat_notification') {
+                        showIncomingMessageToast(data);
+                    }
+                } catch (err) {
+                    console.error('Error handling notification payload:', err);
+                }
+            };
+
+            notifSocket.onclose = function(e) {
+                if (e.code === 4001 || e.code === 4003) return;
+                setTimeout(connectNotifSocket, reconnectDelay);
+                reconnectDelay = Math.min(reconnectDelay * 1.5, maxReconnectDelay);
+            };
+        }
+
+        connectNotifSocket();
+    })();
+    </script>
+    {% endif %}
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

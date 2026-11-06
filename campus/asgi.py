@@ -20,13 +20,16 @@ from campus.api.channels_middleware import (  # noqa: E402
     MobileAndAllowedHostsOriginValidator,
     TokenOrSessionAuthMiddlewareStack,
 )
+from accounts.client_logger import ClientLoggingASGIWrapper  # noqa: E402
 
-application = ProtocolTypeRouter({
-    'http': django_asgi_app,
-    'websocket': MobileAndAllowedHostsOriginValidator(
-        TokenOrSessionAuthMiddlewareStack(
-            URLRouter(websocket_urlpatterns)
+application = ClientLoggingASGIWrapper(
+    ProtocolTypeRouter({
+        'http': django_asgi_app,
+        'websocket': MobileAndAllowedHostsOriginValidator(
+            TokenOrSessionAuthMiddlewareStack(
+                URLRouter(websocket_urlpatterns)
+            ),
+            allowed_origins=settings.ALLOWED_HOSTS,
         ),
-        allowed_origins=settings.ALLOWED_HOSTS,
-    ),
-})
+    })
+)

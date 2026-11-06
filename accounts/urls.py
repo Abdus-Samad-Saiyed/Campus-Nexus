@@ -44,6 +44,6 @@ urlpatterns = [
     path('analytics/',                                  admin_analytics,        name='admin_analytics'),
     path('friends/<str:enrollment_number>/request/',    send_friend_request,    name='send_friend_request'),
     path('friends/<str:enrollment_number>/unfriend/',   unfriend_user,          name='unfriend_user'),
-    path('friends/<int:request_id>/accept/',            accept_friend_request,  name='accept_friend_request'),
-    path('friends/<int:request_id>/decline/',           decline_friend_request, name='decline_friend_request'),
+    path('friends/<str:request_id>/accept/',            accept_friend_request,  name='accept_friend_request'),
+    path('friends/<str:request_id>/decline/',           decline_friend_request, name='decline_friend_request'),
 ]

@@ -10,15 +10,29 @@ where unauthenticated requests display N.A. for enrollment and name.
 import datetime
 import logging
 import os
+import sys
 import time
 from django.conf import settings
 from django.core.management import call_command
 from django.db import connections
 from daphne.management.commands.runserver import Command as DaphneRunserverCommand
 
-from accounts.client_logger import ClientLoggingASGIWrapper, pop_client_request
+from accounts.client_logger import ClientLoggingASGIWrapper, pop_client_request, set_action_logger_active
 
-logger = logging.getLogger("django.channels.server")
+
+def _configure_channels_logger():
+    """Ensure django.channels.server outputs to console regardless of DEBUG or external logging config."""
+    srv_logger = logging.getLogger("django.channels.server")
+    srv_logger.setLevel(logging.INFO)
+    srv_logger.propagate = False
+    if not any(isinstance(h, logging.StreamHandler) for h in srv_logger.handlers):
+        h = logging.StreamHandler(sys.stdout)
+        h.setFormatter(logging.Formatter("%(message)s"))
+        srv_logger.addHandler(h)
+    return srv_logger
+
+
+logger = _configure_channels_logger()
 
 
 class Command(DaphneRunserverCommand):
@@ -76,6 +90,8 @@ class Command(DaphneRunserverCommand):
                     + "=" * 70 + "\n"
                 ))
 
+        _configure_channels_logger()
+        set_action_logger_active(True)
         super().handle(*args, **options)
 
     def get_application(self, options):

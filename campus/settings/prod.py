@@ -141,6 +141,9 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
+        'channels_server': {
+            'format': '%(message)s',
+        },
         'production': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
         },
@@ -149,6 +152,22 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'production',
+        },
+        'channels_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'channels_server',
+        },
+    },
+    'loggers': {
+        'django.channels.server': {
+            'handlers': ['channels_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'daphne': {
+            'handlers': ['channels_console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
     'root': {

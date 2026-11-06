@@ -1100,6 +1100,8 @@ def dashboard(request):
             'pending_application': None,
             'incoming_friend_requests': [],
             'is_guest_demo': True,
+            'recent_conversations': [],
+            'total_unread_messages': 0,
         })
 
     active_participations = list(
@@ -1124,12 +1126,16 @@ def dashboard(request):
         .order_by('-created_at')
     )
 
+    recent_conversations, total_unread_messages = get_user_recent_conversations(request.user, limit=4, include_empty=False)
+
     return render(request, 'accounts/dashboard.html', {
         'active_participation': active_participation,
         'other_participations': other_participations,
         'services': get_all_services(),
         'pending_application': pending_application,
         'incoming_friend_requests': incoming_friend_requests,
+        'recent_conversations': recent_conversations,
+        'total_unread_messages': total_unread_messages,
     })
 
 
@@ -1474,11 +1480,44 @@ def direct_chat_view(request, enrollment_number):
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()
         if content:
-            DirectMessage.objects.create(
+            msg = DirectMessage.objects.create(
                 sender=request.user,
                 recipient=friend,
                 content=content[:2000],
             )
+            def _broadcast_dm():
+                try:
+                    from channels.layers import get_channel_layer
+                    from asgiref.sync import async_to_sync
+                    channel_layer = get_channel_layer()
+                    if channel_layer:
+                        u1_id, u2_id = sorted([request.user.pk, friend.pk])
+                        async_to_sync(channel_layer.group_send)(
+                            f'direct_chat_{u1_id}_{u2_id}',
+                            {
+                                'type': 'chat.direct_message',
+                                'message_id': msg.id,
+                                'sender': request.user.enrollment_number,
+                                'content': msg.content,
+                                'timestamp': msg.created_at.strftime('%b %d, %H:%M'),
+                            }
+                        )
+                        async_to_sync(channel_layer.group_send)(
+                            f'user_notifications_{friend.pk}',
+                            {
+                                'type': 'chat.notification',
+                                'message_id': msg.id,
+                                'sender': request.user.enrollment_number,
+                                'sender_name': request.user.get_full_name() or request.user.enrollment_number,
+                                'sender_avatar': request.user.profile_photo.url if request.user.profile_photo else '',
+                                'content': msg.content[:120],
+                                'url': f'/messages/{request.user.enrollment_number}/',
+                                'timestamp': msg.created_at.strftime('%H:%M'),
+                            }
+                        )
+                except Exception:
+                    pass
+            transaction.on_commit(_broadcast_dm)
             return redirect('direct_chat', enrollment_number=friend.enrollment_number)
 
     # Mark unread messages from this friend as read
@@ -1505,37 +1544,39 @@ def direct_chat_view(request, enrollment_number):
     })
 
 
-@login_required
-@verified_student_required
-def messages_inbox(request):
-    """Overview of all friend conversations with latest snippet and unread badges."""
+def get_user_recent_conversations(user, limit=None, include_empty=False):
+    """Retrieve friend conversations with latest snippet and unread badges."""
     friendships = Friendship.objects.filter(
-        Q(user1=request.user) | Q(user2=request.user)
+        Q(user1=user) | Q(user2=user)
     ).select_related('user1', 'user2')
-    friends_list = [f.user2 if f.user1 == request.user else f.user1 for f in friendships]
+    friends_list = [f.user2 if f.user1 == user else f.user1 for f in friendships]
     friend_ids = {f.pk for f in friends_list}
 
     # Include former friends with chat history
-    dm_sent_to = set(DirectMessage.objects.filter(sender=request.user).values_list('recipient_id', flat=True))
-    dm_rcvd_from = set(DirectMessage.objects.filter(recipient=request.user).values_list('sender_id', flat=True))
+    dm_sent_to = set(DirectMessage.objects.filter(sender=user).values_list('recipient_id', flat=True))
+    dm_rcvd_from = set(DirectMessage.objects.filter(recipient=user).values_list('sender_id', flat=True))
     all_chat_partner_ids = friend_ids | dm_sent_to | dm_rcvd_from
+    if not all_chat_partner_ids:
+        return [], 0
+
     all_chat_users = User.objects.filter(pk__in=all_chat_partner_ids).distinct()
 
     # Batch-fetch unread counts across all senders (1 query)
     unread_counts = dict(
         DirectMessage.objects
-        .filter(recipient=request.user, is_read=False)
+        .filter(recipient=user, is_read=False)
         .values('sender_id')
         .annotate(cnt=Count('id'))
         .values_list('sender_id', 'cnt')
     )
+    total_unread = sum(unread_counts.values())
 
     # Batch-fetch latest message IDs across all chat partners (1 query + 1 fetch)
     latest_msg_subquery = (
         DirectMessage.objects
         .filter(
-            Q(sender=request.user, recipient=OuterRef('pk')) |
-            Q(sender=OuterRef('pk'), recipient=request.user)
+            Q(sender=user, recipient=OuterRef('pk')) |
+            Q(sender=OuterRef('pk'), recipient=user)
         )
         .order_by('-created_at')
         .values('id')[:1]
@@ -1556,17 +1597,30 @@ def messages_inbox(request):
 
     conversations = []
     for friend in all_chat_users:
-        conversations.append({
-            'friend': friend,
-            'latest_message': latest_messages.get(user_latest_ids.get(friend.pk)),
-            'unread_count': unread_counts.get(friend.pk, 0),
-        })
+        latest = latest_messages.get(user_latest_ids.get(friend.pk))
+        if include_empty or latest or unread_counts.get(friend.pk, 0) > 0:
+            conversations.append({
+                'friend': friend,
+                'latest_message': latest,
+                'unread_count': unread_counts.get(friend.pk, 0),
+            })
 
     conversations.sort(
         key=lambda c: c['latest_message'].created_at if c['latest_message'] else timezone.now() - timezone.timedelta(days=3650),
         reverse=True
     )
 
+    if limit:
+        conversations = conversations[:limit]
+
+    return conversations, total_unread
+
+
+@login_required
+@verified_student_required
+def messages_inbox(request):
+    """Overview of all friend conversations with latest snippet and unread badges."""
+    conversations, _ = get_user_recent_conversations(request.user, limit=None, include_empty=True)
     return render(request, 'accounts/messages_inbox.html', {
         'conversations': conversations,
     })
@@ -1887,53 +1941,146 @@ def send_friend_request(request, enrollment_number):
     return redirect('profile', enrollment_number=enrollment_number)
 
 
+def _redirect_after_friend_action(request, target_user=None):
+    """Safely redirect to referer if within domain, or current user's profile, or dashboard."""
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        from urllib.parse import urlparse
+        parsed = urlparse(referer)
+        host = request.get_host().split(':')[0].lower()
+        referer_host = (parsed.netloc or '').split(':')[0].lower()
+        if not referer_host or referer_host == host or referer_host.endswith('.' + host):
+            return redirect(referer)
+    if request.user and getattr(request.user, 'enrollment_number', None):
+        return redirect('profile', enrollment_number=request.user.enrollment_number)
+    if target_user and getattr(target_user, 'enrollment_number', None):
+        return redirect('profile', enrollment_number=target_user.enrollment_number)
+    return redirect('dashboard')
+
+
 @require_POST
 @login_required
 @verified_student_required
 def accept_friend_request(request, request_id):
-    friend_request = get_object_or_404(
-        FriendRequest,
-        id=request_id,
-        receiver=request.user,
-    )
+    """Accept an incoming friend request by request ID, sender user ID, or enrollment number.
+    Gracefully handles already-accepted, duplicate, or stale requests without throwing 404.
+    """
+    int_id = None
+    try:
+        int_id = int(request_id)
+    except (ValueError, TypeError):
+        pass
+
+    friend_request = None
+    if int_id is not None:
+        # 1. Direct FriendRequest primary key where request.user is receiver
+        friend_request = FriendRequest.objects.filter(id=int_id, receiver=request.user).select_related('sender', 'receiver').first()
+        # 2. Match by sender User ID where request.user is receiver
+        if not friend_request:
+            friend_request = FriendRequest.objects.filter(sender_id=int_id, receiver=request.user).select_related('sender', 'receiver').first()
+        # 3. Match reciprocal/mutual where request.user is sender
+        if not friend_request:
+            friend_request = FriendRequest.objects.filter(id=int_id, sender=request.user).select_related('sender', 'receiver').first()
+        if not friend_request:
+            friend_request = FriendRequest.objects.filter(receiver_id=int_id, sender=request.user).select_related('sender', 'receiver').first()
+
+    # 4. Match by sender or receiver enrollment number (e.g. string '2024BCSE037')
+    if not friend_request:
+        friend_request = FriendRequest.objects.filter(
+            sender__enrollment_number__iexact=str(request_id),
+            receiver=request.user,
+        ).select_related('sender', 'receiver').first()
+
+    if not friend_request:
+        friend_request = FriendRequest.objects.filter(
+            receiver__enrollment_number__iexact=str(request_id),
+            sender=request.user,
+        ).select_related('sender', 'receiver').first()
+
+    if not friend_request:
+        # Check if users are already friends or if target user exists
+        target_user = None
+        if int_id is not None:
+            target_user = User.objects.filter(id=int_id).first()
+        if not target_user:
+            target_user = User.objects.filter(enrollment_number__iexact=str(request_id)).first()
+
+        if target_user:
+            already_friends = Friendship.objects.filter(
+                Q(user1=request.user, user2=target_user) |
+                Q(user1=target_user, user2=request.user)
+            ).exists()
+            if already_friends:
+                name_or_enrollment = target_user.get_full_name() or target_user.enrollment_number
+                messages.info(request, f'You are already friends with {name_or_enrollment}.')
+                return _redirect_after_friend_action(request, target_user)
+
+        messages.info(request, 'This friend request has already been processed or is no longer pending.')
+        return _redirect_after_friend_action(request, target_user)
+
+    # Determine other student
+    other_user = friend_request.sender if friend_request.receiver == request.user else friend_request.receiver
 
     from coordinate.policies import is_verified_student
-    if not friend_request.sender.is_active or getattr(friend_request.sender, 'is_deleted', False) or not is_verified_student(friend_request.sender):
+    if not other_user.is_active or getattr(other_user, 'is_deleted', False) or not is_verified_student(other_user):
         friend_request.delete()
-        messages.error(request, "This student account is no longer active.")
-        return redirect('profile', enrollment_number=request.user.enrollment_number)
+        messages.error(request, 'This student account is no longer active.')
+        return _redirect_after_friend_action(request, other_user)
 
+    other_name = other_user.get_full_name() or other_user.enrollment_number
     try:
         with transaction.atomic():
             Friendship.objects.create(
-                user1=friend_request.sender,
-                user2=friend_request.receiver,
+                user1=request.user,
+                user2=other_user,
             )
             FriendRequest.objects.filter(
-                Q(sender=friend_request.sender, receiver=friend_request.receiver) |
-                Q(sender=friend_request.receiver, receiver=friend_request.sender)
+                Q(sender=request.user, receiver=other_user) |
+                Q(sender=other_user, receiver=request.user)
             ).delete()
-        messages.success(request, f'You are now friends with {friend_request.sender}.')
+        messages.success(request, f'You are now friends with {other_name}.')
     except IntegrityError:
         FriendRequest.objects.filter(
-            Q(sender=friend_request.sender, receiver=friend_request.receiver) |
-            Q(sender=friend_request.receiver, receiver=friend_request.sender)
+            Q(sender=request.user, receiver=other_user) |
+            Q(sender=other_user, receiver=request.user)
         ).delete()
-        messages.info(request, 'Friendship already exists.')
+        messages.info(request, f'You are already friends with {other_name}.')
 
-    return redirect('profile', enrollment_number=request.user.enrollment_number)
+    return _redirect_after_friend_action(request, other_user)
 
 
 @require_POST
 @login_required
 @verified_student_required
 def decline_friend_request(request, request_id):
-    friend_request = get_object_or_404(
-        FriendRequest,
-        id=request_id,
-        receiver=request.user,
-    )
+    """Decline an incoming friend request by request ID, sender user ID, or enrollment number.
+    Gracefully handles already-processed requests without throwing 404.
+    """
+    int_id = None
+    try:
+        int_id = int(request_id)
+    except (ValueError, TypeError):
+        pass
+
+    friend_request = None
+    if int_id is not None:
+        friend_request = FriendRequest.objects.filter(id=int_id, receiver=request.user).select_related('sender').first()
+        if not friend_request:
+            friend_request = FriendRequest.objects.filter(sender_id=int_id, receiver=request.user).select_related('sender').first()
+
+    if not friend_request:
+        friend_request = FriendRequest.objects.filter(
+            sender__enrollment_number__iexact=str(request_id),
+            receiver=request.user,
+        ).select_related('sender').first()
+
+    if not friend_request:
+        messages.info(request, 'This friend request has already been processed or is no longer pending.')
+        return _redirect_after_friend_action(request)
+
     sender = friend_request.sender
+    sender_name = sender.get_full_name() or sender.enrollment_number
     friend_request.delete()
-    messages.info(request, f'Friend request from {sender} was declined.')
-    return redirect('profile', enrollment_number=request.user.enrollment_number)
+    messages.info(request, f'Friend request from {sender_name} was declined.')
+    return _redirect_after_friend_action(request, sender)
+

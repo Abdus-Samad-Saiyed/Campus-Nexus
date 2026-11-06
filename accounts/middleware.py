@@ -54,13 +54,14 @@ class ClientIdentityLoggingMiddleware:
     def __call__(self, request):
         initial_user = getattr(request, 'user', None)
         received_at = time.time()
+        response = None
         try:
             response = self.get_response(request)
             return response
         finally:
-            self._record_client_identity(request, initial_user, received_at)
+            self._record_client_identity(request, initial_user, received_at, response)
 
-    def _record_client_identity(self, request, initial_user=None, received_at=None):
+    def _record_client_identity(self, request, initial_user=None, received_at=None, response=None):
         try:
             # 1. Determine client connection key matching Daphne's details['client']
             client_key = None
@@ -74,7 +75,7 @@ class ClientIdentityLoggingMiddleware:
 
             # 2. Extract real IP from proxy headers if present
             real_ip = (
-                request.META.get('HTTP_CF_CONNECTING_IP')
+                request.META.get('HTTP_CF_CONNECTING_IP', '').strip()
                 or (request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() if request.META.get('HTTP_X_FORWARDED_FOR') else None)
                 or request.META.get('REMOTE_ADDR')
             )
@@ -92,16 +93,19 @@ class ClientIdentityLoggingMiddleware:
                     token = parts[1].strip()
                     user = self._get_user_from_token(token)
 
+            from accounts.demo import is_guest_demo
+            in_guest_demo = is_guest_demo(request)
+
             enrollment = "N.A."
             name = "N.A."
-            if user and getattr(user, 'is_authenticated', False):
+            if user and getattr(user, 'is_authenticated', False) and not in_guest_demo:
                 enrollment = getattr(user, 'enrollment_number', '') or getattr(user, 'username', 'N.A.') or 'N.A.'
                 full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
                 name = full_name.strip() or getattr(user, 'display_name', '') or getattr(user, 'username', '') or enrollment
                 if not name:
                     name = "N.A."
 
-            from accounts.client_logger import update_or_record_client_request, resolve_client_display
+            from accounts.client_logger import update_or_record_client_request, resolve_client_display, is_action_logger_active
             real_client = resolve_client_display(client_key, real_ip)
             update_or_record_client_request(
                 client_key,
@@ -110,6 +114,18 @@ class ClientIdentityLoggingMiddleware:
                 real_client=real_client,
                 received_at=received_at,
             )
+
+            # If Daphne's custom Command.log_action is NOT active, log directly as fallback
+            if not is_action_logger_active() and response is not None:
+                import datetime
+                import logging
+                server_time = datetime.datetime.fromtimestamp(received_at or time.time()).strftime("%d/%b/%Y %H:%M:%S")
+                duration = time.time() - (received_at or time.time())
+                status_code = getattr(response, 'status_code', 200)
+                method = request.method
+                path = request.get_full_path()
+                msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {real_client}, {enrollment}, {name}]"
+                logging.getLogger("django.channels.server").info(msg)
         except Exception:
             pass
 

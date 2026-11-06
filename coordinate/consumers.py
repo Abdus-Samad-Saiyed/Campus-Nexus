@@ -182,6 +182,10 @@ class RideChatConsumer(AsyncWebsocketConsumer):
         }))
         await self.close(code=4003)
 
+    async def chat_notification(self, event):
+        """No-op when user is connected to a ride chat room."""
+        pass
+
     # ------------------------------------------------------------------
     # DB helpers
     # ------------------------------------------------------------------
