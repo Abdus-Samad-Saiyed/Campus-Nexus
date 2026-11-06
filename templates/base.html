@@ -438,22 +438,22 @@
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-custom sticky-top py-2">
-        <div class="container">
+        <div class="container-fluid px-lg-4 px-3" style="max-width: 1440px;">
             <!-- Campus Nexus Umbrella Brand -->
             <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing' %}{% endif %}">
                 <span class="feature-icon" style="width: 32px; height: 32px; font-size: 1rem;"><i class="bi bi-grid-3x3-gap-fill"></i></span>
                 <span>CAMPUS <span class="green-accent">NEXUS</span></span>
             </a>
 
-            <!-- Mobile Hamburger Toggle -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation" style="background: rgba(8, 183, 79, 0.16) !important; border: 1.5px solid var(--green, #08B74F) !important; color: var(--green, #08B74F) !important; box-shadow: 0 0 14px rgba(8, 183, 79, 0.35) !important;">
-                <i class="bi bi-list navbar-toggler-icon-open" style="color: var(--green, #08B74F) !important;"></i>
-                <i class="bi bi-x-lg navbar-toggler-icon-close" style="color: var(--green, #08B74F) !important;"></i>
+            <!-- Mobile Hamburger Toggle (strictly hidden on desktop) -->
+            <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="bi bi-list navbar-toggler-icon-open"></i>
+                <i class="bi bi-x-lg navbar-toggler-icon-close"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarMain">
                 <!-- Primary Nav Navigation Links -->
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-lg-1">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-1 align-items-lg-center">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active fw-semibold{% endif %}" href="{% url 'dashboard' %}">
@@ -526,10 +526,10 @@
                     {% if user.is_staff or user.is_superuser %}
                         <!-- Admin Quick Pending Applications Badge Button -->
                         <a href="{% url 'application_list' %}"
-                           class="btn btn-icon-nav position-relative d-inline-flex align-items-center justify-content-center text-decoration-none {% if pending_applications_count > 0 %}border-warning text-warning{% endif %}"
+                           class="btn btn-icon-nav position-relative d-inline-flex align-items-center justify-content-center text-decoration-none"
                            title="Pending Student Applications Queue ({{ pending_applications_count }} waiting review)"
                            aria-label="Pending student applications">
-                            <i class="bi bi-card-checklist fs-6"></i>
+                            <i class="bi bi-card-checklist fs-6 {% if pending_applications_count > 0 %}text-warning{% endif %}"></i>
                             {% if pending_applications_count > 0 %}
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark" style="font-size: 0.65rem; padding: 0.25em 0.45em;">
                                     {{ pending_applications_count }}
@@ -544,9 +544,8 @@
                     </button>
 
                     <!-- Direct Zen Clock Reveal Button -->
-                    <button class="zen-nav-btn" type="button" onclick="window.toggleForegroundScatter()" title="Reveal Clock (Zen Mode)">
+                    <button class="zen-nav-btn" type="button" onclick="window.toggleForegroundScatter()" title="Zen Mode (Reveal Floating Clock)" aria-label="Zen Mode">
                         <i class="bi bi-clock-history"></i>
-                        <span class="d-none d-md-inline">Zen Mode</span>
                     </button>
 
                     <!-- Visual Effects & Custom Accents Dropdown -->

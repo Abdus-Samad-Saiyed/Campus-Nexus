@@ -762,11 +762,14 @@ h1, h2, h3, h4, h5, h6, .hero-title, .navbar-brand {
   font-size: 0.86rem;
   font-weight: 500;
   color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  padding: 6px 12px !important;
+  border-radius: var(--radius-full);
+  padding: 6px 14px !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
+  white-space: nowrap !important;
+  gap: 6px;
+  height: 34px;
 }
 .navbar-nav .nav-link:hover {
   color: var(--green) !important;
@@ -779,19 +782,26 @@ h1, h2, h3, h4, h5, h6, .hero-title, .navbar-brand {
   font-weight: 600;
   border: 1px solid var(--green-glow);
 }
-/* ── Highly Visible Mobile Navigation Toggler ───────────────────────── */
-.navbar-toggler {
-  background: rgba(8, 183, 79, 0.16) !important;
-  border: 1.5px solid var(--green, #08B74F) !important;
-  padding: 6px 12px !important;
-  border-radius: var(--radius-sm) !important;
-  color: var(--green, #08B74F) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: 0 0 14px var(--green-glow, rgba(8, 183, 79, 0.35)) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  cursor: pointer !important;
+/* ── Highly Visible Mobile Navigation Toggler (Strictly Mobile Only) ── */
+@media (min-width: 992px) {
+  .navbar-toggler {
+    display: none !important;
+  }
+}
+@media (max-width: 991.98px) {
+  .navbar-toggler {
+    background: rgba(8, 183, 79, 0.16) !important;
+    border: 1.5px solid var(--green, #08B74F) !important;
+    padding: 6px 12px !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--green, #08B74F) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 0 14px var(--green-glow, rgba(8, 183, 79, 0.35)) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    cursor: pointer !important;
+  }
 }
 .navbar-toggler:hover,
 .navbar-toggler:focus {
@@ -964,26 +974,29 @@ h1, h2, h3, h4, h5, h6, .hero-title, .navbar-brand {
   border: 1.5px solid var(--green-glow);
 }
 
-/* Dedicated Zen Mode Nav Button */
+/* Dedicated Zen Mode Nav Button (Matches 34px Round Utility Buttons) */
 .zen-nav-btn {
-  background: var(--green-dim) !important;
-  border: 1px solid var(--green-glow) !important;
-  color: var(--green) !important;
-  border-radius: var(--radius-full);
-  padding: 5px 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 34px;
+  height: 34px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--green) !important;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
 }
 .zen-nav-btn:hover {
-  background: var(--green) !important;
-  color: #000 !important;
-  box-shadow: 0 0 16px var(--green-glow);
-  transform: translateY(-1px) scale(1.02);
+  background: var(--green-dim) !important;
+  border-color: var(--green) !important;
+  color: var(--green) !important;
+  box-shadow: 0 0 14px var(--green-glow);
+  transform: translateY(-1px);
 }
 [data-bs-theme="light"] .zen-nav-btn,
 [data-theme="light"] .zen-nav-btn {
