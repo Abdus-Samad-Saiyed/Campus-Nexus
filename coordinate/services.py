@@ -38,8 +38,27 @@ from .policies import (
 User = get_user_model()
 
 
+def user_has_overlapping_ride(
+    user: User,
+    departure_time: datetime.datetime,
+    exclude_ride_id: Optional[int] = None,
+    buffer_hours: int = 2,
+) -> bool:
+    """Check whether a student is already host or confirmed passenger in a ride within buffer_hours of departure_time."""
+    window_start = departure_time - datetime.timedelta(hours=buffer_hours)
+    window_end = departure_time + datetime.timedelta(hours=buffer_hours)
+    qs = (
+        RideRequest.objects
+        .filter(status__in=['OPEN', 'FULL'], departure_time__range=(window_start, window_end))
+        .filter(participants__user=user, participants__status='CONFIRMED')
+    )
+    if exclude_ride_id:
+        qs = qs.exclude(id=exclude_ride_id)
+    return qs.exists()
+
+
 def user_has_active_ride(user: User, exclude_ride_id: Optional[int] = None) -> bool:
-    """Check whether a student is already host or confirmed passenger in another active ride within the 2-hour window."""
+    """Check whether a student has any currently active or upcoming ride within the next 2 hours."""
     threshold = timezone.now() - datetime.timedelta(hours=2)
     qs = (
         RideRequest.objects
@@ -77,8 +96,8 @@ def user_can_join_ride(user: User, ride: RideRequest) -> Tuple[bool, str, str]:
     if ride.kicked_users.filter(id=user.id).exists():
         return False, "You were previously removed from this ride by the host.", "USER_KICKED"
 
-    if user_has_active_ride(user, exclude_ride_id=ride.id):
-        return False, "You already have another active ride scheduled.", "ACTIVE_RIDE_EXISTS"
+    if user_has_overlapping_ride(user, ride.departure_time, exclude_ride_id=ride.id):
+        return False, "You already have another confirmed ride scheduled around this departure time.", "ACTIVE_RIDE_EXISTS"
 
     if not can_view_ride(user, ride):
         return False, "You do not meet the audience comfort criteria for this ride.", "AUDIENCE_MISMATCH"
@@ -215,11 +234,11 @@ def approve_ride_join_request(
         if timezone.now() >= ride.departure_time:
             return False, "Cannot approve request: ride has already departed.", {"code": "RIDE_DEPARTED"}
 
-        if user_has_active_ride(join_req.user, exclude_ride_id=ride.id):
+        if user_has_overlapping_ride(join_req.user, ride.departure_time, exclude_ride_id=ride.id):
             join_req.status = 'DECLINED'
             join_req.reviewed_at = timezone.now()
             join_req.save(update_fields=['status', 'reviewed_at'])
-            return False, f"{join_req.user.enrollment_number} already joined another active ride.", {
+            return False, f"{join_req.user.enrollment_number} already joined another ride overlapping this departure time.", {
                 "code": "ACTIVE_RIDE_EXISTS"
             }
 
@@ -324,7 +343,7 @@ def promote_waitlist_passenger(ride: RideRequest) -> Optional[User]:
             and can_view_ride(candidate, ride)
             and candidate != ride.creator
             and not ride.kicked_users.filter(id=candidate.id).exists()
-            and not user_has_active_ride(candidate, exclude_ride_id=ride.id)
+            and not user_has_overlapping_ride(candidate, ride.departure_time, exclude_ride_id=ride.id)
             and not ride.participants.filter(user=candidate).exists()
         ):
             transition_participant_state(

@@ -24,6 +24,9 @@ def is_verified_student(user: Optional[User]) -> bool:
     """Return True if user is an active, verified student in good standing."""
     if not user or not user.is_authenticated:
         return False
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(user):
+        return False
     from django.conf import settings
     is_verified = user.verified or getattr(settings, 'EARLY_LAUNCH_MODE', False)
     return bool(user.is_active and is_verified and not getattr(user, 'is_deleted', False))
@@ -33,6 +36,9 @@ def can_view_student_directory(user: Optional[User]) -> bool:
     """Directory browsing is restricted strictly to verified students and staff."""
     if not user or not user.is_authenticated:
         return False
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(user):
+        return False
     if user.is_staff or user.is_superuser:
         return True
     return is_verified_student(user)
@@ -41,6 +47,10 @@ def can_view_student_directory(user: Optional[User]) -> bool:
 def can_view_profile_field(viewer: Optional[User], target_user: User, field_name: str) -> bool:
     """Determine field-level visibility on student profile pages."""
     if not viewer or not viewer.is_authenticated:
+        return False
+
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(viewer):
         return False
 
     # Staff and self can view everything
@@ -83,6 +93,11 @@ def can_view_ride(viewer: Optional[User], ride) -> bool:
     """Enforce audience comfort and membership visibility for rides."""
     if not viewer or not viewer.is_authenticated:
         return False
+
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(viewer):
+        # Guests can only access full room view for their own ephemeral demo ride
+        return bool(getattr(ride, 'demo_session_key', None) and ride.creator_id == viewer.id)
 
     # Admin override
     if viewer.is_staff or viewer.is_superuser:

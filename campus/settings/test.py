@@ -29,7 +29,8 @@ PASSWORD_HASHERS = [
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
 DATABASES = {
-    'default': env.db('TEST_DATABASE_URL', default='sqlite:///:memory:')
+    'default': env.db('TEST_DATABASE_URL', default='sqlite:///:memory:'),
+    'guest_demo': env.db('TEST_GUEST_DEMO_DATABASE_URL', default='sqlite:///:memory:'),
 }
 
 CHANNEL_LAYERS = {

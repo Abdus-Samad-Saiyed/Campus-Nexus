@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}403 — Access Restricted | Campus Nexus{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9 text-center">
+            <div class="glass p-5 position-relative overflow-hidden">
+                <div class="mb-3">
+                    <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill fw-semibold">
+                        <i class="bi bi-shield-lock me-1"></i> HTTP 403 Forbidden
+                    </span>
+                </div>
+
+                <div class="feature-icon mx-auto mb-4 text-danger" style="width: 80px; height: 80px; font-size: 2.2rem; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);">
+                    <i class="bi bi-shield-x"></i>
+                </div>
+
+                <h2 class="fw-bold mb-2">Access Restricted</h2>
+                <p class="text-secondary mb-4 mx-auto" style="max-width: 480px;">
+                    You do not have administrative or authorization privileges to access this resource or execute this action.
+                </p>
+
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing' %}{% endif %}" class="btn btn-green px-4">
+                        <i class="bi bi-speedometer2 me-1"></i> Return to Nexus
+                    </a>
+                    <a href="{% url 'ride_list' %}" class="btn btn-outline-green px-4">
+                        <i class="bi bi-car-front me-1"></i> Browse Rides
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

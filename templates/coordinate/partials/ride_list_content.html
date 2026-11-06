@@ -210,9 +210,20 @@
                     <div class="glass p-4 h-100 ride-card d-flex flex-column justify-content-between">
                         <div>
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <span class="badge badge-status badge-{{ ride.visibility|lower }}">
-                                    {{ ride.get_visibility_display }}
-                                </span>
+                                <div class="d-flex gap-1 align-items-center">
+                                    <span class="badge badge-status badge-{{ ride.visibility|lower }}">
+                                        {{ ride.get_visibility_display }}
+                                    </span>
+                                    {% if ride.is_demo_ride %}
+                                        <span class="badge bg-primary text-light font-monospace py-1 px-2" style="font-size: 0.72rem;">
+                                            <i class="bi bi-play-circle-fill me-1"></i> DEMO TEST RIDE
+                                        </span>
+                                    {% elif ride.is_redacted %}
+                                        <span class="badge border border-info border-opacity-50 text-info font-monospace py-1 px-2" style="font-size: 0.72rem; background: rgba(14, 165, 233, 0.1);">
+                                            <i class="bi bi-shield-lock-fill me-1"></i> PROTECTED IN DEMO
+                                        </span>
+                                    {% endif %}
+                                </div>
                                 <span class="badge badge-status {% if ride.status == 'OPEN' %}badge-open{% else %}badge-full{% endif %}">
                                     {{ ride.get_status_display }}
                                 </span>
@@ -220,10 +231,17 @@
 
                             <h4 class="fw-bold mb-2">{{ ride.route_display }}</h4>
 
-                            <div class="text-secondary small mb-3">
-                                <i class="bi bi-clock-fill green-accent me-1"></i>
-                                <strong>{{ ride.departure_time|date:"h:i A" }}</strong> &middot; {{ ride.departure_time|date:"l, M j" }}
-                            </div>
+                            {% if ride.is_redacted %}
+                                <div class="text-info small mb-3 font-monospace">
+                                    <i class="bi bi-clock-history me-1 text-info"></i>
+                                    <strong>Scheduled Departure (Protected in Demo)</strong>
+                                </div>
+                            {% else %}
+                                <div class="text-secondary small mb-3">
+                                    <i class="bi bi-clock-fill green-accent me-1"></i>
+                                    <strong>{{ ride.departure_time|date:"h:i A" }}</strong> &middot; {{ ride.departure_time|date:"l, M j" }}
+                                </div>
+                            {% endif %}
 
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between small text-secondary mb-1">
@@ -236,44 +254,84 @@
                             </div>
 
                             <!-- Host & Passenger Information -->
-                            <div class="mb-3">
-                                <div class="small mb-2">
-                                    <span class="text-secondary">Host:</span>
-                                    <a href="{% url 'profile' ride.creator.enrollment_number %}" class="green-accent fw-semibold text-decoration-none">
-                                        {% if ride.creator.get_full_name %}{{ ride.creator.get_full_name }} ({{ ride.creator.enrollment_number }}){% else %}{{ ride.creator.enrollment_number }}{% endif %}
-                                    </a>
-                                    <span class="text-secondary small">({{ ride.creator.on_time_percentage }}% on-time)</span>
-                                </div>
-
-                                <div class="small">
-                                    <div class="text-secondary mb-1">
-                                        <i class="bi bi-people-fill me-1 text-secondary"></i>
-                                        <span>Joined Riders{% if ride.co_riders %} ({{ ride.co_riders|length }}){% endif %}:</span>
+                            {% if ride.is_redacted %}
+                                <div class="mb-3">
+                                    <div class="small mb-2">
+                                        <span class="text-secondary">Host:</span>
+                                        <span class="text-muted fw-semibold"><i class="bi bi-person-fill-lock text-info me-1"></i> Verified Student (Protected)</span>
                                     </div>
-                                    {% if ride.co_riders %}
-                                        <div class="d-flex flex-wrap gap-1">
-                                            {% for p in ride.co_riders %}
-                                                <a href="{% url 'profile' p.user.enrollment_number %}"
-                                                   class="badge bg-dark border border-secondary text-light text-decoration-none py-1 px-2 d-inline-flex align-items-center"
-                                                   title="{{ p.user.display_name }} ({{ p.user.enrollment_number }})">
-                                                    <i class="bi bi-person-fill text-emerald me-1"></i>
-                                                    <span>{% if p.user.get_full_name %}{{ p.user.get_full_name }} ({{ p.user.enrollment_number }}){% else %}{{ p.user.enrollment_number }}{% endif %}</span>
-                                                </a>
-                                            {% endfor %}
+                                    <div class="small">
+                                        <div class="text-secondary mb-1">
+                                            <i class="bi bi-people-fill me-1 text-secondary"></i>
+                                            <span>Passengers:</span>
                                         </div>
-                                    {% else %}
-                                        <div class="text-muted small fst-italic">
-                                            No one has joined yet &middot; {{ ride.spots_left }} spot{{ ride.spots_left|pluralize }} available
-                                        </div>
-                                    {% endif %}
+                                        {% if ride.participants_total > 1 %}
+                                            <span class="badge bg-dark border border-secondary text-secondary py-1 px-2">
+                                                <i class="bi bi-shield-check text-info me-1"></i> {{ ride.participants_total }} Students Joined (Identities Protected in Demo)
+                                            </span>
+                                        {% else %}
+                                            <div class="text-muted small fst-italic">No additional passengers joined</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                            </div>
+                            {% elif ride.is_demo_ride %}
+                                <div class="mb-3">
+                                    <div class="small mb-2">
+                                        <span class="text-secondary">Host:</span>
+                                        <span class="text-light fw-semibold"><i class="bi bi-person-circle text-primary me-1"></i> Guest Explorer (You)</span>
+                                    </div>
+                                    <div class="small">
+                                        <div class="text-muted small fst-italic">Ephemeral demo ride &middot; visible only to your session</div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="mb-3">
+                                    <div class="small mb-2">
+                                        <span class="text-secondary">Host:</span>
+                                        <a href="{% url 'profile' ride.creator.enrollment_number %}" class="green-accent fw-semibold text-decoration-none">
+                                            {% if ride.creator.get_full_name %}{{ ride.creator.get_full_name }} ({{ ride.creator.enrollment_number }}){% else %}{{ ride.creator.enrollment_number }}{% endif %}
+                                        </a>
+                                        <span class="text-secondary small">({{ ride.creator.on_time_percentage }}% on-time)</span>
+                                    </div>
+
+                                    <div class="small">
+                                        <div class="text-secondary mb-1">
+                                            <i class="bi bi-people-fill me-1 text-secondary"></i>
+                                            <span>Joined Riders{% if ride.co_riders %} ({{ ride.co_riders|length }}){% endif %}:</span>
+                                        </div>
+                                        {% if ride.co_riders %}
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for p in ride.co_riders %}
+                                                    <a href="{% url 'profile' p.user.enrollment_number %}"
+                                                       class="badge bg-dark border border-secondary text-light text-decoration-none py-1 px-2 d-inline-flex align-items-center"
+                                                       title="{{ p.user.display_name }} ({{ p.user.enrollment_number }})">
+                                                        <i class="bi bi-person-fill text-emerald me-1"></i>
+                                                        <span>{% if p.user.get_full_name %}{{ p.user.get_full_name }} ({{ p.user.enrollment_number }}){% else %}{{ p.user.enrollment_number }}{% endif %}</span>
+                                                    </a>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="text-muted small fst-italic">
+                                                No one has joined yet &middot; {{ ride.spots_left }} spot{{ ride.spots_left|pluralize }} available
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div>
                             <hr class="my-3">
                             <div class="d-flex gap-2 align-items-center">
-                                {% if ride.is_participant or ride.id in joined_ride_ids or ride.creator == user %}
+                                {% if ride.is_redacted %}
+                                    <button type="button" class="btn btn-outline-secondary flex-grow-1" data-bs-toggle="modal" data-bs-target="#guestDemoActionModal">
+                                        <i class="bi bi-lock-fill me-1"></i> {% if ride.status == 'FULL' %}Join Standby (Demo Restricted){% else %}Join Ride (Demo Restricted){% endif %}
+                                    </button>
+                                {% elif ride.is_demo_ride %}
+                                    <a href="{% url 'ride_detail' ride.id %}" class="btn btn-green flex-grow-1">
+                                        <i class="bi bi-chat-dots-fill me-1"></i> Open Demo Room
+                                    </a>
+                                {% elif ride.is_participant or ride.id in joined_ride_ids or ride.creator == user %}
                                     <a href="{% url 'ride_detail' ride.id %}" class="btn btn-green flex-grow-1">
                                         <i class="bi bi-chat-dots-fill me-1"></i> Open Room
                                         {% if ride.pending_request_count > 0 and ride.creator == user %}
@@ -329,6 +387,10 @@
                                             <i class="bi bi-hourglass-split me-1"></i> Join Standby (Waitlist)
                                         </button>
                                     </form>
+                                {% elif ride.has_overlap %}
+                                    <button class="btn btn-dark-custom w-100 text-warning" disabled title="You already have another confirmed ride departing within 2 hours of this time">
+                                        <i class="bi bi-clock-history me-1"></i> Time Conflict (Overlaps)
+                                    </button>
                                 {% elif ride.status == 'FULL' %}
                                     <button class="btn btn-dark-custom w-100 text-warning" disabled>Ride Full</button>
                                 {% else %}
@@ -351,11 +413,37 @@
                 <a href="{% url 'ride_list' %}" hx-get="{% url 'ride_list' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset All Filters
                 </a>
-                {% if not has_active_ride %}
-                    <a href="{% url 'create_ride' %}" class="btn btn-green">
-                        <i class="bi bi-plus-lg me-1"></i> Propose a New Ride
-                    </a>
-                {% endif %}
+                <a href="{% url 'create_ride' %}" class="btn btn-green">
+                    <i class="bi bi-plus-lg me-1"></i> Propose a New Ride
+                </a>
             </div>
         </div>
     {% endif %}
+
+<!-- Guest Demo Action Modal -->
+<div class="modal fade" id="guestDemoActionModal" tabindex="-1" aria-labelledby="guestDemoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass border-secondary shadow-lg">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title fw-bold text-light" id="guestDemoModalLabel">
+                    <i class="bi bi-shield-lock-fill text-info me-2"></i>Guest Demo Mode Protection
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-secondary">
+                <p class="text-light mb-2 fw-semibold">Real student rides and coordination groups are strictly private in Guest Demo Mode.</p>
+                <p class="small mb-3">To protect student privacy and safety, student identities, exact departure times, and live coordination rooms are protected from external web access.</p>
+                <div class="p-3 rounded bg-dark border border-secondary mb-2 small text-light">
+                    <i class="bi bi-info-circle-fill text-info me-1"></i> <strong>Want to test the cab-sharing mechanism?</strong>
+                    <div class="text-secondary mt-1">Click the <strong>Offer a Ride</strong> button above to create an ephemeral demo ride stored in your isolated sandbox!</div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'create_ride' %}" class="btn btn-green btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Offer Demo Ride
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,7 +1,8 @@
 # Campus Nexus — Full Production Deployment & Operations Guide
 
-**Platform Version:** 2.4.0  
+**Platform Version:** 2.5.0  
 **Target Environment:** Linux (Ubuntu 24.04 LTS / Debian 12)  
+**Documentation Suite:** Mirrored in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)  
 **Architecture:** Django 6.0.5 + Channels 4 + Daphne ASGI + PostgreSQL 16 / SQLite3 + Redis 7 + NGINX + WhiteNoise  
 **Repository:** [https://github.com/Abdus-Samad-Saiyed/Campus-Nexus](https://github.com/Abdus-Samad-Saiyed/Campus-Nexus)
 

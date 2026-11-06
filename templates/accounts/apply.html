@@ -9,23 +9,25 @@
         <div class="col-lg-7">
             <div class="glass p-4 p-md-5 h-100">
                 {% if early_launch_mode %}
-                    <!-- Mode Switcher Nav-Pills -->
-                    <ul class="nav nav-pills nav-fill mb-4 p-1 rounded-pill bg-black bg-opacity-40 border border-secondary">
-                        <li class="nav-item">
-                            <a class="nav-link rounded-pill py-2 fw-semibold {% if active_tab == 'early' %}active bg-warning text-dark{% else %}text-secondary{% endif %}"
-                               href="{% url 'apply_account' %}?mode=early">
-                                <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Early Access
-                                <span class="badge bg-dark text-warning ms-1 small">Transit Rush</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link rounded-pill py-2 fw-semibold {% if active_tab == 'permanent' %}active btn-green text-dark{% else %}text-secondary{% endif %}"
-                               href="{% url 'apply_account' %}?mode=permanent">
-                                <i class="bi bi-shield-check me-1"></i> Official Permanent Account
-                                <span class="badge bg-secondary text-white ms-1 small">ID Verified</span>
-                            </a>
-                        </li>
-                    </ul>
+                    <!-- High-Precision Responsive Mode Switcher -->
+                    <div class="apply-mode-switcher mb-4">
+                        <a href="{% url 'apply_account' %}?mode=early"
+                           class="apply-mode-tab {% if active_tab == 'early' %}active-early{% endif %}"
+                           role="tab"
+                           aria-selected="{% if active_tab == 'early' %}true{% else %}false{% endif %}">
+                            <i class="bi bi-lightning-charge-fill me-1"></i>
+                            <span class="tab-label">Fast-Track Early Access</span>
+                            <span class="tab-badge">Transit Rush</span>
+                        </a>
+                        <a href="{% url 'apply_account' %}?mode=permanent"
+                           class="apply-mode-tab {% if active_tab == 'permanent' %}active-permanent{% endif %}"
+                           role="tab"
+                           aria-selected="{% if active_tab == 'permanent' %}true{% else %}false{% endif %}">
+                            <i class="bi bi-shield-check me-1"></i>
+                            <span class="tab-label">Official Permanent Account</span>
+                            <span class="tab-badge">ID Verified</span>
+                        </a>
+                    </div>
                 {% endif %}
 
                 {% if early_launch_mode and active_tab == 'early' %}

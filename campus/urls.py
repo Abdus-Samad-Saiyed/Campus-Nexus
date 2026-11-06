@@ -6,6 +6,7 @@ from django.contrib.auth import views as auth_views
 
 from django.conf import settings
 from django.urls import include, path, re_path
+from accounts.demo import enter_guest_demo, exit_guest_demo, is_guest_demo
 from django.views.generic.base import RedirectView
 
 from accounts.forms import EnrollmentAuthenticationForm
@@ -81,6 +82,8 @@ class CustomPasswordChangeView(PasswordChangeView):
 
 @login_required
 def serve_protected_media(request, path):
+    if is_guest_demo(request):
+        return HttpResponseForbidden("Access to student media is strictly prohibited in Guest Demo Mode.")
     safe_path = os.path.normpath(path).lstrip('/\\')
     if safe_path.startswith('..') or os.path.isabs(safe_path):
         raise Http404("Invalid media path.")
@@ -92,6 +95,9 @@ def serve_protected_media(request, path):
 
     if not os.path.isfile(full_path):
         raise Http404("Media file not found.")
+
+    if is_guest_demo(request):
+        return HttpResponseForbidden("Access to student media is strictly prohibited in Guest Demo Mode.")
 
     normalized_rel = safe_path.replace('\\', '/')
     if normalized_rel.startswith('profiles/'):
@@ -140,6 +146,11 @@ urlpatterns = [
     path('favicon.ico', favicon_view, name='favicon'),
     path('health/', health_check, name='health_check'),
     path('healthz/', health_check, name='healthz'),
+
+    # Campus Nexus Guest Demo
+    path('demo/', enter_guest_demo, name='enter_guest_demo'),
+    path('demo/exit/', exit_guest_demo, name='exit_guest_demo'),
+    path('guest-demo/', enter_guest_demo, name='guest_demo_alias'),
 
     # Campus Nexus Platform Shell, Info & Community
     path('', landing, name='landing'),

@@ -72,6 +72,13 @@ class RideRequest(models.Model):
         blank=True,
         related_name='left_rides',
     )
+    demo_session_key = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
+        help_text='Session key for ephemeral guest demo rides.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

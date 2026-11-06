@@ -77,7 +77,7 @@
 | **UX-04** | P3 | Clockwork watermark background | SVG background with clock face and interlocking gears driven by client system time (`new Date()`). | **FIXED** | 5 |
 | **UX-05** | P3 | Watermark pointer-inert & performance | Container is `pointer-events: none` at z-index -1; respects `prefers-reduced-motion` in CSS and JS. | **FIXED** | 5 |
 | **UX-06** | P3 | Platform shell navigation (Campus Nexus) | Header updated to "CAMPUS NEXUS" umbrella with COORDINATE module badge, catalogue routes, and breadcrumbs. | **FIXED** | 5 |
-| **MOB-01** | P2 | React Native mobile application | Architecture and component specifications scaffolded in `docs/mobile-scaffolding.md`. | **SCAFFOLDED** | 6 |
+| **MOB-01** | P2 | React Native mobile application | Architecture and component specifications scaffolded in `docs/MOBILE_SCAFFOLDING.md`. | **SCAFFOLDED** | 6 |
 | **MOB-02** | P2 | Mobile secure credential storage | Secure storage pattern using `expo-secure-store` documented and integrated with Bearer token authentication. | **SCAFFOLDED** | 6 |
 | **PERF-01** | P2/3| N+1 query optimization | `annotate(participants_total=Count('participants'))` implemented on ride list. | **ALREADY FIXED** | 8 |
 | **DOC-01** | P3 | Comprehensive documentation | Exhaustive architecture and mobile API scaffolding documentation added to `docs/`. | **FIXED** | Every |

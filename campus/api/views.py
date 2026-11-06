@@ -34,6 +34,7 @@ from coordinate.services import (
     decline_ride_join_request,
     leave_ride_service,
     request_to_join_ride,
+    user_has_overlapping_ride,
 )
 from coordinate.views import (
     _are_friends,
@@ -402,14 +403,6 @@ def api_ride_create(request: HttpRequest) -> JsonResponse:
     if not is_verified_student(user):
         return json_error("Authentication as a verified student required.", status=403, code="FORBIDDEN")
 
-    # One active ride invariant
-    if _user_has_active_ride(user):
-        return json_error(
-            "You already have an active ride. Leave or complete it first.",
-            status=409,
-            code="ACTIVE_RIDE_EXISTS",
-        )
-
     body, err = parse_json_body(request)
     if err:
         return err
@@ -507,11 +500,18 @@ def api_ride_create(request: HttpRequest) -> JsonResponse:
     if disclose_id is False:
         return json_error("Affirmative consent to disclose identity is required.", status=400, code="CONSENT_REQUIRED")
 
+    if user_has_overlapping_ride(user, dep_time):
+        return json_error(
+            "You already have another confirmed ride departing within 2 hours of this time.",
+            status=409,
+            code="ACTIVE_RIDE_EXISTS",
+        )
+
     with transaction.atomic():
         User.objects.select_for_update().filter(id=user.id).first()
-        if _user_has_active_ride(user):
+        if user_has_overlapping_ride(user, dep_time):
             return json_error(
-                "You already have an active ride. Leave or complete it first.",
+                "You already have another confirmed ride departing within 2 hours of this time.",
                 status=409,
                 code="ACTIVE_RIDE_EXISTS",
             )
@@ -568,7 +568,7 @@ def api_ride_join(request: HttpRequest, ride_id: int) -> JsonResponse:
             return json_error(msg, status=404, code=code)
         if code in ("AUDIENCE_MISMATCH", "USER_KICKED", "HOST_SELF_JOIN", "NOT_VERIFIED"):
             return json_error(msg, status=403, code=code)
-        if code in ("ALREADY_PENDING", "ALREADY_PARTICIPANT", "ACTIVE_RIDE_EXISTS", "RIDE_NOT_OPEN", "RIDE_FULL", "RIDE_DEPARTED"):
+        if code in ("ALREADY_PENDING", "ALREADY_PARTICIPANT", "ACTIVE_RIDE_EXISTS", "OVERLAPPING_RIDE_EXISTS", "RIDE_NOT_OPEN", "RIDE_FULL", "RIDE_DEPARTED"):
             return json_error(msg, status=409, code=code)
         return json_error(msg, status=400, code=code)
 

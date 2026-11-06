@@ -67,9 +67,15 @@ from .services import (
 # ---------------------------------------------------------------------------
 
 def _user_has_active_ride(user) -> bool:
-    """True if the user is a participant in any non-expired OPEN or FULL ride."""
+    """True if the user has any active or upcoming confirmed ride."""
     from coordinate.services import user_has_active_ride
     return user_has_active_ride(user)
+
+
+def _user_has_overlapping_ride(user, departure_time, exclude_ride_id=None) -> bool:
+    """True if user has another confirmed ride within 2 hours of departure_time."""
+    from coordinate.services import user_has_overlapping_ride
+    return user_has_overlapping_ride(user, departure_time, exclude_ride_id=exclude_ride_id)
 
 
 def _are_friends(user1, user2) -> bool:
@@ -90,8 +96,9 @@ def _user_can_join_ride(
     *,
     is_participant: bool = None,
     has_pending_request: bool = None,
-    has_active_ride: bool = None,
+    has_overlapping_ride: bool = None,
     is_kicked: bool = None,
+    **kwargs,
 ) -> bool:
     """
     All conditions that must be satisfied to join / request to join:
@@ -99,7 +106,7 @@ def _user_can_join_ride(
       2. Departure is in the future
       3. User can see the ride (visibility check)
       4. User is not already a participant
-      5. User doesn't have another active ride
+      5. User does not have an overlapping ride (within 2 hours)
       6. User was not kicked from this ride
       7. User does not already have a pending join request
     """
@@ -111,7 +118,7 @@ def _user_can_join_ride(
         return False
     if is_participant if is_participant is not None else RideParticipant.objects.filter(ride=ride, user=user).exists():
         return False
-    if has_active_ride if has_active_ride is not None else _user_has_active_ride(user):
+    if has_overlapping_ride if has_overlapping_ride is not None else _user_has_overlapping_ride(user, ride.departure_time, exclude_ride_id=ride.id):
         return False
     if is_kicked if is_kicked is not None else ride.kicked_users.filter(id=user.id).exists():
         return False
@@ -126,8 +133,9 @@ def _user_can_waitlist(
     *,
     is_participant: bool = None,
     is_waitlisted: bool = None,
-    has_active_ride: bool = None,
+    has_overlapping_ride: bool = None,
     is_kicked: bool = None,
+    **kwargs,
 ) -> bool:
     """
     Conditions to join standby waitlist:
@@ -137,7 +145,7 @@ def _user_can_waitlist(
       4. User can see the ride
       5. User is not creator and not already a participant
       6. User is not already on waitlist
-      7. User doesn't have another active ride
+      7. User does not have an overlapping ride (within 2 hours)
       8. User was not kicked
     """
     if not user or not user.is_authenticated:
@@ -154,7 +162,7 @@ def _user_can_waitlist(
         return False
     if is_waitlisted if is_waitlisted is not None else RideWaitlist.objects.filter(ride=ride, user=user).exists():
         return False
-    if has_active_ride if has_active_ride is not None else _user_has_active_ride(user):
+    if has_overlapping_ride if has_overlapping_ride is not None else _user_has_overlapping_ride(user, ride.departure_time, exclude_ride_id=ride.id):
         return False
     if is_kicked if is_kicked is not None else ride.kicked_users.filter(id=user.id).exists():
         return False
@@ -288,82 +296,155 @@ def ride_list(request):
     else:  # time_asc default
         rides_qs = rides_qs.order_by('departure_time', '-participants_total')
 
-    # Filter visibility per user
-    visible_rides = [r for r in rides_qs if _user_can_see_ride(request.user, r)]
+    from accounts.demo import is_guest_demo
+    guest_mode = is_guest_demo(request)
 
-    # Pre-fetch user state and aggregates to eliminate N+1 queries
-    visible_ride_ids = [r.id for r in visible_rides]
-    user_authenticated = request.user.is_authenticated
-    user_active_ride = _user_has_active_ride(request.user) if user_authenticated else False
+    if guest_mode:
+        # Exclude FRIENDS-only rides from guest view
+        guest_visible_real_rides = [r for r in rides_qs if r.visibility in ['MIXED', 'BOYS', 'GIRLS']]
+        for r in guest_visible_real_rides:
+            r.is_demo_ride = False
+            r.is_redacted = True
+            r.spots_left = max(0, r.total_spots - r.participants_total)
+            r.has_pending_request = False
+            r.is_participant = False
+            r.is_waitlisted = False
+            r.waitlist_count = 0
+            r.pending_request_count = 0
+            r.can_join = False
+            r.can_waitlist = False
+            r.creator_display = "Verified Student"
+            r.co_riders_count = r.participants_total
 
-    user_participant_ride_ids = set(
-        RideParticipant.objects.filter(
-            user=request.user,
-            ride_id__in=visible_ride_ids,
-        ).values_list('ride_id', flat=True)
-    ) if user_authenticated else set()
+        # Query guest's ephemeral demo rides from third DB
+        demo_rides = []
+        session_key = getattr(request.session, 'session_key', None)
+        if session_key:
+            demo_rides = list(
+                RideRequest.objects.using('guest_demo')
+                .filter(demo_session_key=session_key, status__in=['OPEN', 'FULL'])
+                .select_related('creator')
+                .prefetch_related(
+                    Prefetch(
+                        'participants',
+                        queryset=RideParticipant.objects.using('guest_demo').filter(status=ParticipantStatus.CONFIRMED).select_related('user'),
+                    )
+                )
+                .annotate(participants_total=Count('participants', filter=Q(participants__status='CONFIRMED')))
+                .order_by('-created_at')
+            )
+            for dr in demo_rides:
+                dr.is_demo_ride = True
+                dr.is_redacted = False
+                dr.spots_left = max(0, dr.total_spots - dr.participants_total)
+                dr.has_pending_request = False
+                dr.is_participant = True
+                dr.is_waitlisted = False
+                dr.waitlist_count = 0
+                dr.pending_request_count = 0
+                dr.can_join = False
+                dr.can_waitlist = False
+                dr.creator_display = "Guest Explorer (You)"
 
-    user_waitlist_ride_ids = set(
-        RideWaitlist.objects.filter(
-            user=request.user,
-            ride_id__in=visible_ride_ids,
-        ).values_list('ride_id', flat=True)
-    ) if user_authenticated else set()
+        visible_rides = demo_rides + guest_visible_real_rides
+    else:
+        # Filter visibility per user
+        visible_rides = [r for r in rides_qs if _user_can_see_ride(request.user, r)]
 
-    user_pending_request_ride_ids = set(
-        RideJoinRequest.objects.filter(
-            user=request.user,
-            ride_id__in=visible_ride_ids,
-            status='PENDING',
-        ).values_list('ride_id', flat=True)
-    ) if user_authenticated else set()
+    if not guest_mode:
+        # Pre-fetch user state and aggregates to eliminate N+1 queries
+        visible_ride_ids = [r.id for r in visible_rides]
+        user_authenticated = request.user.is_authenticated
+        user_active_ride = _user_has_active_ride(request.user) if user_authenticated else False
 
-    user_kicked_ride_ids = set(
-        request.user.kicked_from_rides.filter(id__in=visible_ride_ids).values_list('id', flat=True)
-    ) if user_authenticated else set()
+        user_participant_ride_ids = set(
+            RideParticipant.objects.filter(
+                user=request.user,
+                ride_id__in=visible_ride_ids,
+            ).values_list('ride_id', flat=True)
+        ) if user_authenticated else set()
 
-    waitlist_counts = dict(
-        RideWaitlist.objects.filter(ride_id__in=visible_ride_ids)
-        .values('ride_id')
-        .annotate(total=Count('id'))
-        .values_list('ride_id', 'total')
-    )
+        user_waitlist_ride_ids = set(
+            RideWaitlist.objects.filter(
+                user=request.user,
+                ride_id__in=visible_ride_ids,
+            ).values_list('ride_id', flat=True)
+        ) if user_authenticated else set()
 
-    pending_counts = dict(
-        RideJoinRequest.objects.filter(
-            ride_id__in=visible_ride_ids,
-            status='PENDING',
+        user_pending_request_ride_ids = set(
+            RideJoinRequest.objects.filter(
+                user=request.user,
+                ride_id__in=visible_ride_ids,
+                status='PENDING',
+            ).values_list('ride_id', flat=True)
+        ) if user_authenticated else set()
+
+        user_kicked_ride_ids = set(
+            request.user.kicked_from_rides.filter(id__in=visible_ride_ids).values_list('id', flat=True)
+        ) if user_authenticated else set()
+
+        waitlist_counts = dict(
+            RideWaitlist.objects.filter(ride_id__in=visible_ride_ids)
+            .values('ride_id')
+            .annotate(total=Count('id'))
+            .values_list('ride_id', 'total')
         )
-        .values('ride_id')
-        .annotate(total=Count('id'))
-        .values_list('ride_id', 'total')
-    )
 
-    for ride in visible_rides:
-        ride.spots_left = max(0, ride.total_spots - ride.participants_total)
-        ride.has_pending_request = ride.id in user_pending_request_ride_ids
-        ride.is_participant = ride.id in user_participant_ride_ids
-        ride.is_waitlisted = ride.id in user_waitlist_ride_ids
-        ride.waitlist_count = waitlist_counts.get(ride.id, 0)
-        ride.pending_request_count = pending_counts.get(ride.id, 0) if ride.creator_id == request.user.id else 0
+        pending_counts = dict(
+            RideJoinRequest.objects.filter(
+                ride_id__in=visible_ride_ids,
+                status='PENDING',
+            )
+            .values('ride_id')
+            .annotate(total=Count('id'))
+            .values_list('ride_id', 'total')
+        )
 
-        is_kicked = ride.id in user_kicked_ride_ids
-        ride.can_join = _user_can_join_ride(
-            request.user,
-            ride,
-            is_participant=ride.is_participant,
-            has_pending_request=ride.has_pending_request,
-            has_active_ride=user_active_ride,
-            is_kicked=is_kicked,
-        )
-        ride.can_waitlist = _user_can_waitlist(
-            request.user,
-            ride,
-            is_participant=ride.is_participant,
-            is_waitlisted=ride.is_waitlisted,
-            has_active_ride=user_active_ride,
-            is_kicked=is_kicked,
-        )
+        user_confirmed_departures = list(
+            RideRequest.objects
+            .filter(
+                participants__user=request.user,
+                participants__status=ParticipantStatus.CONFIRMED,
+                status__in=['OPEN', 'FULL'],
+            )
+            .values_list('id', 'departure_time')
+        ) if user_authenticated else []
+
+        for ride in visible_rides:
+            ride.spots_left = max(0, ride.total_spots - ride.participants_total)
+            ride.has_pending_request = ride.id in user_pending_request_ride_ids
+            ride.is_participant = ride.id in user_participant_ride_ids
+            ride.is_waitlisted = ride.id in user_waitlist_ride_ids
+            ride.waitlist_count = waitlist_counts.get(ride.id, 0)
+            ride.pending_request_count = pending_counts.get(ride.id, 0) if ride.creator_id == request.user.id else 0
+
+            # Conflict checking: student already has another confirmed ride within 2 hours
+            has_overlap = any(
+                abs(ride.departure_time - c_time) < datetime.timedelta(hours=2)
+                for c_id, c_time in user_confirmed_departures
+                if c_id != ride.id
+            )
+            ride.has_overlap = has_overlap
+
+            is_kicked = ride.id in user_kicked_ride_ids
+            ride.can_join = _user_can_join_ride(
+                request.user,
+                ride,
+                is_participant=ride.is_participant,
+                has_pending_request=ride.has_pending_request,
+                has_overlapping_ride=has_overlap,
+                is_kicked=is_kicked,
+            )
+            ride.can_waitlist = _user_can_waitlist(
+                request.user,
+                ride,
+                is_participant=ride.is_participant,
+                is_waitlisted=ride.is_waitlisted,
+                has_overlapping_ride=has_overlap,
+                is_kicked=is_kicked,
+            )
+    else:
+        user_participant_ride_ids = {r.id for r in visible_rides if getattr(r, 'is_demo_ride', False)}
 
     # Density calculation across next 14 days
     density_raw = (
@@ -401,17 +482,21 @@ def ride_list(request):
         })
 
     # User's active ride
-    has_active_ride = _user_has_active_ride(request.user)
-    my_ride = None
-    if has_active_ride:
-        my_ride_part = (
-            RideParticipant.objects
-            .filter(user=request.user, ride__status__in=['OPEN', 'FULL'])
-            .select_related('ride', 'ride__creator')
-            .first()
-        )
-        if my_ride_part:
-            my_ride = my_ride_part.ride
+    if guest_mode:
+        has_active_ride = bool(demo_rides)
+        my_ride = demo_rides[0] if demo_rides else None
+    else:
+        has_active_ride = _user_has_active_ride(request.user)
+        my_ride = None
+        if has_active_ride:
+            my_ride_part = (
+                RideParticipant.objects
+                .filter(user=request.user, ride__status__in=['OPEN', 'FULL'])
+                .select_related('ride', 'ride__creator')
+                .first()
+            )
+            if my_ride_part:
+                my_ride = my_ride_part.ride
 
     # Quick-select date strip: dynamically moving window centered around chosen_date
     ref_date = chosen_date or today
@@ -468,6 +553,23 @@ def ride_list(request):
 @login_required
 def my_rides(request):
     """RIDE-03: Dedicated Ride History and active participations interface."""
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request):
+        session_key = getattr(request.session, 'session_key', None)
+        demo_rides = []
+        if session_key:
+            demo_rides = list(
+                RideRequest.objects.using('guest_demo')
+                .filter(demo_session_key=session_key)
+                .order_by('-departure_time')
+            )
+        return render(request, 'coordinate/my_rides.html', {
+            'active_rides': demo_rides,
+            'past_rides': [],
+            'created_rides': demo_rides,
+            'is_guest_demo': True,
+        })
+
     participations = (
         RideParticipant.objects
         .filter(user=request.user)
@@ -510,30 +612,54 @@ def my_rides(request):
 
 @login_required
 def create_ride(request):
-    if not is_verified_student(request.user):
+    from accounts.demo import is_guest_demo
+    guest_mode = is_guest_demo(request)
+
+    if not guest_mode and not is_verified_student(request.user):
         messages.error(request, 'Only verified students can create rides.')
-        return redirect('ride_list')
-    if _user_has_active_ride(request.user):
-        messages.error(request, 'You already have an active ride. Leave it first.')
         return redirect('ride_list')
 
     if request.method == 'POST':
         form = RideRequestForm(request.POST)
         if form.is_valid():
             visibility = form.cleaned_data.get('visibility')
+            dept_time = form.cleaned_data.get('departure_time')
 
-            # SEC-03: Gender-restricted creator validation
-            if visibility == 'GIRLS' and request.user.gender != 'F':
-                form.add_error('visibility', 'Only female students can create Girls Only rides.')
-                return render(request, 'coordinate/create_ride.html', {'form': form})
-            if visibility == 'BOYS' and request.user.gender != 'M':
-                form.add_error('visibility', 'Only male students can create Boys Only rides.')
-                return render(request, 'coordinate/create_ride.html', {'form': form})
+            if not guest_mode:
+                # Overlap validation: student cannot host two overlapping rides
+                if dept_time and _user_has_overlapping_ride(request.user, dept_time):
+                    form.add_error('departure_time', 'You already have another confirmed ride departing within 2 hours of this time. Rides cannot overlap.')
+                    return render(request, 'coordinate/create_ride.html', {'form': form})
+
+                # SEC-03: Gender-restricted creator validation
+                if visibility == 'GIRLS' and request.user.gender != 'F':
+                    form.add_error('visibility', 'Only female students can create Girls Only rides.')
+                    return render(request, 'coordinate/create_ride.html', {'form': form})
+                if visibility == 'BOYS' and request.user.gender != 'M':
+                    form.add_error('visibility', 'Only male students can create Boys Only rides.')
+                    return render(request, 'coordinate/create_ride.html', {'form': form})
+
+            if guest_mode:
+                if not request.session.session_key:
+                    request.session.save()
+                from accounts.demo import ensure_guest_demo_user
+                demo_user = ensure_guest_demo_user('guest_demo')
+                ride = form.save(commit=False)
+                ride.creator = demo_user or request.user
+                ride.demo_session_key = request.session.session_key
+                ride.save(using='guest_demo')
+                RideParticipant.objects.using('guest_demo').create(
+                    ride=ride,
+                    user=demo_user or request.user,
+                    status=ParticipantStatus.CONFIRMED,
+                )
+                messages.success(request, 'Demo ride created! Stored in the ephemeral third database and visible only to your session.')
+                return redirect('ride_list')
 
             with transaction.atomic():
                 User.objects.select_for_update().filter(id=request.user.id).first()
-                if _user_has_active_ride(request.user):
-                    messages.error(request, 'You already have an active ride.')
+                if _user_has_overlapping_ride(request.user, dept_time):
+                    messages.error(request, 'You already have another confirmed ride departing within 2 hours of this time.')
                     return redirect('ride_list')
                 ride = form.save(commit=False)
                 ride.creator = request.user
@@ -568,6 +694,12 @@ def join_ride(request, ride_id):
     """
     RIDE-JOIN-REQ: Students submit a join request that requires host approval.
     """
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request):
+        messages.warning(request, "Guest Demo Mode: You cannot join real student rides.")
+        if request.htmx:
+            return HttpResponse('<div class="alert alert-warning py-1 px-2 small mb-0"><i class="bi bi-shield-lock me-1"></i>Guest Demo Mode: Joining rides is disabled.</div>')
+        return redirect('ride_list')
     disclose_identity = request.POST.get('disclose_identity', 'true').lower() in ('1', 'true', 'on')
     share_contact = request.POST.get('share_contact', 'true').lower() in ('1', 'true', 'on')
 
@@ -804,6 +936,10 @@ def alter_ride_capacity(request, ride_id):
 @require_POST
 def join_waitlist(request, ride_id):
     """Join the standby queue for a full ride."""
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request):
+        messages.warning(request, "Guest Demo Mode: You cannot join waitlists for real student rides.")
+        return redirect('ride_list')
     ride = get_object_or_404(RideRequest, id=ride_id)
     if not _user_can_waitlist(request.user, ride):
         messages.error(request, 'You cannot join the standby list for this ride.')
@@ -844,6 +980,39 @@ def leave_waitlist(request, ride_id):
 
 @login_required
 def ride_detail(request, ride_id):
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request):
+        session_key = getattr(request.session, 'session_key', None)
+        demo_ride = None
+        if session_key:
+            demo_ride = RideRequest.objects.using('guest_demo').filter(
+                id=ride_id,
+                demo_session_key=session_key,
+            ).select_related('creator').first()
+
+        if not demo_ride:
+            messages.error(request, "Live coordination rooms for real student rides are strictly private in Guest Demo Mode.")
+            return redirect('ride_list')
+
+        participants = list(
+            RideParticipant.objects.using('guest_demo')
+            .filter(ride=demo_ride)
+            .select_related('user')
+            .order_by('joined_at')
+        )
+        return render(request, 'coordinate/ride_detail.html', {
+            'ride': demo_ride,
+            'participants': participants,
+            'is_creator': True,
+            'is_participant': True,
+            'is_guest_demo': True,
+            'can_message': True,
+            'chat_messages': [],
+            'waitlist_entries': [],
+            'pending_join_requests': [],
+            'has_active_ride': True,
+        })
+
     ride = get_object_or_404(
         RideRequest.objects.select_related('creator'),
         id=ride_id,

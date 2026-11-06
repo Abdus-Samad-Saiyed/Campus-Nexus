@@ -9,8 +9,8 @@ from django.utils import timezone
 
 
 ENROLLMENT_VALIDATOR = RegexValidator(
-    regex=r'^(?:\d{4}|20XX)[BMP][A-Z]{3}\d{3}$',
-    message='Invalid enrollment number. Expected format: 2024BCSE001 or 20XXBCSE001',
+    regex=r'^(?:(?:\d{4}|20XX)[BMP][A-Z]{3}\d{3}|GUEST_DEMO)$',
+    message='Invalid enrollment number. Expected format: 2024BCSE001, 20XXBCSE001, or GUEST_DEMO',
 )
 
 _DEGREE_MAP = {'B': 'Bachelors', 'M': 'Masters', 'P': 'PhD'}
@@ -62,6 +62,10 @@ class User(AbstractUser):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     # Ride reliability stats
+    @property
+    def is_guest_demo(self) -> bool:
+        return self.username == 'GUEST_DEMO' or self.enrollment_number == 'GUEST_DEMO'
+
     rides_completed = models.IntegerField(default=0)
     on_time_count = models.IntegerField(default=0)
     late_count = models.IntegerField(default=0)
@@ -89,11 +93,17 @@ class User(AbstractUser):
         if self.enrollment_number:
             e = self.enrollment_number.upper()
             self.enrollment_number = e
-            year_part = e[:4]
-            self.joining_year = int(year_part) if year_part.isdigit() else 2099
-            self.degree = _DEGREE_MAP.get(e[4], 'Unknown')
-            self.branch = e[5:8]
-            self.roll_number = e[8:]
+            if e == 'GUEST_DEMO':
+                self.joining_year = 2099
+                self.degree = 'Guest'
+                self.branch = 'DEMO'
+                self.roll_number = '000'
+            else:
+                year_part = e[:4]
+                self.joining_year = int(year_part) if year_part.isdigit() else 2099
+                self.degree = _DEGREE_MAP.get(e[4], 'Unknown') if len(e) > 4 else 'Unknown'
+                self.branch = e[5:8] if len(e) >= 8 else ''
+                self.roll_number = e[8:] if len(e) > 8 else ''
 
         update_fields = kwargs.get('update_fields')
         old_photo_to_delete = None

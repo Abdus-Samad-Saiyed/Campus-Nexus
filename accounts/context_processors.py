@@ -3,6 +3,9 @@
 from django.conf import settings
 
 
+from accounts.demo import is_guest_demo
+
+
 def early_launch_context(request):
     """Expose early_launch_mode, pending application state, and incoming friend requests count across all templates."""
     pending_app = None
@@ -25,6 +28,7 @@ def early_launch_context(request):
             pass
 
     return {
+        'is_guest_demo': is_guest_demo(request),
         'early_launch_mode': getattr(settings, 'EARLY_LAUNCH_MODE', False),
         'pending_permanent_application': pending_app,
         'incoming_friend_requests_count': friend_requests_count,

@@ -65,6 +65,10 @@ def verified_student_required(view_func):
     def _wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('login')
+        from accounts.demo import is_guest_demo
+        if is_guest_demo(request):
+            messages.error(request, "This area is restricted in Guest Demo Mode to protect student privacy.")
+            return redirect('dashboard')
         from coordinate.policies import is_verified_student
         if request.user.is_staff or request.user.is_superuser or is_verified_student(request.user):
             return view_func(request, *args, **kwargs)
@@ -1075,12 +1079,37 @@ def application_success(request):
 @login_required
 def dashboard(request):
     """User's home page. Shows their active ride if they have one."""
-    active_participation = (
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request):
+        demo_participations = list(
+            RideParticipant.objects.using('guest_demo')
+            .filter(
+                user=request.user,
+                ride__demo_session_key=request.session.session_key,
+                ride__status__in=['OPEN', 'FULL'],
+            )
+            .select_related('ride', 'ride__creator')
+            .order_by('ride__departure_time')
+        )
+        active_participation = demo_participations[0] if demo_participations else None
+        other_participations = demo_participations[1:] if len(demo_participations) > 1 else []
+        return render(request, 'accounts/dashboard.html', {
+            'active_participation': active_participation,
+            'other_participations': other_participations,
+            'services': get_all_services(),
+            'pending_application': None,
+            'incoming_friend_requests': [],
+            'is_guest_demo': True,
+        })
+
+    active_participations = list(
         RideParticipant.objects
         .filter(user=request.user, ride__status__in=['OPEN', 'FULL'])
         .select_related('ride', 'ride__creator')
-        .first()
+        .order_by('ride__departure_time')
     )
+    active_participation = active_participations[0] if active_participations else None
+    other_participations = active_participations[1:] if len(active_participations) > 1 else []
     pending_application = None
     if not request.user.verified:
         pending_application = AccountApplication.objects.filter(
@@ -1097,6 +1126,7 @@ def dashboard(request):
 
     return render(request, 'accounts/dashboard.html', {
         'active_participation': active_participation,
+        'other_participations': other_participations,
         'services': get_all_services(),
         'pending_application': pending_application,
         'incoming_friend_requests': incoming_friend_requests,
@@ -1326,6 +1356,10 @@ def profile_view(request, enrollment_number):
 @login_required
 def user_search(request):
     """Search for students by enrollment number or name with privacy filtering."""
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request) or not can_view_student_directory(request.user):
+        messages.error(request, "Access to the student directory is restricted in Guest Demo Mode to protect student privacy.")
+        return redirect('dashboard')
     if not can_view_student_directory(request.user):
         messages.error(request, "Access to the student directory requires a verified student account.")
         return redirect('dashboard')

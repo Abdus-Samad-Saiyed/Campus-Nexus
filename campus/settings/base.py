@@ -107,19 +107,22 @@ EARLY_LAUNCH_MODE = (
 )
 
 EARLY_LAUNCH_DB_PATH = BASE_DIR / 'temp_early_access.sqlite3'
+GUEST_DEMO_DB_PATH = BASE_DIR / 'guest_demo.sqlite3'
 
 
 # --- Database ----------------------------------------------------------------
 
 if EARLY_LAUNCH_MODE:
     DATABASES = {
-        'default': env.db('EARLY_LAUNCH_DATABASE_URL', default=f'sqlite:///{EARLY_LAUNCH_DB_PATH}'),
-        'permanent': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR}/db.sqlite3'),
+        'default': env.db_url_config(os.environ.get('EARLY_LAUNCH_DATABASE_URL') or f'sqlite:///{EARLY_LAUNCH_DB_PATH}'),
+        'permanent': env.db_url_config(os.environ.get('DATABASE_URL') or f'sqlite:///{BASE_DIR}/db.sqlite3'),
+        'guest_demo': env.db_url_config(os.environ.get('GUEST_DEMO_DATABASE_URL') or f'sqlite:///{GUEST_DEMO_DB_PATH}'),
     }
 else:
     DATABASES = {
-        'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR}/db.sqlite3'),
-        'temp_early_access': env.db('EARLY_LAUNCH_DATABASE_URL', default=f'sqlite:///{EARLY_LAUNCH_DB_PATH}'),
+        'default': env.db_url_config(os.environ.get('DATABASE_URL') or f'sqlite:///{BASE_DIR}/db.sqlite3'),
+        'temp_early_access': env.db_url_config(os.environ.get('EARLY_LAUNCH_DATABASE_URL') or f'sqlite:///{EARLY_LAUNCH_DB_PATH}'),
+        'guest_demo': env.db_url_config(os.environ.get('GUEST_DEMO_DATABASE_URL') or f'sqlite:///{GUEST_DEMO_DB_PATH}'),
     }
 
 
@@ -169,6 +172,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Ensure WhiteNoise serves static files directly via finders when DEBUG=False
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",

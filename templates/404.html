@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}404 — Page Not Found | Campus Nexus{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 col-md-9 text-center">
+            <div class="glass p-5 position-relative overflow-hidden">
+                <div class="mb-3">
+                    <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-1 rounded-pill fw-semibold">
+                        <i class="bi bi-compass me-1"></i> HTTP 404
+                    </span>
+                </div>
+
+                <div class="feature-icon mx-auto mb-4" style="width: 80px; height: 80px; font-size: 2.2rem;">
+                    <i class="bi bi-signpost-split"></i>
+                </div>
+
+                <h2 class="fw-bold mb-2">Waypoint Not Found</h2>
+                <p class="text-secondary mb-4 mx-auto" style="max-width: 480px;">
+                    The coordinate or service you requested does not exist or may have been relocated.
+                </p>
+
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing' %}{% endif %}" class="btn btn-green px-4">
+                        <i class="bi bi-speedometer2 me-1"></i> Return to Nexus
+                    </a>
+                    <a href="{% url 'ride_list' %}" class="btn btn-outline-green px-4">
+                        <i class="bi bi-car-front me-1"></i> Browse Rides
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

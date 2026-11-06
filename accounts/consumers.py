@@ -30,6 +30,9 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
         if not self.user or not self.user.is_authenticated or not self.user.is_active or getattr(self.user, 'is_deleted', False):
             await self.close()
             return
+        if getattr(self.user, 'is_guest_demo', False) or getattr(self.user, 'username', '') == 'GUEST_DEMO':
+            await self.close()
+            return
 
         self.friend_enrollment = self.scope['url_route']['kwargs']['friend_enrollment'].strip().upper()
         self.friend = await self._get_friend_user()

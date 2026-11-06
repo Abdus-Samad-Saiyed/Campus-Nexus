@@ -7,7 +7,7 @@
 [![Redis](https://img.shields.io/badge/Cache%20%26%20Layers-Redis%207-red.svg)](https://redis.io/)
 [![WebAuthn Passkeys](https://img.shields.io/badge/Auth-WebAuthn%20%2F%20Passkeys-orange.svg)](https://webauthn.io/)
 [![Mobile API](https://img.shields.io/badge/Mobile-React%20Native%20Ready-purple.svg)](campus/api/)
-[![Tests](https://img.shields.io/badge/Tests-275%20Passed%20(100%25)-success.svg)](scripts/e2e/run_full_platform_e2e.py)
+[![Tests](https://img.shields.io/badge/Tests-322%20Passed%20(100%25)-success.svg)](manage.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **Decentralized Student Ride Coordination & Verified Campus Public Utility Platform**  
@@ -128,20 +128,34 @@ python scripts/package_release.py
 ```
 
 ### Verified Test Results:
-* **Django Test Suite:** `268 passed, 0 failures, 0 errors` (Coverage: Early Launch Mode, Dynamic Capacity Modification, WebAuthn, Single-Session, Audience Filters, Concurrency Locks, Anti-Farming Capping, Protected Media Containment, Setup DB, React Native Mobile API, Dual Production DB).
+* **Django Test Suite:** `322 passed, 0 failures, 0 errors` (Coverage: Guest Demo Mode, Non-Overlapping Multi-Ride Scheduling, Early Launch Mode, Dynamic Capacity Modification, WebAuthn Passkeys, Single-Session Enforcer, Audience Comfort Filters, Concurrency Locks, Anti-Farming Capping, Protected Media Containment, React Native Mobile REST API, Dual Production DBs).
 * **Platform Crawler:** `49 passed, 0 failed` across anonymous, authenticated, administrative, and REST API v1 routes.
 * **Full E2E Verification:** `64 passed, 0 failed` across end-to-end user journeys (Application &rarr; OTP Verification &rarr; Admin Physical Desk Approval &rarr; Ride Creation &rarr; Waitlist &rarr; Ride Teardown).
 * **Release Packager:** Zero secrets, zero bytecode, zero SQLite databases in git tracking (`0.37 MB` clean package).
 
 ---
 
-## 📖 In-Depth Project Documentation
+## 📖 Comprehensive Documentation Suite
 
-* **[ARCHITECTURE.md](docs/ARCHITECTURE.md):** Complete architectural topologies, service registries, WebSockets protocol routers, and performance optimizations.
-* **[AUTHENTICATION_AND_SECURITY.md](docs/AUTHENTICATION_AND_SECURITY.md):** Identity models, dual-channel OTPs, WebAuthn passkeys, single-session concurrency, and Early Launch security.
-* **[OPERATIONS_AND_ADMINISTRATION.md](docs/OPERATIONS_AND_ADMINISTRATION.md):** Administrator console, physical verification desk manual, CSV exports, and Early Launch operations.
-* **[MECHANICAL_ZEN_AND_THEMES.md](docs/MECHANICAL_ZEN_AND_THEMES.md):** Clockwork watermark engine, Zen mode mechanics, theme accent system, and dynamic canvas favicons.
-* **[DEPLOYMENT_AND_PRODUCTION.md](docs/DEPLOYMENT_AND_PRODUCTION.md):** NGINX, Daphne, SSL, and systemd deployment manuals.
+All system documentation is organized modularly in the [**`docs/`**](docs/README.md) hub:
+
+| Guide | Core Focus | Link |
+| :--- | :--- | :--- |
+| **Documentation Hub & Sitemap** | Central directory and persona-based reading order | [**`docs/README.md`**](docs/README.md) |
+| **System Architecture** | Django 6 + ASGI Channels, WebSockets protocol, DB topology | [**`ARCHITECTURE.md`**](docs/ARCHITECTURE.md) |
+| **Guest Demo Mode & Privacy** | Third DB (`guest_demo.sqlite3`), ephemeral sandbox, student privacy & ride redactions | [**`GUEST_DEMO_AND_PRIVACY.md`**](docs/GUEST_DEMO_AND_PRIVACY.md) |
+| **Multi-Ride Scheduling** | Non-overlapping 2-hour buffer rules, semester round-trips, conflict prevention | [**`MULTI_RIDE_SCHEDULING.md`**](docs/MULTI_RIDE_SCHEDULING.md) |
+| **Authentication & Security** | Dual-channel OTP (Email+SMS), WebAuthn passkeys, single-session lock | [**`AUTHENTICATION_AND_SECURITY.md`**](docs/AUTHENTICATION_AND_SECURITY.md) |
+| **Production Deployment** | Authoritative manual: Daphne, systemd, PostgreSQL 16, Redis 7, NGINX, Cloudflare | [**`DEPLOYMENT.md`**](docs/DEPLOYMENT.md) |
+| **Operations & Administration** | Operations desk, in-person verification manual, soft-deletion, audit exports | [**`OPERATIONS_AND_ADMINISTRATION.md`**](docs/OPERATIONS_AND_ADMINISTRATION.md) |
+| **REST & WebSocket API Reference** | Versioned API (v1), JSON contracts, Bearer token auth, WebSocket packets | [**`API_REFERENCE.md`**](docs/API_REFERENCE.md) |
+| **Mobile Architecture (React Native)** | Android app architecture, Hermes engine, TanStack Query, Zustand, Expo | [**`MOBILE_ARCHITECTURE.md`**](docs/MOBILE_ARCHITECTURE.md) |
+| **Mobile Scaffolding Checklist** | Mobile client project structure, WebSocket manager, component layout | [**`MOBILE_SCAFFOLDING.md`**](docs/MOBILE_SCAFFOLDING.md) |
+| **Mechanical Zen & Themes** | Clockwork watermark SVG, gear physics, scatter animations, theme accents | [**`MECHANICAL_ZEN_AND_THEMES.md`**](docs/MECHANICAL_ZEN_AND_THEMES.md) |
+| **Audit-Driven Bug Register** | P0-P3 security vulnerability tracking, race condition fixes, verification proofs | [**`BUG_REGISTER.md`**](docs/BUG_REGISTER.md) |
+| **Architectural Baseline Inventory** | Phase 0 baseline inventory, application boundaries, and dependency matrix | [**`AUDIT_BASELINE.md`**](docs/AUDIT_BASELINE.md) |
+| **Engineering Manifesto** | Founder philosophy, solving campus friction, Spectre/CrowdStrike inspiration | [**`MANIFESTO.md`**](MANIFESTO.md) |
+| **Codebase Taxonomy Map** | 30KB comprehensive file-by-file directory guide and domain map | [**`PROJECT_MAP.md`**](PROJECT_MAP.md) |
 
 ---
 

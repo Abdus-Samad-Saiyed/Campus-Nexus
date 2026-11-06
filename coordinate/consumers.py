@@ -35,6 +35,10 @@ class RideChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
+        if getattr(self.user, 'is_guest_demo', False) or getattr(self.user, 'username', '') == 'GUEST_DEMO':
+            await self.close()
+            return
+
         if not await self._is_participant():
             await self.close()
             return
