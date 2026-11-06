@@ -179,15 +179,17 @@
                         <div class="glass p-3 participant-card border-secondary">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; overflow: hidden;">
-                                        {% if p.user.profile_photo %}
-                                            <img src="{{ p.user.profile_photo.url }}" alt="{{ p.user.enrollment_number }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<i class=\'bi bi-person-fill text-secondary\'></i>';">
-                                        {% else %}
-                                            <i class="bi bi-person-fill text-secondary"></i>
-                                        {% endif %}
-                                    </div>
-                                    <a href="{% url 'profile' p.user.enrollment_number %}" class="fw-bold text-white text-decoration-none">
-                                        {{ p.user.enrollment_number }}
+                                    <a href="{% url 'profile' p.user.enrollment_number %}" class="d-flex align-items-center gap-2 text-decoration-none" title="View Profile">
+                                        <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; overflow: hidden;">
+                                            {% if p.user.profile_photo %}
+                                                <img src="{{ p.user.profile_photo.url }}" alt="{{ p.user.enrollment_number }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<i class=\'bi bi-person-fill text-secondary\'></i>';">
+                                            {% else %}
+                                                <i class="bi bi-person-fill text-secondary"></i>
+                                            {% endif %}
+                                        </div>
+                                        <span class="fw-bold text-white text-hover-green">
+                                            {{ p.user.enrollment_number }}
+                                        </span>
                                     </a>
                                     {% if p.user == ride.creator %}
                                         <span class="badge bg-success-subtle text-success small py-0">Host</span>
@@ -198,7 +200,16 @@
                                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle small py-0" title="Self-declared in temporary database"><i class="bi bi-exclamation-triangle-fill me-1"></i>Untrusted</span>
                                     {% endif %}
                                 </div>
-                                <span class="small text-secondary">{{ p.user.on_time_percentage }}% on-time</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="presence-badge badge rounded-pill {% if p.user.id in online_user_ids %}bg-success-subtle text-success border border-success-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary{% endif %} small py-0 px-2"
+                                          id="presence-badge-{{ p.user.id }}"
+                                          data-user-id="{{ p.user.id }}"
+                                          data-enrollment="{{ p.user.enrollment_number }}"
+                                          title="{% if p.user.id in online_user_ids %}Online in ride{% else %}Offline{% endif %}">
+                                        <span class="presence-dot">●</span> <span class="presence-text">{% if p.user.id in online_user_ids %}Online{% else %}Offline{% endif %}</span>
+                                    </span>
+                                    <span class="small text-secondary">{{ p.user.on_time_percentage }}% on-time</span>
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-between align-items-center small text-secondary participant-details-row">
@@ -324,22 +335,45 @@
         <div class="col-lg-7">
             <div class="glass p-4">
                 <div class="chat-container" id="ride-chat-box" data-ride-id="{{ ride.id }}" data-current-user="{{ request.user.enrollment_number }}">
-                    <div class="chat-header">
+                    <div class="chat-header d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-chat-dots-fill green-accent"></i>
-                            <span>Ride Chat Room</span>
+                            <span class="fw-semibold">Ride Chat Room</span>
+                            {% if ride.share_chat_history %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle small py-0" title="All participants can view messages from before they joined"><i class="bi bi-clock-history me-1"></i>History Shared</span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary small py-0" title="Late joiners only see messages sent after joining"><i class="bi bi-shield-lock me-1"></i>Joined History Only</span>
+                            {% endif %}
                         </div>
-                        <span id="chat-status" class="chat-status chat-status-disconnected">Connecting...</span>
+                        <div class="d-flex align-items-center gap-2">
+                            {% if is_creator or is_participant %}
+                                <form method="POST" action="{% url 'toggle_ride_chat_history' ride.id %}" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm py-0 px-2 {% if ride.share_chat_history %}btn-outline-secondary{% else %}btn-outline-success{% endif %}" title="Toggle chat history visibility for late joiners">
+                                        <i class="bi bi-clock-history me-1"></i>{% if ride.share_chat_history %}Make History Private{% else %}Share Chat History{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                            <span id="chat-status" class="chat-status chat-status-disconnected">Connecting...</span>
+                        </div>
                     </div>
 
                     <!-- Messages list -->
                     <div class="chat-messages" id="chat-messages">
                         {% if chat_messages %}
                             {% for msg in chat_messages %}
-                                <div class="message-item {% if msg.author == request.user %}message-self{% else %}message-other{% endif %}">
+                                <div class="message-item {% if msg.author == request.user %}message-self{% else %}message-other{% endif %}" data-message-id="{{ msg.id }}">
                                     <div class="message-author">{{ msg.author.enrollment_number }}</div>
                                     <div class="message-bubble">{{ msg.content }}</div>
-                                    <div class="message-time">{{ msg.created_at|date:"M j, H:i" }}</div>
+                                    <div class="message-time d-flex align-items-center justify-content-end gap-1">
+                                        <span>{{ msg.created_at|date:"M j, H:i" }}</span>
+                                        {% if msg.author == request.user %}
+                                            <span class="read-receipt text-success ms-1" id="read-receipt-{{ msg.id }}" title="Read receipts always active in ride groups">
+                                                <i class="bi bi-check2-all"></i>
+                                                <span class="small read-count-num" id="read-count-{{ msg.id }}">{% if msg.read_by.count > 0 %}{{ msg.read_by.count }}{% endif %}</span>
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         {% else %}

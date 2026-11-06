@@ -183,6 +183,23 @@ def request_to_join_ride(
         except Exception:
             pass
 
+        try:
+            from accounts.notifications import send_user_notification
+            applicant_name = user.get_full_name() or user.enrollment_number
+            send_user_notification(
+                user_id=ride.creator_id,
+                title='Ride Join Request',
+                content=f'{applicant_name} applied to enter your ride ({ride.route_display}).',
+                url=f'/coordinate/{ride.id}/',
+                category='ride_join_request',
+                sender_user=user,
+                badge='Join Request',
+                badge_class='bg-warning-subtle text-warning border border-warning-subtle',
+                icon='bi-car-front-fill',
+            )
+        except Exception:
+            pass
+
         return True, f"Join request submitted to host {ride.creator.enrollment_number}! Awaiting approval.", {
             "status": "pending",
             "request_id": join_req.id,
@@ -272,6 +289,23 @@ def approve_ride_join_request(
         except Exception:
             pass
 
+        try:
+            from accounts.notifications import send_user_notification
+            host_name = host_user.get_full_name() or host_user.enrollment_number
+            send_user_notification(
+                user_id=join_req.user_id,
+                title='Ride Request Approved',
+                content=f'Your request to join ride ({ride.route_display}) was approved by {host_name}!',
+                url=f'/coordinate/{ride.id}/',
+                category='ride_approved',
+                sender_user=host_user,
+                badge='Request Approved',
+                badge_class='bg-success-subtle text-success border border-success-subtle',
+                icon='bi-check-circle-fill',
+            )
+        except Exception:
+            pass
+
         return True, f"Approved {join_req.user.enrollment_number} to join.", {
             "status": "approved",
             "participant": join_req.user.enrollment_number,
@@ -308,6 +342,23 @@ def decline_ride_join_request(
         join_req.save(update_fields=['status', 'reviewed_at'])
         try:
             transition_participant_state(ride=ride, user=join_req.user, target_status=ParticipantStatus.DECLINED)
+        except Exception:
+            pass
+
+        try:
+            from accounts.notifications import send_user_notification
+            host_name = host_user.get_full_name() or host_user.enrollment_number
+            send_user_notification(
+                user_id=join_req.user_id,
+                title='Ride Request Declined',
+                content=f'Your request to join ride ({ride.route_display}) was declined by {host_name}.',
+                url=f'/coordinate/{ride.id}/',
+                category='ride_declined',
+                sender_user=host_user,
+                badge='Request Declined',
+                badge_class='bg-danger-subtle text-danger border border-danger-subtle',
+                icon='bi-x-circle-fill',
+            )
         except Exception:
             pass
 
@@ -366,6 +417,20 @@ def promote_waitlist_passenger(ride: RideRequest) -> Optional[User]:
                     share_contact=True,
                 )
             ride.sync_status()
+            try:
+                from accounts.notifications import send_user_notification
+                send_user_notification(
+                    user_id=candidate.id,
+                    title='Standby Promotion',
+                    content=f'A spot opened up! You were promoted to confirmed passenger in ({ride.route_display}).',
+                    url=f'/coordinate/{ride.id}/',
+                    category='standby_promotion',
+                    badge='Promoted from Standby',
+                    badge_class='bg-success-subtle text-success border border-success-subtle',
+                    icon='bi-arrow-up-circle-fill',
+                )
+            except Exception:
+                pass
             return candidate
 
 

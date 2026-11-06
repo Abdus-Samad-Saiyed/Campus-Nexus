@@ -472,9 +472,21 @@ def api_ride_create(request: HttpRequest) -> JsonResponse:
     if dep_time <= now:
         return json_error("Departure time must be in the future.", status=400, code="PAST_DEPARTURE")
 
-    max_horizon = now + datetime.timedelta(days=30)
+    max_horizon = now + datetime.timedelta(days=365)
     if dep_time > max_horizon:
-        return json_error("Departure cannot be scheduled more than 30 days in advance.", status=400, code="HORIZON_EXCEEDED")
+        return json_error("Departure cannot be scheduled more than 1 year in advance.", status=400, code="HORIZON_EXCEEDED")
+
+    # Catalogue overload protection: limit active rides to 10 per account
+    active_rides_count = RideRequest.objects.filter(
+        creator=user,
+        status__in=["OPEN", "FULL"],
+    ).count()
+    if active_rides_count >= 10:
+        return json_error(
+            "Ride creation limit reached: you cannot have more than 10 active rides in the catalogue.",
+            status=400,
+            code="RIDE_LIMIT_EXCEEDED",
+        )
 
     # Validate spots
     try:

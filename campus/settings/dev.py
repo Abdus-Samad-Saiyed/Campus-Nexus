@@ -98,6 +98,10 @@ else:
         'http://*.ngrok-free.app',
         'https://*.pinggy.link',
         'http://*.pinggy.link',
+        'https://campus-nexus.online',
+        'http://campus-nexus.online',
+        'https://*.campus-nexus.online',
+        'http://*.campus-nexus.online',
     ]
 
 # Early Launch Mode override from CLI flag or environment

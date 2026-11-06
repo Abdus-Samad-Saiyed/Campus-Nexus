@@ -219,14 +219,13 @@ class Stage5DirectChatWebSocketTests(TransactionTestCase):
         asyncio.run(consumer.chat_unfriended({'type': 'chat.unfriended'}))
         self.assertEqual(closed_code, 4003)
 
-    def test_chat_direct_message_revokes_when_friendship_dissolved(self):
-        """If friendship was deleted after connect, incoming chat event closes socket."""
+    def test_chat_direct_message_revokes_when_user_deactivated(self):
+        """If user is deactivated, incoming chat event closes socket."""
         consumer = FriendChatConsumer()
         consumer.user = self.user1
         consumer.friend = self.user2
 
-        # Dissolve friendship
-        self.friendship.delete()
+        self.user2.is_active = False
 
         closed_code = None
 

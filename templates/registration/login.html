@@ -58,6 +58,15 @@
                         <div class="input-group">
                             <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-key"></i></span>
                             <input type="password" name="password" autocomplete="current-password" required id="id_password" class="form-control" placeholder="Enter your password">
+                            <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordLogin">
+                            <label class="form-check-label small text-secondary user-select-none" for="showPasswordLogin">
+                                Show password
+                            </label>
                         </div>
                     </div>
 

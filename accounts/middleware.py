@@ -1,10 +1,12 @@
 """Middleware for single active concurrent session enforcement and request client identity logging."""
 
 import time
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 from accounts.two_factor import hash_otp
 
 
@@ -39,6 +41,66 @@ class SingleSessionMiddleware:
                         "You have been logged out because this account was logged into from another device or browser."
                     )
                     return redirect('login')
+
+        return self.get_response(request)
+
+
+class IdleSessionTimeoutMiddleware:
+    """Terminate authenticated sessions after a period of inactivity (sliding window).
+
+    Configured via settings.SESSION_IDLE_TIMEOUT (default 1800 seconds = 30 minutes).
+    Throttles database session writes to at most once per 60 seconds to maintain high performance.
+    """
+
+    EXEMPT_PREFIXES = (
+        '/static/',
+        '/media/',
+        '/favicon.ico',
+        '/robots.txt',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if getattr(request, 'user', None) and request.user.is_authenticated:
+            path = request.path_info
+            if not any(path.startswith(prefix) for prefix in self.EXEMPT_PREFIXES):
+                idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800)
+                if idle_timeout and idle_timeout > 0:
+                    now = time.time()
+                    last_activity = request.session.get('last_activity')
+
+                    if last_activity is not None:
+                        try:
+                            elapsed = now - float(last_activity)
+                        except (ValueError, TypeError):
+                            elapsed = 0
+
+                        if elapsed > idle_timeout:
+                            logout(request)
+                            if request.path_info.startswith('/api/'):
+                                return JsonResponse(
+                                    {
+                                        'status': 'error',
+                                        'error': 'Session expired due to inactivity. Please sign in again.',
+                                        'code': 'SESSION_IDLE_TIMEOUT',
+                                    },
+                                    status=401,
+                                )
+                            if request.headers.get('HX-Request') == 'true':
+                                messages.info(request, "Your session has expired due to inactivity. Please sign in again.")
+                                response = HttpResponse(status=200)
+                                response['HX-Redirect'] = reverse('login')
+                                return response
+
+                            messages.info(request, "Your session has expired due to inactivity. Please sign in again.")
+                            return redirect('login')
+
+                    # Throttle updating last_activity to avoid saving the session on every request
+                    if last_activity is None or (now - float(last_activity)) > 60:
+                        request.session['last_activity'] = now
+                        request.session.modified = True
 
         return self.get_response(request)
 
@@ -105,14 +167,28 @@ class ClientIdentityLoggingMiddleware:
                 if not name:
                     name = "N.A."
 
-            from accounts.client_logger import update_or_record_client_request, resolve_client_display, is_action_logger_active
+            from accounts.client_logger import (
+                register_client_identity,
+                update_or_record_client_request,
+                resolve_client_display,
+                is_action_logger_active,
+            )
             real_client = resolve_client_display(client_key, real_ip)
+            session_key = getattr(getattr(request, 'session', None), 'session_key', None)
+            register_client_identity(
+                session_key=session_key,
+                client_key=client_key,
+                enrollment=enrollment,
+                name=name,
+                real_client=real_client,
+            )
             update_or_record_client_request(
                 client_key,
                 enrollment=enrollment,
                 name=name,
                 real_client=real_client,
                 received_at=received_at,
+                path=request.path_info,
             )
 
             # If Daphne's custom Command.log_action is NOT active, log directly as fallback

@@ -99,16 +99,85 @@ class RideLifecycleSecurityTests(TestCase):
         self.assertContains(response, 'Departure time must be in the future')
 
     def test_far_future_departure_time_rejected(self):
-        """RIDE-01: Departure time > 30 days rejected."""
+        """RIDE-01: Departure time > 1 year rejected, but up to 1 year accepted."""
         self.client.force_login(self.male_user)
-        far_time = (timezone.now() + datetime.timedelta(days=35)).strftime('%Y-%m-%dT%H:%M')
+        # > 1 year (400 days) rejected
+        far_time = (timezone.now() + datetime.timedelta(days=400)).strftime('%Y-%m-%dT%H:%M')
         response = self.client.post(reverse('create_ride'), {
             'route': 'NIT_TO_AIRPORT',
             'visibility': 'MIXED',
             'departure_time': far_time,
             'total_spots': 3,
         })
-        self.assertContains(response, 'cannot be scheduled more than 30 days in advance')
+        self.assertContains(response, 'cannot be scheduled more than 1 year in advance')
+
+        # Within 1 year (180 days) accepted
+        ok_time = (timezone.now() + datetime.timedelta(days=180)).strftime('%Y-%m-%dT%H:%M')
+        ok_response = self.client.post(reverse('create_ride'), {
+            'route': 'NIT_TO_AIRPORT',
+            'visibility': 'MIXED',
+            'departure_time': ok_time,
+            'total_spots': 3,
+        })
+        self.assertRedirects(ok_response, reverse('ride_list'))
+
+    def test_catalogue_overload_limit_10_rides_per_account(self):
+        """Account can have at most 10 active rides in the catalogue."""
+        self.client.force_login(self.male_user)
+        now = timezone.now()
+
+        # Create 10 active rides
+        for i in range(10):
+            RideRequest.objects.create(
+                creator=self.male_user,
+                route='NIT_TO_AIRPORT',
+                visibility='MIXED',
+                departure_time=now + datetime.timedelta(days=i + 1),
+                total_spots=3,
+                status='OPEN',
+            )
+
+        # Attempt to create the 11th ride via POST
+        eleventh_time = (now + datetime.timedelta(days=20)).strftime('%Y-%m-%dT%H:%M')
+        resp = self.client.post(reverse('create_ride'), {
+            'route': 'NIT_TO_AIRPORT',
+            'visibility': 'MIXED',
+            'departure_time': eleventh_time,
+            'total_spots': 3,
+        })
+        self.assertRedirects(resp, reverse('ride_list'))
+        # Ensure count did not exceed 10
+        self.assertEqual(RideRequest.objects.filter(creator=self.male_user, status__in=['OPEN', 'FULL']).count(), 10)
+
+    def test_custom_route_creation_and_search(self):
+        """Custom routes require source and destination, and appear in search."""
+        self.client.force_login(self.male_user)
+        dep_time = (timezone.now() + datetime.timedelta(days=5)).strftime('%Y-%m-%dT%H:%M')
+
+        # Missing source/destination should fail
+        fail_resp = self.client.post(reverse('create_ride'), {
+            'route': 'CUSTOM',
+            'visibility': 'MIXED',
+            'departure_time': dep_time,
+            'total_spots': 3,
+            'custom_from_location': '',
+            'custom_to_location': '',
+        })
+        self.assertEqual(fail_resp.status_code, 200)
+
+        # Providing source & destination succeeds
+        ok_resp = self.client.post(reverse('create_ride'), {
+            'route': 'CUSTOM',
+            'visibility': 'MIXED',
+            'departure_time': dep_time,
+            'total_spots': 3,
+            'custom_from_location': 'Lal Chowk',
+            'custom_to_location': 'Hazratbal',
+        })
+        self.assertRedirects(ok_resp, reverse('ride_list'))
+        custom_ride = RideRequest.objects.filter(route='CUSTOM', custom_from_location='Lal Chowk').first()
+        self.assertIsNotNone(custom_ride)
+        self.assertEqual(custom_ride.route_display, 'Lal Chowk → Hazratbal')
 
     def test_kicked_participant_cannot_rejoin(self):
         """RIDE-04: Kicked passenger is prevented from rejoining the same ride."""

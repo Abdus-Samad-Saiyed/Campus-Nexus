@@ -48,10 +48,39 @@ class RideChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.user_group_name, self.channel_name)
         await self.accept()
 
+        # Track presence: mark user online in this ride
+        await self._add_presence()
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'chat.presence',
+                'user_id': self.user.id,
+                'enrollment_number': self.user.enrollment_number,
+                'status': 'online',
+            }
+        )
+        online_ids = await self._get_online_ids()
+        await self.send(text_data=json.dumps({
+            'type': 'presence_initial',
+            'online_user_ids': online_ids,
+        }))
+
     async def disconnect(self, close_code):
+        if hasattr(self, 'ride_id') and hasattr(self, 'user') and getattr(self.user, 'is_authenticated', False):
+            await self._remove_presence()
+            if hasattr(self, 'group_name') and self.channel_layer:
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {
+                        'type': 'chat.presence',
+                        'user_id': self.user.id,
+                        'enrollment_number': self.user.enrollment_number,
+                        'status': 'offline',
+                    }
+                )
         if hasattr(self, 'user_group_name') and self.channel_layer:
             await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
-        if hasattr(self, 'group_name'):
+        if hasattr(self, 'group_name') and self.channel_layer:
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -73,6 +102,22 @@ class RideChatConsumer(AsyncWebsocketConsumer):
                 'type': 'error',
                 'error': 'Invalid message format.',
             }))
+            return
+
+        # Handle read receipts (always-on in rides)
+        if data.get('type') == 'mark_read':
+            msg_id = data.get('message_id')
+            if msg_id:
+                read_count = await self._mark_ride_message_read(msg_id)
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {
+                        'type': 'chat.read_receipt',
+                        'message_id': msg_id,
+                        'reader': self.user.enrollment_number,
+                        'read_count': read_count,
+                    }
+                )
             return
 
         content = (data.get('content') or '').strip()
@@ -136,6 +181,24 @@ class RideChatConsumer(AsyncWebsocketConsumer):
             'message_id': message.id,
         }))
 
+    async def chat_presence(self, event):
+        """Relay presence changes to this WebSocket connection."""
+        await self.send(text_data=json.dumps({
+            'type': 'presence_update',
+            'user_id': event['user_id'],
+            'enrollment_number': event['enrollment_number'],
+            'status': event['status'],
+        }))
+
+    async def chat_read_receipt(self, event):
+        """Relay read receipt updates to this WebSocket connection."""
+        await self.send(text_data=json.dumps({
+            'type': 'read_receipt',
+            'message_id': event['message_id'],
+            'reader': event['reader'],
+            'read_count': event.get('read_count', 1),
+        }))
+
     async def chat_message(self, event):
         """Relay a group message to this specific WebSocket connection."""
         if not await self._is_participant():
@@ -189,6 +252,41 @@ class RideChatConsumer(AsyncWebsocketConsumer):
     # ------------------------------------------------------------------
     # DB helpers
     # ------------------------------------------------------------------
+
+    @database_sync_to_async
+    def _add_presence(self):
+        from django.core.cache import cache
+        key = f"ride_online_{self.ride_id}"
+        users = cache.get(key) or set()
+        users.add(self.user.id)
+        cache.set(key, users, timeout=7200)
+
+    @database_sync_to_async
+    def _remove_presence(self):
+        from django.core.cache import cache
+        key = f"ride_online_{self.ride_id}"
+        users = cache.get(key) or set()
+        users.discard(self.user.id)
+        cache.set(key, users, timeout=7200)
+
+    @database_sync_to_async
+    def _get_online_ids(self):
+        from django.core.cache import cache
+        key = f"ride_online_{self.ride_id}"
+        users = cache.get(key) or set()
+        return list(users)
+
+    @database_sync_to_async
+    def _mark_ride_message_read(self, message_id: int) -> int:
+        from coordinate.models import RideMessage
+        try:
+            msg = RideMessage.objects.filter(ride_id=self.ride_id, id=message_id).first()
+            if msg:
+                msg.read_by.add(self.user)
+                return msg.read_by.count()
+        except Exception:
+            pass
+        return 0
 
     @database_sync_to_async
     def _is_participant(self) -> bool:

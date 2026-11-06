@@ -85,10 +85,29 @@ class TokenOrSessionAuthMiddleware(BaseMiddleware):
         return await super().__call__(scope, receive, send)
 
 
+class WebSocketIdentityLoggerMiddleware(BaseMiddleware):
+    """Register authenticated user identity in the client logger registry immediately upon connection."""
+
+    async def __call__(self, scope, receive, send):
+        user = scope.get('user')
+        if user and getattr(user, 'is_authenticated', False):
+            from accounts.client_logger import register_client_identity
+            client = scope.get('client')
+            client_key = f"{client[0]}:{client[1]}" if client else None
+            enrollment = getattr(user, 'enrollment_number', '') or getattr(user, 'username', 'N.A.') or 'N.A.'
+            full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
+            name = full_name.strip() or getattr(user, 'display_name', '') or getattr(user, 'username', '') or enrollment
+            if not name:
+                name = 'N.A.'
+            register_client_identity(client_key=client_key, enrollment=enrollment, name=name)
+
+        return await super().__call__(scope, receive, send)
+
+
 def TokenOrSessionAuthMiddlewareStack(inner):
-    """Stack TokenOrSessionAuthMiddleware on top of standard AuthMiddlewareStack."""
+    """Stack TokenOrSessionAuthMiddleware on top of standard AuthMiddlewareStack with WebSocket identity logging."""
     from channels.auth import AuthMiddlewareStack
-    return TokenOrSessionAuthMiddleware(AuthMiddlewareStack(inner))
+    return TokenOrSessionAuthMiddleware(AuthMiddlewareStack(WebSocketIdentityLoggerMiddleware(inner)))
 
 
 class MobileAndAllowedHostsOriginValidator(OriginValidator):

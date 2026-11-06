@@ -97,10 +97,15 @@
                             {% endif %}
                         </div>
 
-                        <div class="row g-3 mb-4">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="{{ form.password.id_for_label }}" class="form-label">Password {% if user.is_authenticated %}(Optional){% endif %}</label>
-                                {{ form.password }}
+                                <div class="input-group">
+                                    {{ form.password }}
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 {% if user.is_authenticated %}
                                     <div class="form-text text-secondary small">Leave blank to keep your current password.</div>
                                 {% endif %}
@@ -110,11 +115,22 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password {% if user.is_authenticated %}(Optional){% endif %}</label>
-                                {{ form.confirm_password }}
+                                <div class="input-group">
+                                    {{ form.confirm_password }}
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 {% if form.confirm_password.errors %}
                                     <div class="text-danger small mt-1">{{ form.confirm_password.errors.0 }}</div>
                                 {% endif %}
                             </div>
+                        </div>
+                        <div class="form-check mb-4 mt-n1">
+                            <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordsEarly">
+                            <label class="form-check-label small text-secondary user-select-none" for="showPasswordsEarly">
+                                Show passwords
+                            </label>
                         </div>
 
                         <button type="submit" class="btn btn-warning text-dark w-100 py-2 fs-6 fw-bold">
@@ -213,21 +229,37 @@
                             </div>
                         </div>
 
-                        <div class="row g-3 mb-4">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
-                                {{ form.password }}
+                                <div class="input-group">
+                                    {{ form.password }}
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 {% if form.password.errors %}
                                     <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password</label>
-                                {{ form.confirm_password }}
+                                <div class="input-group">
+                                    {{ form.confirm_password }}
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 {% if form.confirm_password.errors %}
                                     <div class="text-danger small mt-1">{{ form.confirm_password.errors.0 }}</div>
                                 {% endif %}
                             </div>
+                        </div>
+                        <div class="form-check mb-4 mt-n1">
+                            <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordsPerm">
+                            <label class="form-check-label small text-secondary user-select-none" for="showPasswordsPerm">
+                                Show passwords
+                            </label>
                         </div>
 
                         <button type="submit" class="btn btn-green w-100 py-2 fs-6 fw-bold">

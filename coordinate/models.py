@@ -79,6 +79,10 @@ class RideRequest(models.Model):
         db_index=True,
         help_text='Session key for ephemeral guest demo rides.',
     )
+    share_chat_history = models.BooleanField(
+        default=False,
+        help_text='Allow participants who join later to see chat messages from before they joined.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -167,6 +171,15 @@ class RideRequest(models.Model):
                 raise ValidationError({'custom_from_location': 'Custom route requires a departure location.'})
             if not self.custom_to_location or not self.custom_to_location.strip():
                 raise ValidationError({'custom_to_location': 'Custom route requires a destination location.'})
+
+        # Catalogue overload protection: limit active rides to 10 per account
+        if hasattr(self, 'creator') and self.creator_id and not self.pk:
+            active_count = RideRequest.objects.filter(
+                creator_id=self.creator_id,
+                status__in=['OPEN', 'FULL'],
+            ).count()
+            if active_count >= 10:
+                raise ValidationError('Ride creation limit reached: you cannot have more than 10 active rides in the catalogue.')
 
     def save(self, *args, **kwargs):
         if not self.pk:
@@ -390,6 +403,7 @@ class RideMessage(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ride_messages')
     content = models.TextField(max_length=1000)
     created_at = models.DateTimeField(default=timezone.now)
+    read_by = models.ManyToManyField(User, related_name='read_ride_messages', blank=True)
 
     class Meta:
         ordering = ['created_at']

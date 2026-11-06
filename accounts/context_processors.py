@@ -2,12 +2,11 @@
 
 from django.conf import settings
 
-
 from accounts.demo import is_guest_demo
 
 
 def early_launch_context(request):
-    """Expose early_launch_mode, pending application state, and incoming friend requests count across all templates."""
+    """Expose early_launch_mode, pending application state, incoming friend requests count, and session idle timeout across all templates."""
     pending_app = None
     friend_requests_count = 0
     user = getattr(request, 'user', None)
@@ -32,4 +31,5 @@ def early_launch_context(request):
         'early_launch_mode': getattr(settings, 'EARLY_LAUNCH_MODE', False),
         'pending_permanent_application': pending_app,
         'incoming_friend_requests_count': friend_requests_count,
+        'session_idle_timeout': getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800),
     }

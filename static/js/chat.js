@@ -1,3 +1,17 @@
+    function updateParticipantPresence(userId, status) {
+        const badge = document.getElementById(`presence-badge-${userId}`);
+        if (!badge) return;
+        const text = badge.querySelector('.presence-text');
+        if (status === 'online') {
+            badge.className = 'presence-badge badge rounded-pill bg-success-subtle text-success border border-success-subtle small py-0 px-2';
+            if (text) text.textContent = 'Online';
+            badge.title = 'Online in ride';
+        } else {
+            badge.className = 'presence-badge badge rounded-pill bg-secondary-subtle text-secondary border border-secondary small py-0 px-2';
+            if (text) text.textContent = 'Offline';
+            badge.title = 'Offline';
+        }
+    }
 // static/js/chat.js
 // WebSocket real-time chat for COORDINATE rides with fallback handling
 
@@ -39,13 +53,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 statusIndicator.textContent = 'Live';
                 statusIndicator.className = 'chat-status chat-status-connected';
             }
+            // Mark all past incoming messages as read
+            document.querySelectorAll('.message-other[data-message-id]').forEach(el => {
+                const mid = el.getAttribute('data-message-id');
+                if (mid) {
+                    socket.send(JSON.stringify({ type: 'mark_read', message_id: parseInt(mid, 10) }));
+                }
+            });
         };
 
         socket.onmessage = function (e) {
             try {
                 const data = JSON.parse(e.data);
                 if (data.type === 'message') {
-                    appendMessage(data.author, data.content, data.timestamp, data.is_self);
+                    appendMessage(data.author, data.content, data.timestamp, data.is_self, data.message_id);
+                    if (!data.is_self && data.message_id && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ type: 'mark_read', message_id: data.message_id }));
+                    }
+                } else if (data.type === 'presence_update') {
+                    updateParticipantPresence(data.user_id, data.status);
+                } else if (data.type === 'presence_initial' && Array.isArray(data.online_user_ids)) {
+                    data.online_user_ids.forEach(uid => updateParticipantPresence(uid, 'online'));
+                } else if (data.type === 'read_receipt') {
+                    const receiptEl = document.getElementById(`read-receipt-${data.message_id}`);
+                    if (receiptEl) {
+                        const countEl = document.getElementById(`read-count-${data.message_id}`);
+                        if (countEl && data.read_count) {
+                            countEl.textContent = data.read_count;
+                        }
+                    }
                 } else if (data.type === 'system_notice') {
                     appendSystemNotice(data.content);
                     if (['cancelled', 'completed', 'terminated', 'user_kicked'].includes(data.action)) {
@@ -115,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
         scrollToBottom();
     }
 
-    function appendMessage(author, content, timestamp, isSelf) {
+    function appendMessage(author, content, timestamp, isSelf, messageId) {
         if (!messagesContainer) return;
 
         // Check if there was an empty notice and remove it
@@ -126,6 +162,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const msgDiv = document.createElement('div');
         msgDiv.className = `message-item ${isSelf ? 'message-self' : 'message-other'}`;
+        if (messageId) {
+            msgDiv.setAttribute('data-message-id', messageId);
+        }
 
         const authorDiv = document.createElement('div');
         authorDiv.className = 'message-author';
@@ -136,8 +175,19 @@ document.addEventListener('DOMContentLoaded', function () {
         bubbleDiv.textContent = content;
 
         const timeDiv = document.createElement('div');
-        timeDiv.className = 'message-time';
-        timeDiv.textContent = timestamp;
+        timeDiv.className = 'message-time d-flex align-items-center justify-content-end gap-1';
+        const spanTime = document.createElement('span');
+        spanTime.textContent = timestamp;
+        timeDiv.appendChild(spanTime);
+
+        if (isSelf && messageId) {
+            const receiptSpan = document.createElement('span');
+            receiptSpan.id = `read-receipt-${messageId}`;
+            receiptSpan.className = 'read-receipt text-success ms-1';
+            receiptSpan.title = 'Read receipts always active in ride groups';
+            receiptSpan.innerHTML = `<i class="bi bi-check2-all"></i> <span class="small read-count-num" id="read-count-${messageId}"></span>`;
+            timeDiv.appendChild(receiptSpan);
+        }
 
         msgDiv.appendChild(authorDiv);
         msgDiv.appendChild(bubbleDiv);

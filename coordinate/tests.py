@@ -540,11 +540,26 @@ class RideWorkflowTests(TestCase):
         )
         RideParticipant.objects.create(ride=r2, user=self.creator)
 
-        # Check ride list defaults to all upcoming rides (un-filtered)
+        # Check ride list defaults to all upcoming rides (un-filtered, 14 days by default)
         resp = self.client.get(reverse('ride_list'))
         self.assertEqual(resp.status_code, 200)
         self.assertIn('density_data', resp.context)
         self.assertEqual(len(resp.context['density_data']), 14)
+        self.assertEqual(resp.context['bar_min_width'], '38px')
+        self.assertContains(resp, 'min-width: 38px')
+
+        # Check configurable density telemetry views: 30 days and 3 months (90 days) with bar thinning
+        resp_30 = self.client.get(reverse('ride_list') + '?density_view=30')
+        self.assertEqual(resp_30.status_code, 200)
+        self.assertEqual(len(resp_30.context['density_data']), 30)
+        self.assertEqual(resp_30.context['bar_min_width'], '18px')
+        self.assertContains(resp_30, 'min-width: 18px')
+
+        resp_90 = self.client.get(reverse('ride_list') + '?density_view=90')
+        self.assertEqual(resp_90.status_code, 200)
+        self.assertEqual(len(resp_90.context['density_data']), 90)
+        self.assertEqual(resp_90.context['bar_min_width'], '8px')
+        self.assertContains(resp_90, 'min-width: 8px')
 
         # Check order_by parameters
         for order_param in ['time_asc', 'time_desc', 'spots_desc', 'created_desc']:

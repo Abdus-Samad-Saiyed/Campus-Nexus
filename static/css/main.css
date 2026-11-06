@@ -2216,3 +2216,39 @@ html, body {
   }
 }
 
+/* ── Password Visibility Toggle Button ── */
+.input-group > .password-toggle-btn {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--secondary, #94a3b8);
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  cursor: pointer;
+  z-index: 3;
+}
+.input-group > .password-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: var(--green, #08B74F);
+}
+.input-group > .password-toggle-btn:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--green, #08B74F);
+}
+[data-bs-theme="light"] .input-group > .password-toggle-btn,
+[data-theme="light"] .input-group > .password-toggle-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+[data-bs-theme="light"] .input-group > .password-toggle-btn:hover,
+[data-theme="light"] .input-group > .password-toggle-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: var(--green, #08B74F);
+}
+

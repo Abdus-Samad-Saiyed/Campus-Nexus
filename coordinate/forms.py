@@ -23,6 +23,10 @@ class RideRequestForm(forms.ModelForm):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_share_contact', 'required': 'required'}),
     )
 
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
     class Meta:
         model = RideRequest
         fields = [
@@ -32,16 +36,19 @@ class RideRequestForm(forms.ModelForm):
             'visibility',
             'departure_time',
             'total_spots',
+            'share_chat_history',
         ]
         widgets = {
             'route': forms.Select(attrs={'class': 'form-select', 'id': 'id_route'}),
             'custom_from_location': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'From location',
+                'placeholder': 'Enter source (e.g. Lal Chowk, Dal Gate)',
+                'id': 'id_custom_from_location',
             }),
             'custom_to_location': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'To location',
+                'placeholder': 'Enter destination (e.g. Hazratbal, Foreshore Road)',
+                'id': 'id_custom_to_location',
             }),
             'visibility': forms.Select(attrs={'class': 'form-select'}),
             'departure_time': forms.DateTimeInput(
@@ -53,6 +60,10 @@ class RideRequestForm(forms.ModelForm):
                 'min': 1,
                 'max': 6,
                 'placeholder': '1–6',
+            }),
+            'share_chat_history': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'id': 'id_share_chat_history',
             }),
         }
 
@@ -68,8 +79,8 @@ class RideRequestForm(forms.ModelForm):
             now = timezone.now()
             if dep_time <= now:
                 raise forms.ValidationError('Departure time must be in the future.')
-            if dep_time > now + datetime.timedelta(days=30):
-                raise forms.ValidationError('Departure time cannot be scheduled more than 30 days in advance.')
+            if dep_time > now + datetime.timedelta(days=365):
+                raise forms.ValidationError('Departure time cannot be scheduled more than 1 year in advance.')
         return dep_time
 
     def clean(self):
@@ -91,6 +102,16 @@ class RideRequestForm(forms.ModelForm):
                 self.add_error('custom_from_location', 'Required for custom routes.')
             if not cleaned.get('custom_to_location'):
                 self.add_error('custom_to_location', 'Required for custom routes.')
+
+        # Catalogue overload protection: limit active rides to 10 per account
+        if self.user and not getattr(self.user, 'is_guest_demo', False):
+            active_count = RideRequest.objects.filter(
+                creator=self.user,
+                status__in=['OPEN', 'FULL'],
+            ).count()
+            if active_count >= 10:
+                self.add_error(None, 'Ride creation limit reached: you cannot have more than 10 active rides in the catalogue.')
+
         return cleaned
 
 

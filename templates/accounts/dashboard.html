@@ -129,6 +129,73 @@
         </div>
     {% endif %}
 
+    <!-- Incoming Ride Join Requests Alert Card -->
+    {% if incoming_ride_join_requests %}
+        <div class="glass p-4 mb-4 border-info-subtle glass-glow position-relative" style="background: rgba(14, 165, 233, 0.06); border: 1.5px solid rgba(14, 165, 233, 0.45); box-shadow: 0 0 24px rgba(14, 165, 233, 0.12);">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="feature-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+                        <i class="bi bi-car-front-fill"></i>
+                    </span>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-white">
+                            Incoming Ride Request{{ incoming_ride_join_requests|length|pluralize }}
+                        </h5>
+                        <span class="text-secondary small">
+                            You have {{ incoming_ride_join_requests|length }} student{{ incoming_ride_join_requests|length|pluralize }} waiting to join your ride{{ incoming_ride_join_requests|length|pluralize }}.
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                {% for req in incoming_ride_join_requests %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                {% if req.user.profile_photo %}
+                                    <img src="{{ req.user.profile_photo.url }}" class="rounded-circle object-fit-cover flex-shrink-0" style="width: 44px; height: 44px;">
+                                {% else %}
+                                    <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                        <i class="bi bi-person-fill text-secondary fs-5"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="overflow-hidden">
+                                    <a href="{% url 'profile' req.user.enrollment_number %}" class="text-white text-decoration-none fw-bold d-block text-truncate">
+                                        {{ req.user.display_name }}
+                                    </a>
+                                    <div class="text-secondary small font-monospace">
+                                        <code>{{ req.user.enrollment_number }}</code>
+                                    </div>
+                                    <div class="text-light small text-truncate mt-1">
+                                        <i class="bi bi-geo-alt-fill text-info me-1"></i> {{ req.ride.route_display }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <form action="{% url 'approve_join_request' req.ride.id req.id %}" method="POST" class="flex-grow-1 m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-green btn-sm w-100 fw-semibold">
+                                        <i class="bi bi-check-lg me-1"></i> Approve
+                                    </button>
+                                </form>
+                                <form action="{% url 'decline_join_request' req.ride.id req.id %}" method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm px-2" title="Decline Request">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                                <a href="{% url 'ride_detail' req.ride.id %}" class="btn btn-dark-custom btn-sm px-2" title="View Ride">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Active Ride Banner if present -->
     {% if active_participation %}
         <div class="glass p-4 mb-4 glass-glow border-success">

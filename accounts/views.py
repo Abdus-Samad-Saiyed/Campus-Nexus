@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import sys
+import time
 import uuid
 from functools import wraps
 from datetime import timedelta
@@ -25,7 +26,7 @@ from PIL import Image
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login as auth_login, update_session_auth_hash
+from django.contrib.auth import login as auth_login, logout as auth_logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
@@ -45,10 +46,12 @@ from django.views.decorators.http import require_POST
 from coordinate.models import RideParticipant, RideRequest
 
 from .forms import AccountApplicationForm, EarlyLaunchDeclarationForm, EnrollmentAuthenticationForm
+from .notifications import send_user_notification
 from .models import (
     AccountApplication,
     AuditEvent,
     DirectMessage,
+    DirectMessageReport,
     Friendship,
     FriendRequest,
     PasskeyCredential,
@@ -153,6 +156,20 @@ def enforce_single_session_login(request, user: User):
 
     user.current_session_key = current_key
     user.save(update_fields=['current_session_key'])
+    request.session['last_activity'] = time.time()
+
+    try:
+        from accounts.client_logger import register_client_identity
+        enrollment = getattr(user, 'enrollment_number', '') or getattr(user, 'username', 'N.A.')
+        full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
+        display_name = full_name.strip() or getattr(user, 'display_name', '') or getattr(user, 'username', '') or enrollment
+        register_client_identity(
+            session_key=current_key,
+            enrollment=enrollment,
+            name=display_name,
+        )
+    except Exception:
+        pass
 
     if prior_terminated:
         from accounts.utils import broadcast_user_session_revocation
@@ -175,6 +192,12 @@ def custom_login_view(request, extra_context=None):
     """Enrollment-based authentication with single concurrent session & 2FA intercept.
     Compatible with Django admin login redirection (admin.site.login = custom_login_view).
     """
+    if request.GET.get('reason') == 'inactivity':
+        if request.user.is_authenticated:
+            auth_logout(request)
+        messages.info(request, "Your session has expired due to inactivity. Please sign in again.")
+        return redirect('login')
+
     if request.user.is_authenticated:
         return redirect('dashboard')
 
@@ -1099,6 +1122,7 @@ def dashboard(request):
             'services': get_all_services(),
             'pending_application': None,
             'incoming_friend_requests': [],
+            'incoming_ride_join_requests': [],
             'is_guest_demo': True,
             'recent_conversations': [],
             'total_unread_messages': 0,
@@ -1126,6 +1150,14 @@ def dashboard(request):
         .order_by('-created_at')
     )
 
+    from coordinate.models import RideJoinRequest
+    incoming_ride_join_requests = list(
+        RideJoinRequest.objects
+        .filter(ride__creator=request.user, ride__status__in=['OPEN', 'FULL'], status='PENDING')
+        .select_related('ride', 'user')
+        .order_by('-created_at')
+    )
+
     recent_conversations, total_unread_messages = get_user_recent_conversations(request.user, limit=4, include_empty=False)
 
     return render(request, 'accounts/dashboard.html', {
@@ -1134,6 +1166,7 @@ def dashboard(request):
         'services': get_all_services(),
         'pending_application': pending_application,
         'incoming_friend_requests': incoming_friend_requests,
+        'incoming_ride_join_requests': incoming_ride_join_requests,
         'recent_conversations': recent_conversations,
         'total_unread_messages': total_unread_messages,
     })
@@ -1274,6 +1307,7 @@ def profile_view(request, enrollment_number):
         profile_user.hide_from_search = (request.POST.get('hide_from_search') == 'on')
         profile_user.hide_profile_photo = (request.POST.get('hide_profile_photo') == 'on')
         profile_user.show_contact_on_profile = (request.POST.get('show_contact_on_profile') == 'on')
+        profile_user.dm_read_receipts = (request.POST.get('dm_read_receipts') == 'on')
         profile_user.two_factor_enabled = new_2fa
         profile_user.save()
 
@@ -1412,10 +1446,73 @@ def user_search(request):
             'incoming_request_id': incoming_requests_map.get(s.pk),
         })
 
+    # Group students by enrollment year first, then branch of study
+    # 1. First group: current user's year & branch
+    # 2. Other branches in current user's year (lexicographically)
+    # 3. Other years lexicographically, each with branches lexicographically
+    my_year = request.user.joining_year
+    if not my_year:
+        year_str = (request.user.enrollment_number or '')[:4]
+        my_year = int(year_str) if year_str.isdigit() else 2024
+    my_branch = (request.user.branch or ((request.user.enrollment_number or '')[5:8] if len(request.user.enrollment_number or '') >= 8 else '')).upper().strip()
+
+    from collections import defaultdict
+    year_branch_map = defaultdict(lambda: defaultdict(list))
+
+    for item in student_list:
+        s = item['student']
+        s_year = s.joining_year
+        if not s_year:
+            s_year_str = (s.enrollment_number or '')[:4]
+            s_year = int(s_year_str) if s_year_str.isdigit() else 0
+        s_branch = (s.branch or ((s.enrollment_number or '')[5:8] if len(s.enrollment_number or '') >= 8 else 'OTHER')).upper().strip()
+        year_branch_map[s_year][s_branch].append(item)
+
+    all_years = list(year_branch_map.keys())
+    other_years = sorted([y for y in all_years if y != my_year], key=lambda y: str(y))
+    ordered_years = ([my_year] if my_year in year_branch_map else []) + other_years
+
+    year_groups = []
+    flattened_ordered_list = []
+
+    for y in ordered_years:
+        branches_dict = year_branch_map[y]
+        all_branches = list(branches_dict.keys())
+
+        if y == my_year:
+            other_branches = sorted([b for b in all_branches if b != my_branch])
+            ordered_branches = ([my_branch] if my_branch in branches_dict else []) + other_branches
+        else:
+            ordered_branches = sorted(all_branches)
+
+        branch_list = []
+        for b in ordered_branches:
+            stus = branches_dict[b]
+            is_my_group = (y == my_year and b == my_branch)
+            branch_info = {
+                'branch': b,
+                'is_my_branch': (b == my_branch),
+                'is_my_group': is_my_group,
+                'students': stus,
+                'count': len(stus),
+            }
+            branch_list.append(branch_info)
+            flattened_ordered_list.extend(stus)
+
+        year_groups.append({
+            'year': y,
+            'is_my_year': (y == my_year),
+            'branches': branch_list,
+            'total_students': sum(len(b['students']) for b in branch_list),
+        })
+
     return render(request, 'accounts/user_search.html', {
         'query': query,
-        'student_list': student_list,
-        'total_count': len(student_list),
+        'student_list': flattened_ordered_list,
+        'year_groups': year_groups,
+        'total_count': len(flattened_ordered_list),
+        'my_year': my_year,
+        'my_branch': my_branch,
     })
 
 
@@ -1455,7 +1552,7 @@ def unfriend_user(request, enrollment_number):
 @login_required
 @verified_student_required
 def direct_chat_view(request, enrollment_number):
-    """1-on-1 WebSocket chat room between confirmed friends."""
+    """1-on-1 chat room between students."""
     friend = get_object_or_404(User, enrollment_number=enrollment_number.strip().upper())
     if friend == request.user:
         messages.warning(request, "You cannot chat with yourself.")
@@ -1465,17 +1562,11 @@ def direct_chat_view(request, enrollment_number):
         Q(user1=request.user, user2=friend) | Q(user1=friend, user2=request.user)
     ).exists()
 
-    has_history = DirectMessage.objects.filter(
-        Q(sender=request.user, recipient=friend) | Q(sender=friend, recipient=request.user)
-    ).exists()
+    read_only = not friend.is_active or getattr(friend, 'is_deleted', False)
 
-    if not is_friend:
-        if request.method == 'POST':
-            messages.error(request, "Direct messaging is reserved for confirmed friends.")
-            return redirect('profile', enrollment_number=friend.enrollment_number)
-        if not has_history:
-            messages.error(request, "Direct messaging is reserved for confirmed friends.")
-            return redirect('profile', enrollment_number=friend.enrollment_number)
+    if read_only and request.method == 'POST':
+        messages.error(request, "This user account is inactive. Conversation is read-only.")
+        return redirect('direct_chat', enrollment_number=friend.enrollment_number)
 
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()
@@ -1540,8 +1631,114 @@ def direct_chat_view(request, enrollment_number):
         'friend': friend,
         'chat_messages': chat_messages,
         'is_friend': is_friend,
-        'read_only': not is_friend,
+        'read_only': read_only,
     })
+
+
+@login_required
+@verified_student_required
+@require_POST
+def report_direct_chat_view(request, enrollment_number):
+    """File a formal conduct report against a direct messaging partner.
+
+    Captures an optional evidentiary transcript snapshot for the selected
+    timeframe: 15_MINUTES, 1_HOUR, 1_DAY, or LIFETIME.
+    """
+    reported_user = get_object_or_404(User, enrollment_number=enrollment_number.strip().upper())
+    if reported_user == request.user:
+        messages.error(request, "You cannot file a report against yourself.")
+        return redirect('dashboard')
+
+    reason_category = request.POST.get('reason_category', '').strip()
+    valid_categories = [c[0] for c in DirectMessageReport.CATEGORY_CHOICES]
+    if reason_category not in valid_categories:
+        messages.error(request, "Please select a valid report reason category.")
+        return redirect('direct_chat', enrollment_number=reported_user.enrollment_number)
+
+    statement = request.POST.get('statement', '').strip()
+    share_transcript = request.POST.get('share_transcript') in ('1', 'true', 'on', True)
+    transcript_timeframe = request.POST.get('transcript_timeframe', '').strip()
+    valid_timeframes = [t[0] for t in DirectMessageReport.TIMEFRAME_CHOICES]
+
+    transcript_snapshot = ''
+    transcript_count = 0
+
+    if share_transcript:
+        if transcript_timeframe not in valid_timeframes:
+            transcript_timeframe = '1_HOUR'
+
+        now = timezone.now()
+        qs = DirectMessage.objects.filter(
+            (Q(sender=request.user, recipient=reported_user) | Q(sender=reported_user, recipient=request.user))
+        )
+
+        if transcript_timeframe == '15_MINUTES':
+            cutoff = now - timedelta(minutes=15)
+            qs = qs.filter(created_at__gte=cutoff)
+        elif transcript_timeframe == '1_HOUR':
+            cutoff = now - timedelta(hours=1)
+            qs = qs.filter(created_at__gte=cutoff)
+        elif transcript_timeframe == '1_DAY':
+            cutoff = now - timedelta(days=1)
+            qs = qs.filter(created_at__gte=cutoff)
+        # LIFETIME: all messages
+
+        messages_list = list(qs.order_by('created_at'))
+        transcript_count = len(messages_list)
+
+        lines = [
+            "=== DIRECT MESSAGE TRANSCRIPT EVIDENCE ===",
+            "Reference: PENDING",
+            f"Reporter: {request.user.enrollment_number} ({request.user.get_full_name() or 'N/A'})",
+            f"Reported User: {reported_user.enrollment_number} ({reported_user.get_full_name() or 'N/A'})",
+            f"Timeframe: {dict(DirectMessageReport.TIMEFRAME_CHOICES).get(transcript_timeframe, transcript_timeframe)}",
+            f"Captured At: {now.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"Message Count: {transcript_count}",
+            "==========================================",
+            ""
+        ]
+        for m in messages_list:
+            sender_name = m.sender.get_full_name() or m.sender.enrollment_number
+            ts = m.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            lines.append(f"[{ts}] {sender_name} ({m.sender.enrollment_number}): {m.content}")
+
+        transcript_snapshot = "\n".join(lines)
+    else:
+        transcript_timeframe = ''
+
+    ref_id = f"DMR-{uuid.uuid4().hex[:10].upper()}"
+    if transcript_snapshot:
+        transcript_snapshot = transcript_snapshot.replace("Reference: PENDING", f"Reference: {ref_id}")
+
+    report = DirectMessageReport.objects.create(
+        reference_id=ref_id,
+        reporter=request.user,
+        reported_user=reported_user,
+        reason_category=reason_category,
+        statement=statement,
+        share_transcript=share_transcript,
+        transcript_timeframe=transcript_timeframe,
+        transcript_snapshot=transcript_snapshot,
+        transcript_message_count=transcript_count,
+    )
+
+    from django.db.models import F
+    User.objects.filter(id=reported_user.id).update(
+        behavior_reports=F('behavior_reports') + 1
+    )
+
+    log_audit_event(
+        event_type='DM_REPORT_FILED',
+        actor_enrollment=request.user.enrollment_number,
+        target_id=reported_user.enrollment_number,
+        description=f"Filed DM report {ref_id} ({reason_category}, transcript_shared={share_transcript}, messages={transcript_count})",
+    )
+
+    messages.success(
+        request,
+        f"Your report ({ref_id}) has been submitted securely to campus moderators. Thank you for helping keep our community safe."
+    )
+    return redirect('direct_chat', enrollment_number=reported_user.enrollment_number)
 
 
 def get_user_recent_conversations(user, limit=None, include_empty=False):
@@ -1936,7 +2133,20 @@ def send_friend_request(request, enrollment_number):
             messages.info(request, 'Friendship already exists.')
             return redirect('profile', enrollment_number=enrollment_number)
 
-    FriendRequest.objects.get_or_create(sender=request.user, receiver=target)
+    fr, created = FriendRequest.objects.get_or_create(sender=request.user, receiver=target)
+    if created:
+        sender_name = request.user.get_full_name() or request.user.enrollment_number
+        send_user_notification(
+            user_id=target.id,
+            title='New Connection Request',
+            content=f'{sender_name} sent you a campus friend request.',
+            url='/dashboard/',
+            category='friend_request',
+            sender_user=request.user,
+            badge='Connection Request',
+            badge_class='bg-info-subtle text-info border border-info-subtle',
+            icon='bi-person-plus-fill',
+        )
     messages.success(request, f'Friend request sent to {enrollment_number}.')
     return redirect('profile', enrollment_number=enrollment_number)
 
@@ -2039,6 +2249,18 @@ def accept_friend_request(request, request_id):
                 Q(sender=other_user, receiver=request.user)
             ).delete()
         messages.success(request, f'You are now friends with {other_name}.')
+        sender_name = request.user.get_full_name() or request.user.enrollment_number
+        send_user_notification(
+            user_id=other_user.id,
+            title='Friend Request Accepted',
+            content=f'{sender_name} accepted your friend request! You can now send direct messages.',
+            url=f'/messages/{request.user.enrollment_number}/',
+            category='friend_accepted',
+            sender_user=request.user,
+            badge='Friend Request Accepted',
+            badge_class='bg-success-subtle text-success border border-success-subtle',
+            icon='bi-person-check-fill',
+        )
     except IntegrityError:
         FriendRequest.objects.filter(
             Q(sender=request.user, receiver=other_user) |

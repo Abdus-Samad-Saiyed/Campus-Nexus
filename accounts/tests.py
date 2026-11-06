@@ -1,3 +1,4 @@
+import time
 from django.contrib.auth import authenticate
 from django.test import TestCase
 from django.urls import reverse
@@ -385,3 +386,72 @@ class AccountWorkflowTests(TestCase):
         msg.refresh_from_db()
         self.assertTrue(msg.is_read)
 
+class IdleSessionTimeoutTests(TestCase):
+    """Test suite for sliding idle session inactivity timeout."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='IdleUser',
+            enrollment_number='2024BCSE088',
+            gender='M',
+            phone_number='9999999988',
+            password='password123',
+            verified=True,
+        )
+
+    def test_active_session_remains_authenticated(self):
+        """Authenticated user making regular requests remains logged in."""
+        self.client.force_login(self.user)
+        session = self.client.session
+        session['last_activity'] = time.time()
+        session.save()
+
+        resp = self.client.get(reverse('dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['user'].is_authenticated)
+
+    def test_inactive_session_expires_and_redirects_to_login(self):
+        """User inactive for longer than SESSION_IDLE_TIMEOUT is logged out with info message."""
+        self.client.force_login(self.user)
+        session = self.client.session
+        # Simulate idle time exceeding 1800 seconds
+        session['last_activity'] = time.time() - 2000
+        session.save()
+
+        resp = self.client.get(reverse('dashboard'), follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(any(reverse('login') in target for target, _ in resp.redirect_chain))
+        messages_list = list(resp.context['messages'])
+        self.assertTrue(any('inactivity' in m.message.lower() for m in messages_list))
+
+    def test_inactive_api_request_returns_401_json(self):
+        """API request from an idle session receives 401 with code SESSION_IDLE_TIMEOUT."""
+        self.client.force_login(self.user)
+        session = self.client.session
+        session['last_activity'] = time.time() - 2500
+        session.save()
+
+        resp = self.client.get('/api/v1/rides/')
+        self.assertEqual(resp.status_code, 401)
+        data = resp.json()
+        self.assertEqual(data.get('code'), 'SESSION_IDLE_TIMEOUT')
+
+    def test_inactive_htmx_request_returns_hx_redirect(self):
+        """HTMX request from an idle session receives HX-Redirect response header."""
+        self.client.force_login(self.user)
+        session = self.client.session
+        session['last_activity'] = time.time() - 3000
+        session.save()
+
+        resp = self.client.get(reverse('dashboard'), HTTP_HX_REQUEST='true')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get('HX-Redirect'), reverse('login'))
+
+    def test_login_with_reason_inactivity_logs_out_and_shows_message(self):
+        """Visiting /login/?reason=inactivity logs out user and queues session expired message."""
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('login') + '?reason=inactivity', follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(any(reverse('login') in target for target, _ in resp.redirect_chain))
+        messages_list = list(resp.context['messages'])
+        self.assertTrue(any('inactivity' in m.message.lower() for m in messages_list))

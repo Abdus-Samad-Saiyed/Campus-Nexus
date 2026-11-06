@@ -14,6 +14,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
 
 from accounts.client_logger import (
+    register_client_identity,
     ClientLoggingASGIWrapper,
     pop_client_request,
     resolve_client_display,
@@ -418,3 +419,52 @@ class ProtectedMediaAuthorizationTests(TestCase):
             self.assertEqual(response.status_code, 403)
             if hasattr(response, 'close'):
                 response.close()
+
+class ConnectionIdentityAndPipelineTests(TestCase):
+    """Test connection-level identity persistence and pipelined request disambiguation."""
+
+    def setUp(self):
+        self.cmd = Command()
+
+    def test_pipelined_requests_disambiguated_by_path(self):
+        """Pipelined requests on same socket correctly match identity and path."""
+        client_key = "14.139.61.131:14232"
+        seed_client_request(client_key, enrollment="2024BCSE065", name="Abdus Samad Saiyed", path="/coordinate/my-rides/")
+        seed_client_request(client_key, enrollment="2024BCSE065", name="Abdus Samad Saiyed", path="/media/profiles/avatar.jpg")
+
+        meta_img = pop_client_request(client_key, path="/media/profiles/avatar.jpg")
+        self.assertEqual(meta_img["path"], "/media/profiles/avatar.jpg")
+        self.assertEqual(meta_img["enrollment"], "2024BCSE065")
+
+        meta_page = pop_client_request(client_key, path="/coordinate/my-rides/")
+        self.assertEqual(meta_page["path"], "/coordinate/my-rides/")
+        self.assertEqual(meta_page["enrollment"], "2024BCSE065")
+
+    def test_static_asset_inherits_connection_identity(self):
+        """Unauthenticated static asset on an active connection inherits user identity."""
+        client_key = "14.139.61.131:14232"
+        register_client_identity(client_key=client_key, enrollment="2024BCSE065", name="Abdus Samad Saiyed")
+
+        seed_client_request(client_key, enrollment="N.A.", name="N.A.", path="/static/css/watermark.css")
+        meta = pop_client_request(client_key, path="/static/css/watermark.css")
+        self.assertEqual(meta["enrollment"], "2024BCSE065")
+        self.assertEqual(meta["name"], "Abdus Samad Saiyed")
+
+    def test_websocket_lifecycle_preserves_identity(self):
+        """WebSocket handshaking, connect, and disconnect retain user identity across lifecycle."""
+        client_key = "14.139.61.131:21582"
+        register_client_identity(client_key=client_key, enrollment="2024BCSE065", name="Abdus Samad Saiyed")
+        seed_client_request(client_key, enrollment="2024BCSE065", name="Abdus Samad Saiyed", path="/ws/notifications/", scope_type="websocket")
+
+        details_shake = {"path": "/ws/notifications/", "client": client_key}
+        details_conn = {"path": "/ws/notifications/", "client": client_key}
+        details_disc = {"path": "/ws/notifications/", "client": client_key}
+
+        with self.assertLogs("django.channels.server", level="INFO") as cm:
+            self.cmd.log_action("websocket", "connecting", details_shake)
+            self.cmd.log_action("websocket", "connected", details_conn)
+            self.cmd.log_action("websocket", "disconnected", details_disc)
+
+            self.assertIn("WebSocket HANDSHAKING /ws/notifications/ [14.139.61.131:21582, 2024BCSE065, Abdus Samad Saiyed]", cm.output[0])
+            self.assertIn("WebSocket CONNECT /ws/notifications/ [14.139.61.131:21582, 2024BCSE065, Abdus Samad Saiyed]", cm.output[1])
+            self.assertIn("WebSocket DISCONNECT /ws/notifications/ [14.139.61.131:21582, 2024BCSE065, Abdus Samad Saiyed]", cm.output[2])

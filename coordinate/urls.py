@@ -22,6 +22,7 @@ from .views import (
     ride_list,
     send_message,
     terminate_ride,
+    toggle_ride_chat_history,
 )
 
 urlpatterns = [
@@ -45,5 +46,6 @@ urlpatterns = [
     path('<int:ride_id>/review/<int:user_id>/',                  review_user,           name='review_user'),
     path('<int:ride_id>/message/',                               send_message,          name='send_message'),
     path('<int:ride_id>/report-incident/',                       report_incident,       name='report_incident'),
+    path('<int:ride_id>/toggle-chat-history/',                   toggle_ride_chat_history, name='toggle_ride_chat_history'),
 ]
 

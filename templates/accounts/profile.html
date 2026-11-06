@@ -113,30 +113,35 @@
                                     <i class="bi bi-person-x me-1"></i> Remove Friend
                                 </button>
                             </form>
-                        {% elif incoming_request %}
-                            <form action="{% url 'accept_friend_request' incoming_request.id %}" method="POST">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-green w-100 mb-1">
-                                    <i class="bi bi-person-check-fill me-1"></i> Accept Friend Request
-                                </button>
-                            </form>
-                            <form action="{% url 'decline_friend_request' incoming_request.id %}" method="POST">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-secondary w-100 btn-sm">
-                                    <i class="bi bi-x-circle me-1"></i> Decline
-                                </button>
-                            </form>
-                        {% elif friend_request_sent %}
-                            <button class="btn btn-dark-custom text-secondary" disabled>
-                                <i class="bi bi-clock-history me-1"></i> Friend Request Pending
-                            </button>
                         {% else %}
-                            <form action="{% url 'send_friend_request' profile_user.enrollment_number %}" method="POST">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-green w-100">
-                                    <i class="bi bi-person-plus-fill me-1"></i> Add Campus Friend
+                            <a href="{% url 'direct_chat' profile_user.enrollment_number %}" class="btn btn-outline-green w-100 mb-2">
+                                <i class="bi bi-chat-dots-fill me-1"></i> Direct Message
+                            </a>
+                            {% if incoming_request %}
+                                <form action="{% url 'accept_friend_request' incoming_request.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-green w-100 mb-1">
+                                        <i class="bi bi-person-check-fill me-1"></i> Accept Friend Request
+                                    </button>
+                                </form>
+                                <form action="{% url 'decline_friend_request' incoming_request.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary w-100 btn-sm">
+                                        <i class="bi bi-x-circle me-1"></i> Decline
+                                    </button>
+                                </form>
+                            {% elif friend_request_sent %}
+                                <button class="btn btn-dark-custom text-secondary" disabled>
+                                    <i class="bi bi-clock-history me-1"></i> Friend Request Pending
                                 </button>
-                            </form>
+                            {% else %}
+                                <form action="{% url 'send_friend_request' profile_user.enrollment_number %}" method="POST">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-dark-custom border-secondary w-100">
+                                        <i class="bi bi-person-plus-fill me-1"></i> Add Campus Friend
+                                    </button>
+                                </form>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% endif %}
@@ -317,6 +322,15 @@
                     </div>
 
                     <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="dmReadReceiptsSwitch" name="dm_read_receipts"
+                               {% if profile_user.dm_read_receipts %}checked{% endif %}>
+                        <label class="form-check-label small" for="dmReadReceiptsSwitch">
+                            <strong>Direct Message Read Receipts</strong><br>
+                            <span class="text-secondary">Send and view read receipts (double blue checkmarks) in direct messages. (Read receipts remain always active in ride groups for safety coordination).</span>
+                        </label>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" role="switch" id="hideSearchSwitch" name="hide_from_search"
                                {% if profile_user.hide_from_search %}checked{% endif %}>
                         <label class="form-check-label small" for="hideSearchSwitch">
@@ -394,17 +408,40 @@
                     <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3">
                         <label class="form-label small fw-semibold text-warning"><i class="bi bi-key-fill me-1"></i> Change Password</label>
                         <div class="mb-2">
-                            <input type="password" name="current_password" class="form-control form-control-sm" placeholder="Current Password (required to change password)" autocomplete="current-password">
+                            <div class="input-group input-group-sm">
+                                <input type="password" name="current_password" class="form-control form-control-sm" placeholder="Current Password (required to change password)" autocomplete="current-password">
+                                <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="row g-2 mb-1">
                             <div class="col-6">
-                                <input type="password" name="new_password" class="form-control form-control-sm" placeholder="New Password" autocomplete="new-password">
+                                <div class="input-group input-group-sm">
+                                    <input type="password" name="new_password" class="form-control form-control-sm" placeholder="New Password" autocomplete="new-password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-6">
-                                <input type="password" name="confirm_password" class="form-control form-control-sm" placeholder="Confirm Password" autocomplete="new-password">
+                                <div class="input-group input-group-sm">
+                                    <input type="password" name="confirm_password" class="form-control form-control-sm" placeholder="Confirm Password" autocomplete="new-password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="form-text text-secondary small">Leave blank to retain your current password. Current password is required to change it.</div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                            <div class="form-text text-secondary small m-0">Leave blank to retain current password.</div>
+                            <div class="form-check m-0">
+                                <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordsProfile">
+                                <label class="form-check-label small text-secondary user-select-none" for="showPasswordsProfile">
+                                    Show passwords
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     {% if not profile_user.is_debug_account %}

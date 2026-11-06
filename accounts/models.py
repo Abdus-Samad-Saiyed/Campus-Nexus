@@ -52,6 +52,7 @@ class User(AbstractUser):
     hide_from_search = models.BooleanField(default=False)
     hide_profile_photo = models.BooleanField(default=False)
     show_contact_on_profile = models.BooleanField(default=True)
+    dm_read_receipts = models.BooleanField(default=True)
     two_factor_enabled = models.BooleanField(default=False)
 
     # Single active session security key (HMAC digest or raw key)
@@ -314,6 +315,71 @@ class DirectMessage(models.Model):
 
     def __str__(self) -> str:
         return f'{self.sender} → {self.recipient}: {self.content[:30]}'
+
+
+class DirectMessageReport(models.Model):
+    """Formal user report filed against another user in direct messages.
+
+    Includes optional evidentiary snapshot of the direct chat transcript
+    for the selected timeframe (past 15 minutes, 1 hour, 1 day, or lifetime).
+    """
+
+    TIMEFRAME_CHOICES = [
+        ('15_MINUTES', 'Past 15 minutes'),
+        ('1_HOUR', 'Past 1 hour'),
+        ('1_DAY', 'Past 1 day (24 hours)'),
+        ('LIFETIME', 'Lifetime (Full Conversation)'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('HARASSMENT', 'Harassment, Bullying, or Intimidation'),
+        ('INAPPROPRIATE_LANGUAGE', 'Inappropriate, Abusive, or Explicit Language'),
+        ('SPAM_SCAM', 'Spam, Solicitation, or Fraud'),
+        ('THREAT_SAFETY', 'Threat, Hate Speech, or Safety Concern'),
+        ('OTHER', 'Other Violation of Student Conduct'),
+    ]
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('INVESTIGATING', 'Under Investigation'),
+        ('RESOLVED', 'Resolved'),
+        ('DISMISSED', 'Dismissed'),
+    ]
+
+    reference_id = models.CharField(max_length=30, unique=True, db_index=True)
+    reporter = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='filed_dm_reports',
+    )
+    reported_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='received_dm_reports',
+    )
+    reason_category = models.CharField(max_length=30, choices=CATEGORY_CHOICES)
+    statement = models.TextField(blank=True)
+    share_transcript = models.BooleanField(default=False)
+    transcript_timeframe = models.CharField(
+        max_length=20,
+        choices=TIMEFRAME_CHOICES,
+        blank=True,
+        default='',
+    )
+    transcript_snapshot = models.TextField(blank=True)
+    transcript_message_count = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    admin_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Direct Message Report'
+        verbose_name_plural = 'Direct Message Reports'
+
+    def __str__(self) -> str:
+        return f"{self.reference_id} — {self.reporter} reported {self.reported_user} ({self.get_reason_category_display()})"
 
 
 class PhoneOTP(models.Model):

@@ -1,3 +1,4 @@
+from django.utils.html import format_html
 """Admin registrations for the accounts app."""
 
 from django.contrib import admin, messages
@@ -8,6 +9,7 @@ from .models import (
     AuditEvent,
     Contributor,
     DirectMessage,
+    DirectMessageReport,
     Friendship,
     FriendRequest,
     PasskeyCredential,
@@ -168,6 +170,66 @@ class DirectMessageAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(DirectMessageReport)
+class DirectMessageReportAdmin(admin.ModelAdmin):
+    list_display = [
+        'reference_id',
+        'reporter',
+        'reported_user',
+        'reason_category',
+        'share_transcript',
+        'transcript_timeframe',
+        'transcript_message_count',
+        'status',
+        'created_at',
+    ]
+    list_filter = ['status', 'reason_category', 'share_transcript', 'transcript_timeframe', 'created_at']
+    search_fields = [
+        'reference_id',
+        'reporter__enrollment_number',
+        'reported_user__enrollment_number',
+        'statement',
+        'transcript_snapshot',
+    ]
+    readonly_fields = [
+        'reference_id',
+        'reporter',
+        'reported_user',
+        'reason_category',
+        'statement',
+        'share_transcript',
+        'transcript_timeframe',
+        'transcript_message_count',
+        'transcript_snapshot_display',
+        'created_at',
+        'updated_at',
+    ]
+    fields = [
+        'reference_id',
+        'status',
+        'reporter',
+        'reported_user',
+        'reason_category',
+        'statement',
+        'share_transcript',
+        'transcript_timeframe',
+        'transcript_message_count',
+        'transcript_snapshot_display',
+        'admin_notes',
+        'created_at',
+        'updated_at',
+    ]
+
+    def transcript_snapshot_display(self, obj):
+        if not obj.share_transcript or not obj.transcript_snapshot:
+            return format_html('<span style="color: #999;">No chat transcript was attached with this report.</span>')
+        return format_html(
+            '<pre style="background: #1a1a1a; color: #e6e6e6; padding: 12px; border-radius: 6px; max-height: 400px; overflow-y: auto; font-family: monospace; white-space: pre-wrap;">{}</pre>',
+            obj.transcript_snapshot,
+        )
+    transcript_snapshot_display.short_description = 'Evidentiary Chat Transcript'
 
 
 @admin.register(PhoneOTP)

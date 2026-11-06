@@ -8,7 +8,14 @@
         <div class="col-lg-7">
             <div class="glass p-4 p-md-5">
                 <div class="mb-4">
-                    <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold mb-2">NEW RIDE</span>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold">NEW RIDE</span>
+                        {% if active_rides_count is not None %}
+                            <span class="badge bg-dark border border-secondary text-secondary small px-2 py-1">
+                                <i class="bi bi-shield-check text-success me-1"></i> {{ active_rides_count }}/10 Active Rides
+                            </span>
+                        {% endif %}
+                    </div>
                     <h2 class="fw-bold mb-1">Offer a Shared Ride</h2>
                     <p class="text-secondary small">Set your departure route, passenger capacity, and audience comfort settings.</p>
                 </div>
@@ -32,17 +39,26 @@
                         {% endif %}
                     </div>
 
-                    <!-- Custom Location Input Container (toggled via JS) -->
-                    <div id="custom-route-fields" class="row g-3 mb-3" style="display: none;">
+                    <!-- Custom Route Text Boxes: Source and Destination -->
+                    <div id="custom-route-fields" class="row g-3 mb-3 p-3 rounded bg-black bg-opacity-30 border border-secondary" style="display: none;">
+                        <div class="col-12 mb-1">
+                            <span class="text-success small fw-semibold">
+                                <i class="bi bi-signpost-split-fill me-1"></i> Custom Route Details
+                            </span>
+                        </div>
                         <div class="col-md-6">
-                            <label class="form-label">Pickup Location</label>
+                            <label for="{{ form.custom_from_location.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-geo-alt-fill text-success me-1"></i> Source Location <span class="text-danger">*</span>
+                            </label>
                             {{ form.custom_from_location }}
                             {% if form.custom_from_location.errors %}
                                 <div class="text-danger small mt-1">{{ form.custom_from_location.errors.0 }}</div>
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Drop Destination</label>
+                            <label for="{{ form.custom_to_location.id_for_label }}" class="form-label fw-semibold">
+                                <i class="bi bi-pin-map-fill text-danger me-1"></i> Destination Location <span class="text-danger">*</span>
+                            </label>
                             {{ form.custom_to_location }}
                             {% if form.custom_to_location.errors %}
                                 <div class="text-danger small mt-1">{{ form.custom_to_location.errors.0 }}</div>
@@ -74,6 +90,7 @@
                         {% if form.departure_time.errors %}
                             <div class="text-danger small mt-1">{{ form.departure_time.errors.0 }}</div>
                         {% endif %}
+                        <div class="form-text text-secondary small">Rides may be scheduled up to 1 year in advance.</div>
                     </div>
 
                     <div class="card bg-dark-subtle border-secondary p-3 mb-4 rounded-3">
@@ -95,6 +112,14 @@
                             {% if form.share_contact.errors %}
                                 <div class="text-danger small mt-1">{{ form.share_contact.errors.0 }}</div>
                             {% endif %}
+                        </div>
+
+                        <div class="form-check mt-3 pt-2 border-top border-secondary">
+                            {{ form.share_chat_history }}
+                            <label class="form-check-label small" for="{{ form.share_chat_history.id_for_label }}">
+                                <strong>Share chat history with new participants</strong><br>
+                                <span class="text-secondary">Allow co-passengers who join the ride later to see messages sent before they joined.</span>
+                            </label>
                         </div>
                     </div>
 
@@ -119,11 +144,12 @@
 
         function toggleCustom() {
             if (routeSelect && customFields) {
-                if (routeSelect.value === 'CUSTOM') {
-                    customFields.style.display = 'flex';
-                } else {
-                    customFields.style.display = 'none';
-                }
+                const isCustom = routeSelect.value === 'CUSTOM';
+                customFields.style.display = isCustom ? 'flex' : 'none';
+                const fromInput = document.getElementById('id_custom_from_location');
+                const toInput = document.getElementById('id_custom_to_location');
+                if (fromInput) fromInput.required = isCustom;
+                if (toInput) toInput.required = isCustom;
             }
         }
         if (routeSelect) {

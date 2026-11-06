@@ -866,6 +866,98 @@
     <!-- Clockwork Watermark Engine -->
     <script src="{% static 'js/watermark.js' %}?v=3.0.0"></script>
 
+    <!-- Universal Password Visibility Engine -->
+    <script>
+    (function() {
+        function initPasswordVisibility(root) {
+            const scope = root || document;
+            const pwInputs = scope.querySelectorAll('input[type="password"], input[data-password-field="true"]');
+            pwInputs.forEach(function(input) {
+                input.setAttribute('data-password-field', 'true');
+                let group = input.closest('.input-group');
+                let toggleBtn = group ? group.querySelector('.password-toggle-btn') : null;
+
+                if (!toggleBtn) {
+                    if (!group) {
+                        group = document.createElement('div');
+                        group.className = 'input-group';
+                        input.parentNode.insertBefore(group, input);
+                        group.appendChild(input);
+                    }
+
+                    toggleBtn = document.createElement('button');
+                    toggleBtn.type = 'button';
+                    toggleBtn.className = 'btn btn-outline-secondary border-secondary password-toggle-btn';
+                    toggleBtn.setAttribute('tabindex', '-1');
+                    toggleBtn.setAttribute('title', 'Show/hide password');
+                    toggleBtn.setAttribute('aria-label', 'Show/hide password');
+                    toggleBtn.innerHTML = '<i class="bi bi-eye"></i>';
+                    group.appendChild(toggleBtn);
+                }
+
+                if (!toggleBtn.dataset.bound) {
+                    toggleBtn.dataset.bound = 'true';
+                    toggleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const isVisible = input.type === 'text';
+                        input.type = isVisible ? 'password' : 'text';
+                        toggleBtn.innerHTML = isVisible
+                            ? '<i class="bi bi-eye"></i>'
+                            : '<i class="bi bi-eye-slash text-success"></i>';
+                        toggleBtn.setAttribute('title', isVisible ? 'Show password' : 'Hide password');
+                        toggleBtn.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+                        input.focus();
+                    });
+                }
+            });
+
+            const toggles = scope.querySelectorAll('.show-passwords-toggle');
+            toggles.forEach(function(checkbox) {
+                if (checkbox.dataset.bound) return;
+                checkbox.dataset.bound = 'true';
+
+                checkbox.addEventListener('change', function() {
+                    const form = checkbox.closest('form') || checkbox.closest('.modal-content') || document;
+                    const inputs = form.querySelectorAll('input[data-password-field="true"], input[type="password"], input[name*="password"], input[id*="password"]');
+                    inputs.forEach(function(inp) {
+                        inp.type = checkbox.checked ? 'text' : 'password';
+                        const btn = inp.closest('.input-group')?.querySelector('.password-toggle-btn');
+                        if (btn) {
+                            btn.innerHTML = checkbox.checked
+                                ? '<i class="bi bi-eye-slash text-success"></i>'
+                                : '<i class="bi bi-eye"></i>';
+                            btn.setAttribute('title', checkbox.checked ? 'Hide password' : 'Show password');
+                            btn.setAttribute('aria-label', checkbox.checked ? 'Hide password' : 'Show password');
+                        }
+                    });
+                });
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => initPasswordVisibility());
+        } else {
+            initPasswordVisibility();
+        }
+
+        if (window.MutationObserver && document.body) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(m) {
+                    if (m.addedNodes && m.addedNodes.length > 0) {
+                        m.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) {
+                                initPasswordVisibility(node);
+                            }
+                        });
+                    }
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    })();
+    </script>
+
     {% if user.is_authenticated and not is_guest_demo %}
     <!-- Real-time Incoming Message & User Notifications Engine -->
     <script>
@@ -1001,6 +1093,89 @@
             }, 7500);
         }
 
+        function showAppNotificationToast(data) {
+            const container = document.getElementById('incoming-chat-toast-container');
+            if (!container) return;
+
+            unreadNotifCount++;
+            document.title = '(' + unreadNotifCount + ') ' + originalTitle;
+
+            const toastEl = document.createElement('div');
+            toastEl.className = 'toast show border border-secondary shadow-lg glass text-white mb-2 position-relative';
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.style.cursor = data.url ? 'pointer' : 'default';
+            toastEl.style.minWidth = '300px';
+            toastEl.style.maxWidth = '380px';
+            toastEl.style.borderRadius = '12px';
+            toastEl.style.background = 'rgba(18, 22, 28, 0.96)';
+            toastEl.style.backdropFilter = 'blur(16px)';
+            toastEl.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)';
+            toastEl.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+
+            const avatarHtml = data.sender_avatar
+                ? `<img src="${escapeHtml(data.sender_avatar)}" class="rounded-circle object-fit-cover shadow-sm flex-shrink-0" style="width: 40px; height: 40px;" alt="">`
+                : `<div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+                     <i class="bi ${escapeHtml(data.icon || 'bi-bell-fill')} text-success fs-5"></i>
+                   </div>`;
+
+            toastEl.innerHTML = `
+                <div class="toast-header border-0 bg-transparent text-white pb-0 d-flex align-items-center justify-content-between pt-2 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge ${escapeHtml(data.badge_class || 'bg-success-subtle text-success')} py-0 px-1" style="font-size: 0.68rem;">
+                            <i class="bi ${escapeHtml(data.icon || 'bi-bell-fill')} me-1"></i> ${escapeHtml(data.badge || data.title)}
+                        </span>
+                        <small class="text-secondary" style="font-size: 0.72rem;">${escapeHtml(data.timestamp || 'Just now')}</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white small ms-auto" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.7rem;"></button>
+                </div>
+                <div class="toast-body d-flex align-items-center gap-3 p-3">
+                    ${avatarHtml}
+                    <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
+                        <div class="d-flex align-items-center justify-content-between gap-1">
+                            <strong class="text-truncate text-white" style="font-size: 0.88rem;">${escapeHtml(data.title)}</strong>
+                        </div>
+                        <div class="small mt-1 text-light" style="font-size: 0.82rem; opacity: 0.9; line-height: 1.35;">
+                            ${escapeHtml(data.content)}
+                        </div>
+                    </div>
+                </div>
+                ${data.url ? `
+                <div class="px-3 pb-2 pt-0 d-flex justify-content-between align-items-center border-top border-secondary border-opacity-25 pt-2 mt-1">
+                    <span class="small text-secondary" style="font-size: 0.7rem;">Click to view</span>
+                    <span class="btn btn-green btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem;">
+                        <i class="bi bi-arrow-right-short me-1"></i> Open
+                    </span>
+                </div>` : ''}
+            `;
+
+            if (data.url) {
+                toastEl.addEventListener('click', function(e) {
+                    if (e.target.closest('.btn-close')) return;
+                    window.location.href = data.url;
+                });
+            }
+
+            const closeBtn = toastEl.querySelector('.btn-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toastEl.remove();
+                });
+            }
+
+            container.appendChild(toastEl);
+
+            setTimeout(function() {
+                if (toastEl && toastEl.parentElement) {
+                    toastEl.style.opacity = '0';
+                    toastEl.style.transform = 'translateY(-10px)';
+                    setTimeout(function() { toastEl.remove(); }, 300);
+                }
+            }, 8000);
+        }
+
         window.addEventListener('focus', function() {
             unreadNotifCount = 0;
             document.title = originalTitle;
@@ -1020,6 +1195,8 @@
                     const data = JSON.parse(e.data);
                     if (data.type === 'chat_notification') {
                         showIncomingMessageToast(data);
+                    } else if (data.type === 'app_notification') {
+                        showAppNotificationToast(data);
                     }
                 } catch (err) {
                     console.error('Error handling notification payload:', err);
@@ -1034,6 +1211,43 @@
         }
 
         connectNotifSocket();
+    })();
+    </script>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+    <!-- Client-side Inactivity Idle Timeout Engine -->
+    <script>
+    (function() {
+        const idleTimeoutSec = {{ session_idle_timeout|default:1800 }};
+        if (!idleTimeoutSec || idleTimeoutSec <= 0) return;
+
+        let lastInteraction = Date.now();
+        const interactionEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+
+        function recordActivity() {
+            lastInteraction = Date.now();
+        }
+
+        interactionEvents.forEach(function(evt) {
+            window.addEventListener(evt, recordActivity, { passive: true });
+        });
+
+        function checkIdleTimeout() {
+            const elapsed = (Date.now() - lastInteraction) / 1000;
+            if (elapsed >= idleTimeoutSec) {
+                window.location.href = "{% url 'login' %}?reason=inactivity";
+            }
+        }
+
+        setInterval(checkIdleTimeout, 15000);
+
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                checkIdleTimeout();
+            }
+        });
+        window.addEventListener('focus', checkIdleTimeout);
     })();
     </script>
     {% endif %}

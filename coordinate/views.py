@@ -216,6 +216,8 @@ def ride_list(request):
     selected_visibility = request.GET.get('visibility', '')
     order_by_param = request.GET.get('order_by', 'time_asc')
     queue_only = request.GET.get('queue_only', '')
+    custom_from = request.GET.get('custom_from', '').strip()
+    custom_to = request.GET.get('custom_to', '').strip()
 
     # Date-time range parameters (with backward-compatible fallbacks)
     date_from_str = request.GET.get('date_from', '') or request.GET.get('date', '')
@@ -279,6 +281,10 @@ def ride_list(request):
 
     if selected_route:
         rides_qs = rides_qs.filter(route=selected_route)
+    if custom_from:
+        rides_qs = rides_qs.filter(custom_from_location__icontains=custom_from)
+    if custom_to:
+        rides_qs = rides_qs.filter(custom_to_location__icontains=custom_to)
     if selected_visibility:
         rides_qs = rides_qs.filter(visibility=selected_visibility)
     if queue_only in ['1', 'true', 'True']:
@@ -446,13 +452,25 @@ def ride_list(request):
     else:
         user_participant_ride_ids = {r.id for r in visible_rides if getattr(r, 'is_demo_ride', False)}
 
-    # Density calculation across next 14 days
+    # Density calculation: default 14 days, configurable to 30 days or 3 months (90 days)
+    density_view = request.GET.get('density_view', '14').strip().lower()
+    if density_view in ['30', '30d', '30days']:
+        density_days = 30
+        bar_min_width = '18px'
+    elif density_view in ['90', '3m', '3months', '90d']:
+        density_days = 90
+        bar_min_width = '8px'
+    else:
+        density_view = '14'
+        density_days = 14
+        bar_min_width = '38px'
+
     density_raw = (
         RideRequest.objects
         .filter(
             status__in=['OPEN', 'FULL'],
             departure_time__gte=timezone.now(),
-            departure_time__lte=timezone.now() + datetime.timedelta(days=14),
+            departure_time__lte=timezone.now() + datetime.timedelta(days=density_days),
         )
         .values('departure_time')
     )
@@ -466,7 +484,7 @@ def ride_list(request):
 
     max_density = max(counts_by_date.values()) if counts_by_date else 1
     density_data = []
-    for i in range(14):
+    for i in range(density_days):
         d = today + datetime.timedelta(days=i)
         c = counts_by_date.get(d, 0)
         pct = max(10, int((c / max(1, max_density)) * 100)) if c > 0 else 6
@@ -475,10 +493,12 @@ def ride_list(request):
             'date_str': d.strftime('%Y-%m-%d'),
             'day_name': d.strftime('%a'),
             'day_num': d.strftime('%d'),
+            'month_name': d.strftime('%b'),
             'count': c,
             'height_pct': pct,
             'is_today': d == today,
             'is_selected': (chosen_date == d) if chosen_date else False,
+            'day_index': i,
         })
 
     # User's active ride
@@ -531,6 +551,8 @@ def ride_list(request):
         'my_ride': my_ride,
         'selected_route': selected_route,
         'selected_visibility': selected_visibility,
+        'custom_from': custom_from,
+        'custom_to': custom_to,
         'selected_date': chosen_date,
         'date_from': date_from_str,
         'date_to': date_to_str,
@@ -541,6 +563,9 @@ def ride_list(request):
         'order_by': order_by_param,
         'queue_only': queue_only in ['1', 'true', 'True'],
         'density_data': density_data,
+        'density_view': density_view,
+        'density_days': density_days,
+        'bar_min_width': bar_min_width,
         'max_density': max_density,
         'date_options': date_options,
         'prev_date': prev_date.strftime('%Y-%m-%d') if prev_date else None,
@@ -619,8 +644,21 @@ def create_ride(request):
         messages.error(request, 'Only verified students can create rides.')
         return redirect('ride_list')
 
+    active_rides_count = (
+        RideRequest.objects.filter(creator=request.user, status__in=['OPEN', 'FULL']).count()
+        if not guest_mode
+        else RideRequest.objects.using('guest_demo').filter(
+            demo_session_key=request.session.session_key,
+            status__in=['OPEN', 'FULL'],
+        ).count()
+    )
+
+    if active_rides_count >= 10:
+        messages.error(request, 'Ride creation limit reached: you cannot have more than 10 active rides in the catalogue. Please complete or cancel existing rides to create a new one.')
+        return redirect('ride_list')
+
     if request.method == 'POST':
-        form = RideRequestForm(request.POST)
+        form = RideRequestForm(request.POST, user=request.user)
         if form.is_valid():
             visibility = form.cleaned_data.get('visibility')
             dept_time = form.cleaned_data.get('departure_time')
@@ -679,9 +717,12 @@ def create_ride(request):
             messages.success(request, 'Ride created! Share the details with your classmates.')
             return redirect('ride_list')
     else:
-        form = RideRequestForm()
+        form = RideRequestForm(user=request.user)
 
-    return render(request, 'coordinate/create_ride.html', {'form': form})
+    return render(request, 'coordinate/create_ride.html', {
+        'form': form,
+        'active_rides_count': active_rides_count,
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -861,8 +902,8 @@ def reschedule_ride(request, ride_id):
         messages.error(request, 'Departure time must be in the future.')
         return redirect('ride_detail', ride_id=ride_id)
 
-    if new_dep_time > now + datetime.timedelta(days=30):
-        messages.error(request, 'Cannot schedule more than 30 days in advance.')
+    if new_dep_time > now + datetime.timedelta(days=365):
+        messages.error(request, 'Cannot schedule more than 1 year in advance.')
         return redirect('ride_detail', ride_id=ride_id)
 
     ride.departure_time = new_dep_time
@@ -1052,11 +1093,25 @@ def ride_detail(request, ride_id):
         .order_by('created_at')
     ) if is_creator else []
 
-    if is_participant or is_creator:
+    from django.core.cache import cache
+    online_user_ids = list(cache.get(f"ride_online_{ride.id}") or set())
+
+    user_participant = next((p for p in participants if p.user == request.user), None)
+    if is_creator or ride.share_chat_history:
         chat_messages = (
             RideMessage.objects
             .filter(ride=ride)
             .select_related('author')
+            .prefetch_related('read_by')
+            .order_by('created_at')
+        )
+    elif is_participant and user_participant and user_participant.joined_at:
+        # Only show messages sent after participant joined
+        chat_messages = (
+            RideMessage.objects
+            .filter(ride=ride, created_at__gte=user_participant.joined_at)
+            .select_related('author')
+            .prefetch_related('read_by')
             .order_by('created_at')
         )
     else:
@@ -1123,6 +1178,7 @@ def ride_detail(request, ride_id):
         'reviewable_user_ids': reviewable_user_ids,
         'kicked_users': ride.kicked_users.all(),
         'left_users': ride.left_users.all(),
+        'online_user_ids': online_user_ids,
     })
 
 
@@ -1448,3 +1504,20 @@ def report_incident(request, ride_id):
     return redirect('ride_detail', ride_id=ride_id)
 
 
+
+
+@login_required
+@require_POST
+def toggle_ride_chat_history(request, ride_id):
+    """Toggle chat history sharing for later joiners in this ride."""
+    ride = get_object_or_404(RideRequest, id=ride_id)
+    is_part = RideParticipant.objects.filter(ride=ride, user=request.user).exists()
+    if not (ride.creator == request.user or is_part or request.user.is_staff):
+        messages.error(request, "Permission denied.")
+        return redirect('ride_detail', ride_id=ride.id)
+
+    ride.share_chat_history = not ride.share_chat_history
+    ride.save(update_fields=['share_chat_history'])
+    status_str = "visible to all participants" if ride.share_chat_history else "restricted to messages sent after joining"
+    messages.success(request, f"Chat history is now {status_str}.")
+    return redirect('ride_detail', ride_id=ride.id)

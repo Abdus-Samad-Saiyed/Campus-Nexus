@@ -1,4 +1,4 @@
-    <!-- Ride Density Graph Across Dates (Next 14 Days) -->
+    <!-- Ride Density Graph Across Dates (Next 14 / 30 / 90 Days) -->
     <div class="glass p-4 mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
@@ -6,51 +6,117 @@
                     <span class="badge bg-success-subtle text-success border border-success-subtle small text-uppercase fw-semibold">
                         <i class="bi bi-bar-chart-fill me-1"></i> Ride Density Telemetry
                     </span>
-                    <span class="text-secondary small">Upcoming 14-day schedule distribution</span>
+                    <span class="text-secondary small">
+                        {% if density_days == 90 %}Upcoming 3-Month View (90 Days)
+                        {% elif density_days == 30 %}Upcoming 30-Day View
+                        {% else %}Upcoming 14-Day View{% endif %}
+                    </span>
                 </div>
             </div>
-            {% if has_date_filter %}
-                <a href="{% url 'ride_list' %}?order_by={{ order_by|default:'time_asc' }}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
-                   hx-get="{% url 'ride_list' %}?order_by={{ order_by|default:'time_asc' }}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
-                   class="btn btn-outline-secondary btn-sm py-1 px-3">
-                    <i class="bi bi-eye me-1"></i> View All Dates (Reset Date Filter)
-                </a>
-            {% else %}
-                <span class="badge bg-dark border border-secondary text-secondary small">Showing All Upcoming Rides (Unfiltered)</span>
-            {% endif %}
+            <div class="d-flex align-items-center gap-2">
+                <!-- Density View Range Switcher: 14 Days, 30 Days, 3 Months -->
+                <div class="btn-group btn-group-sm" role="group" aria-label="Density Range View">
+                    <a href="?density_view=14{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}{% if date_from %}&date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+                       hx-get="?density_view=14{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}{% if date_from %}&date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+                       class="btn {% if density_days == 14 %}btn-green fw-semibold{% else %}btn-dark-custom text-secondary{% endif %}"
+                       title="14-Day View (Standard bars)">
+                        14 Days
+                    </a>
+                    <a href="?density_view=30{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}{% if date_from %}&date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+                       hx-get="?density_view=30{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}{% if date_from %}&date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+                       class="btn {% if density_days == 30 %}btn-green fw-semibold{% else %}btn-dark-custom text-secondary{% endif %}"
+                       title="30-Day View (Slimmer bars)">
+                        30 Days
+                    </a>
+                    <a href="?density_view=90{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}{% if date_from %}&date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+                       hx-get="?density_view=90{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}{% if date_from %}&date_from={{ date_from }}&date_to={{ date_to }}{% endif %}"
+                       class="btn {% if density_days == 90 %}btn-green fw-semibold{% else %}btn-dark-custom text-secondary{% endif %}"
+                       title="3 Months View (Ultra-slim bars)">
+                        3 Months
+                    </a>
+                </div>
+
+                {% if has_date_filter %}
+                    <a href="{% url 'ride_list' %}?order_by={{ order_by|default:'time_asc' }}{% if density_view and density_view != '14' %}&density_view={{ density_view }}{% endif %}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
+                       hx-get="{% url 'ride_list' %}?order_by={{ order_by|default:'time_asc' }}{% if density_view and density_view != '14' %}&density_view={{ density_view }}{% endif %}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
+                       class="btn btn-outline-secondary btn-sm py-1 px-3">
+                        <i class="bi bi-eye me-1"></i> View All Dates (Reset Date Filter)
+                    </a>
+                {% else %}
+                    <span class="badge bg-dark border border-secondary text-secondary small d-none d-md-inline-block">Showing All Upcoming</span>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- Visual Bar Chart -->
-        <div class="d-flex align-items-end justify-content-between gap-1 gap-md-2 pt-3 pb-2 px-2 rounded bg-black bg-opacity-40 border border-secondary density-chart-container" style="height: 150px; overflow-x: auto;">
+        <!-- Visual Bar Chart (Bar width dynamically thinned based on view) -->
+        <div class="d-flex align-items-end justify-content-between gap-1 pt-3 pb-2 px-2 rounded bg-black bg-opacity-40 border border-secondary density-chart-container" style="height: 155px; overflow-x: auto;">
             {% for bar in density_data %}
-                <a href="?date_from={{ bar.date_str }}&date_to={{ bar.date_str }}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
-                   hx-get="?date_from={{ bar.date_str }}&date_to={{ bar.date_str }}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
+                <a href="?density_view={{ density_view }}&date_from={{ bar.date_str }}&date_to={{ bar.date_str }}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
+                   hx-get="?density_view={{ density_view }}&date_from={{ bar.date_str }}&date_to={{ bar.date_str }}{% if selected_route %}&route={{ selected_route }}{% endif %}{% if selected_visibility %}&visibility={{ selected_visibility }}{% endif %}{% if custom_from %}&custom_from={{ custom_from }}{% endif %}{% if custom_to %}&custom_to={{ custom_to }}{% endif %}{% if order_by %}&order_by={{ order_by }}{% endif %}{% if queue_only %}&queue_only=1{% endif %}"
                    class="d-flex flex-column align-items-center justify-content-end text-decoration-none flex-grow-1 h-100 position-relative"
-                   style="min-width: 38px;"
+                   style="min-width: {{ bar_min_width }}; max-width: {% if density_days == 90 %}14px{% elif density_days == 30 %}24px{% else %}46px{% endif %};"
                    title="{{ bar.day_name }}, {{ bar.date_str }}: {{ bar.count }} ride(s)">
                     
-                    <!-- Count Badge -->
-                    <span class="badge {% if bar.count > 0 %}bg-success text-white{% else %}text-muted{% endif %} mb-1" style="font-size: 0.65rem; padding: 2px 4px;">
-                        {{ bar.count }}
-                    </span>
+                    <!-- Count Badge / Dot -->
+                    {% if density_days == 14 %}
+                        <span class="badge {% if bar.count > 0 %}bg-success text-white{% else %}text-muted{% endif %} mb-1" style="font-size: 0.65rem; padding: 2px 4px;">
+                            {{ bar.count }}
+                        </span>
+                    {% elif density_days == 30 %}
+                        {% if bar.count > 0 %}
+                            <span class="badge bg-success text-white mb-1" style="font-size: 0.55rem; padding: 1px 3px;">
+                                {{ bar.count }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted mb-1" style="font-size: 0.5rem; visibility: hidden;">0</span>
+                        {% endif %}
+                    {% else %}
+                        <!-- 90-day 3-Month: Slim glowing indicator dot if rides scheduled -->
+                        {% if bar.count > 0 %}
+                            <span class="rounded-circle bg-success mb-1 flex-shrink-0" style="width: 5px; height: 5px; display: inline-block;"></span>
+                        {% else %}
+                            <span class="mb-1" style="height: 5px; display: inline-block;"></span>
+                        {% endif %}
+                    {% endif %}
 
                     <!-- Bar Fill -->
                     <div class="w-100 rounded-top"
                          style="height: {{ bar.height_pct }}%;
                                 background: {% if bar.is_selected %}linear-gradient(180deg, #10b981 0%, #059669 100%){% elif bar.count > 0 %}linear-gradient(180deg, rgba(16, 185, 129, 0.7) 0%, rgba(5, 150, 105, 0.4) 100%){% else %}rgba(255, 255, 255, 0.05){% endif %};
-                                border: 1px solid {% if bar.is_selected %}#10b981{% elif bar.count > 0 %}rgba(16, 185, 129, 0.4){% else %}rgba(255, 255, 255, 0.1){% endif %};
+                                border: 1px solid {% if bar.is_selected %}#10b981{% elif bar.count > 0 %}rgba(16, 185, 129, 0.4){% else %}rgba(255, 255, 255, 0.08){% endif %};
                                 box-shadow: {% if bar.is_selected %}0 0 12px rgba(16, 185, 129, 0.5){% elif bar.count > 0 %}0 0 6px rgba(16, 185, 129, 0.2){% else %}none{% endif %};">
                     </div>
 
                     <!-- Date & Day Labels -->
-                    <div class="text-center mt-2" style="line-height: 1.1;">
-                        <span class="d-block {% if bar.is_selected %}text-emerald fw-bold{% elif bar.is_today %}text-white fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.7rem;">
-                            {{ bar.day_name }}
-                        </span>
-                        <span class="d-block {% if bar.is_selected %}text-white fw-bold{% elif bar.is_today %}text-emerald fw-bold{% else %}text-light{% endif %}" style="font-size: 0.75rem;">
-                            {{ bar.day_num }}
-                        </span>
-                    </div>
+                    {% if density_days == 14 %}
+                        <div class="text-center mt-2" style="line-height: 1.1;">
+                            <span class="d-block {% if bar.is_selected %}text-emerald fw-bold{% elif bar.is_today %}text-white fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.7rem;">
+                                {{ bar.day_name }}
+                            </span>
+                            <span class="d-block {% if bar.is_selected %}text-white fw-bold{% elif bar.is_today %}text-emerald fw-bold{% else %}text-light{% endif %}" style="font-size: 0.75rem;">
+                                {{ bar.day_num }}
+                            </span>
+                        </div>
+                    {% elif density_days == 30 %}
+                        <div class="text-center mt-1" style="line-height: 1.0;">
+                            <span class="d-block {% if bar.is_selected %}text-white fw-bold{% elif bar.is_today %}text-emerald fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.65rem;">
+                                {{ bar.day_num }}
+                            </span>
+                        </div>
+                    {% else %}
+                        <!-- 90-day 3-Month: Month boundary marker or 15th marker -->
+                        <div class="text-center mt-1" style="line-height: 1.0; height: 16px;">
+                            {% if bar.day_num == '01' %}
+                                <span class="d-block text-emerald fw-bold" style="font-size: 0.6rem; white-space: nowrap;">
+                                    {{ bar.month_name }}
+                                </span>
+                            {% elif bar.day_num == '15' %}
+                                <span class="d-block text-secondary" style="font-size: 0.55rem;">
+                                    15
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 </a>
             {% endfor %}
         </div>
@@ -150,12 +216,26 @@
             <!-- Route & Visibility -->
             <div class="col-md-4">
                 <label class="form-label">Route</label>
-                <select name="route" class="form-select">
+                <select name="route" id="filter-route-select" class="form-select" onchange="const cb=document.getElementById('filter-custom-route-fields'); if(cb){cb.style.display=this.value==='CUSTOM'?'block':'none';}">
                     <option value="">All Routes</option>
                     {% for key, label in route_choices %}
                         <option value="{{ key }}" {% if selected_route == key %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <!-- Custom Route Source & Destination Filter -->
+            <div id="filter-custom-route-fields" class="col-md-5" style="display: {% if selected_route == 'CUSTOM' or custom_from or custom_to %}block{% else %}none{% endif %};">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small">Custom Source</label>
+                        <input type="text" name="custom_from" value="{{ custom_from }}" class="form-control" placeholder="Source location...">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Custom Destination</label>
+                        <input type="text" name="custom_to" value="{{ custom_to }}" class="form-control" placeholder="Destination...">
+                    </div>
+                </div>
             </div>
 
             <div class="col-md-3">

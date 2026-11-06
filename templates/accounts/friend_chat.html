@@ -42,6 +42,9 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto ms-sm-0">
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reportDMModal" title="Report User">
+                            <i class="bi bi-flag-fill me-1"></i> Report
+                        </button>
                         <a href="{% url 'messages_inbox' %}" class="btn btn-dark-custom btn-sm" title="Back to All Messages">
                             <i class="bi bi-inbox-fill me-1"></i> Inbox
                         </a>
@@ -60,10 +63,21 @@
                     <div class="chat-messages" id="direct-chat-messages">
                         {% if chat_messages %}
                             {% for msg in chat_messages %}
-                                <div class="message-item {% if msg.sender == request.user %}message-self{% else %}message-other{% endif %}">
+                                <div class="message-item {% if msg.sender == request.user %}message-self{% else %}message-other{% endif %}" data-message-id="{{ msg.id }}">
                                     <div class="message-author">{% if msg.sender == request.user %}You{% else %}{{ msg.sender.enrollment_number }}{% endif %}</div>
                                     <div class="message-bubble">{{ msg.content }}</div>
-                                    <div class="message-time">{{ msg.created_at|date:"M j, H:i" }}</div>
+                                    <div class="message-time d-flex align-items-center justify-content-end gap-1">
+                                        <span>{{ msg.created_at|date:"M j, H:i" }}</span>
+                                        {% if msg.sender == request.user %}
+                                            <span class="read-receipt ms-1" id="dm-receipt-{{ msg.id }}" title="{% if msg.is_read %}Read{% else %}Sent{% endif %}">
+                                                {% if msg.is_read %}
+                                                    <i class="bi bi-check2-all text-info"></i>
+                                                {% else %}
+                                                    <i class="bi bi-check2 text-secondary"></i>
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         {% else %}
@@ -78,7 +92,7 @@
                     <div class="chat-footer direct-chat-footer" id="direct-chat-footer">
                         {% if read_only %}
                         <div class="alert alert-secondary mb-0 text-center py-2 text-muted small">
-                            <i class="bi bi-lock-fill me-1"></i> You are no longer connected as friends with this student. Conversation history is read-only.
+                            <i class="bi bi-lock-fill me-1"></i> This student's account is inactive. Conversation history is read-only.
                         </div>
                         {% else %}
                         <form id="direct-chat-form" method="POST" action="{% url 'direct_chat' friend.enrollment_number %}" class="d-flex gap-2 m-0 align-items-center">
@@ -97,6 +111,74 @@
         </div>
     </div>
 </div>
+
+<!-- Report User Modal -->
+<div class="modal fade" id="reportDMModal" tabindex="-1" aria-labelledby="reportDMModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-danger" id="reportDMModalLabel">
+                    <i class="bi bi-shield-exclamation me-2"></i>Report {{ friend.enrollment_number }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'report_direct_chat' friend.enrollment_number %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="small text-secondary mb-3">
+                        Reports are reviewed confidentially by campus moderation. Please provide specific details to help maintain a safe community.
+                    </p>
+
+                    <div class="mb-3">
+                        <label for="reportReasonCategory" class="form-label small fw-semibold text-light">Reason for Report <span class="text-danger">*</span></label>
+                        <select class="form-select bg-black text-white border-secondary" id="reportReasonCategory" name="reason_category" required>
+                            <option value="" disabled selected>Select violation category…</option>
+                            <option value="HARASSMENT">Harassment, Bullying, or Intimidation</option>
+                            <option value="INAPPROPRIATE_LANGUAGE">Inappropriate, Abusive, or Explicit Language</option>
+                            <option value="SPAM_SCAM">Spam, Solicitation, or Fraud</option>
+                            <option value="THREAT_SAFETY">Threat, Hate Speech, or Safety Concern</option>
+                            <option value="OTHER">Other Violation of Student Conduct</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="reportStatement" class="form-label small fw-semibold text-light">Explanation / Details (Optional)</label>
+                        <textarea class="form-control bg-black text-white border-secondary" id="reportStatement" name="statement" rows="3" placeholder="Describe the incident or context…"></textarea>
+                    </div>
+
+                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-50 mb-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="shareTranscriptSwitch" name="share_transcript" value="1" checked>
+                            <label class="form-check-label small fw-semibold text-light" for="shareTranscriptSwitch">
+                                Include chat transcript as evidence
+                            </label>
+                        </div>
+                        <p class="text-secondary small mb-2" style="font-size: 0.8rem;">
+                            Allows moderators to inspect messages exchanged between you and this student to substantiate your report.
+                        </p>
+
+                        <div id="transcriptTimeframeContainer">
+                            <label for="transcriptTimeframe" class="form-label small text-secondary mb-1">Timeframe to share:</label>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary" id="transcriptTimeframe" name="transcript_timeframe">
+                                <option value="15_MINUTES">Past 15 minutes</option>
+                                <option value="1_HOUR" selected>Past 1 hour</option>
+                                <option value="1_DAY">Past 1 day (24 hours)</option>
+                                <option value="LIFETIME">Lifetime (Full conversation)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-flag-fill me-1"></i> Submit Conduct Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -115,6 +197,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const typingIndicator = document.getElementById('typing-indicator');
 
     document.body.classList.add('in-direct-chat');
+
+    const shareSwitch = document.getElementById('shareTranscriptSwitch');
+    const timeframeContainer = document.getElementById('transcriptTimeframeContainer');
+    if (shareSwitch && timeframeContainer) {
+        shareSwitch.addEventListener('change', function () {
+            timeframeContainer.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 
     function scrollToBottom() {
         if (messagesContainer) {
@@ -168,15 +258,28 @@ document.addEventListener('DOMContentLoaded', function () {
         socket.onopen = function () {
             // Announce presence
             socket.send(JSON.stringify({ type: 'presence', status: 'online' }));
+            // Mark all existing incoming messages as read
+            document.querySelectorAll('.message-other[data-message-id]').forEach(el => {
+                const mid = el.getAttribute('data-message-id');
+                if (mid) {
+                    socket.send(JSON.stringify({ type: 'mark_read', message_id: parseInt(mid, 10) }));
+                }
+            });
         };
 
         socket.onmessage = function (e) {
             try {
                 const data = JSON.parse(e.data);
                 if (data.type === 'message') {
-                    appendDirectMessage(data.sender, data.content, data.timestamp, data.is_self);
+                    appendDirectMessage(data.sender, data.content, data.timestamp, data.is_self, data.message_id);
                     if (!data.is_self && socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({ type: 'mark_read', message_id: data.message_id }));
+                    }
+                } else if (data.type === 'read_receipt') {
+                    const receiptEl = document.getElementById(`dm-receipt-${data.message_id}`);
+                    if (receiptEl) {
+                        receiptEl.innerHTML = '<i class="bi bi-check2-all text-info"></i>';
+                        receiptEl.title = 'Read';
                     }
                 } else if (data.type === 'session_terminated') {
                     if (chatInput) {
@@ -233,12 +336,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     connectSocket();
 
-    function appendDirectMessage(sender, content, timestamp, isSelf) {
+    function appendDirectMessage(sender, content, timestamp, isSelf, messageId) {
         const emptyNotice = document.getElementById('empty-direct-chat-notice');
         if (emptyNotice) emptyNotice.remove();
 
         const msgDiv = document.createElement('div');
         msgDiv.className = `message-item ${isSelf ? 'message-self' : 'message-other'}`;
+        if (messageId) {
+            msgDiv.setAttribute('data-message-id', messageId);
+        }
 
         const authorDiv = document.createElement('div');
         authorDiv.className = 'message-author';
@@ -249,8 +355,19 @@ document.addEventListener('DOMContentLoaded', function () {
         bubbleDiv.textContent = content;
 
         const timeDiv = document.createElement('div');
-        timeDiv.className = 'message-time';
-        timeDiv.textContent = timestamp;
+        timeDiv.className = 'message-time d-flex align-items-center justify-content-end gap-1';
+        const spanTime = document.createElement('span');
+        spanTime.textContent = timestamp;
+        timeDiv.appendChild(spanTime);
+
+        if (isSelf && messageId) {
+            const receiptSpan = document.createElement('span');
+            receiptSpan.id = `dm-receipt-${messageId}`;
+            receiptSpan.className = 'read-receipt ms-1';
+            receiptSpan.title = 'Sent';
+            receiptSpan.innerHTML = '<i class="bi bi-check2 text-secondary"></i>';
+            timeDiv.appendChild(receiptSpan);
+        }
 
         msgDiv.appendChild(authorDiv);
         msgDiv.appendChild(bubbleDiv);

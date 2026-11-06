@@ -18,12 +18,14 @@ from django.db.models import Q
 class FriendChatConsumer(AsyncWebsocketConsumer):
 
     async def _is_connection_authorized(self) -> bool:
-        """Verify both users are authenticated, active, verified, not soft-deleted, and friends."""
+        """Verify both users are authenticated, active, verified, not soft-deleted, and not self."""
         if not self.user or not self.user.is_authenticated or not self.user.is_active or getattr(self.user, 'is_deleted', False):
             return False
         if not self.friend or not self.friend.is_active or getattr(self.friend, 'is_deleted', False):
             return False
-        return await self._are_friends()
+        if self.user.id == self.friend.id:
+            return False
+        return True
 
     async def connect(self):
         self.user = self.scope.get('user')
@@ -116,6 +118,16 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             msg_id = data.get('message_id')
             if msg_id:
                 await self._mark_message_read(msg_id)
+                # Check if this user permits DM read receipts
+                if await self._user_allows_read_receipts():
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {
+                            'type': 'chat.read_receipt',
+                            'message_id': msg_id,
+                            'reader': self.user.enrollment_number,
+                        }
+                    )
             return
 
         # Real-time typing indicator (suppressed if user hid online status)
@@ -148,7 +160,7 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             if not await self._is_connection_authorized():
                 await self.send(text_data=json.dumps({
                     'type': 'error',
-                    'error': 'You are no longer connected as friends with this user.',
+                    'error': 'This chat connection is no longer active.',
                 }))
                 await self.close(code=4003)
                 return
@@ -243,6 +255,15 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                 'status': event['status'],
             }))
 
+    async def chat_read_receipt(self, event):
+        """Relay read receipt to other participant if sender permits."""
+        if await self._user_allows_read_receipts():
+            await self.send(text_data=json.dumps({
+                'type': 'read_receipt',
+                'message_id': event['message_id'],
+                'reader': event['reader'],
+            }))
+
     async def chat_notification(self, event):
         '''No-op when connected to direct chat room.'''
         pass
@@ -286,6 +307,14 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             return self.user.profile_photo.url if self.user.profile_photo else ''
         except Exception:
             return ''
+
+    @database_sync_to_async
+    def _user_allows_read_receipts(self) -> bool:
+        from accounts.models import User
+        try:
+            return User.objects.filter(id=self.user.id, dm_read_receipts=True).exists()
+        except Exception:
+            return True
 
     @database_sync_to_async
     def _user_hides_online(self) -> bool:
@@ -418,6 +447,23 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             'sender_avatar': event.get('sender_avatar', ''),
             'content': event['content'],
             'url': event['url'],
+            'timestamp': event.get('timestamp', ''),
+        }))
+
+    async def app_notification(self, event):
+        """Receive general application notification (friend requests, ride joins, approvals, etc.)."""
+        await self.send(text_data=json.dumps({
+            'type': 'app_notification',
+            'category': event.get('category', 'general'),
+            'title': event.get('title', 'Notification'),
+            'content': event.get('content', ''),
+            'sender': event.get('sender', ''),
+            'sender_name': event.get('sender_name', ''),
+            'sender_avatar': event.get('sender_avatar', ''),
+            'url': event.get('url', ''),
+            'badge': event.get('badge', ''),
+            'badge_class': event.get('badge_class', 'bg-success-subtle text-success'),
+            'icon': event.get('icon', 'bi-bell-fill'),
             'timestamp': event.get('timestamp', ''),
         }))
 

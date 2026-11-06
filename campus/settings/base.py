@@ -59,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'accounts.middleware.SingleSessionMiddleware',
+    'accounts.middleware.IdleSessionTimeoutMiddleware',
     'accounts.middleware.ClientIdentityLoggingMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
@@ -199,6 +200,17 @@ EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='noreply.campus.nexus@gmail.com
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=10)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Campus Nexus <noreply.campus.nexus@gmail.com>')
+
+
+# --- Sessions & Inactivity Expiration -----------------------------------------
+
+# Inactivity timeout in seconds (default: 1800s = 30 minutes of idle time)
+SESSION_IDLE_TIMEOUT = env.int('SESSION_IDLE_TIMEOUT', default=1800)
+
+# Absolute maximum session lifetime in seconds (default: 86400s = 24 hours)
+SESSION_COOKIE_AGE = env.int('SESSION_COOKIE_AGE', default=86400)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 
 # --- Messages ----------------------------------------------------------------

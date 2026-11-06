@@ -103,7 +103,7 @@ class Command(DaphneRunserverCommand):
         """Log requests to the console enriched with server receival timestamp, client IP, enrollment number, and name."""
         if protocol == "http" and action == "complete":
             client_key = details.get("client")
-            meta = pop_client_request(client_key)
+            meta = pop_client_request(client_key, path=details.get("path"))
 
             details["enrollment"] = meta.get("enrollment", "N.A.") or "N.A."
             details["name"] = meta.get("name", "N.A.") or "N.A."
@@ -139,7 +139,7 @@ class Command(DaphneRunserverCommand):
 
         elif protocol == "websocket" and action in ("connected", "disconnected", "connecting", "rejected"):
             client_key = details.get("client")
-            meta = pop_client_request(client_key)
+            meta = pop_client_request(client_key, path=details.get("path"), is_websocket=True, action=action)
 
             details["enrollment"] = meta.get("enrollment", "N.A.") or "N.A."
             details["name"] = meta.get("name", "N.A.") or "N.A."
