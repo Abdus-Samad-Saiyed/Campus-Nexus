@@ -83,8 +83,8 @@ class GuestDemoApplyAndAdminBadgesTests(TestCase):
 
         # Must display prompt banner
         self.assertContains(res, "You are currently exploring Campus Nexus in <strong>Guest Demo Mode</strong>")
-        self.assertContains(res, "Fast-Track Early Access (Skip Verification For Now)")
-        self.assertContains(res, "Permanent Account (Admin Physical Verification)")
+        self.assertContains(res, "Quick-Bypass Account (Skip Verification For Now)")
+        self.assertContains(res, "Verified Permanent Account (Physical Verification)")
 
         # Enrollment field must NOT be locked or set to GUEST_DEMO
         self.assertNotContains(res, 'value="GUEST_DEMO" readonly disabled')

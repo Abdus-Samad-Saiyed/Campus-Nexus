@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if early_launch_mode and active_tab == 'early' %}Fast-Track Student Access — Early Launch{% else %}Apply for Permanent Verification — COORDINATE{% endif %}{% endblock %}
+{% block title %}{% if early_launch_mode and active_tab == 'early' %}Quick-Bypass Student Access — Early Launch{% else %}Apply for Verified Permanent Account — COORDINATE{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -23,11 +23,11 @@
                                 <div class="d-flex flex-wrap gap-2">
                                     {% if early_launch_mode %}
                                     <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark btn-sm fw-semibold">
-                                        <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Early Access (Skip Verification For Now)
+                                        <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Account (Skip Verification For Now)
                                     </a>
                                     {% endif %}
                                     <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-green btn-sm fw-semibold">
-                                        <i class="bi bi-shield-check me-1"></i> Permanent Account (Admin Physical Verification)
+                                        <i class="bi bi-shield-check me-1"></i> Verified Permanent Account (Physical Verification)
                                     </a>
                                 </div>
                             </div>
@@ -43,15 +43,15 @@
                            role="tab"
                            aria-selected="{% if active_tab == 'early' %}true{% else %}false{% endif %}">
                             <i class="bi bi-lightning-charge-fill me-1"></i>
-                            <span class="tab-label">Fast-Track Early Access</span>
-                            <span class="tab-badge">Transit Rush</span>
+                            <span class="tab-label">Quick-Bypass Account</span>
+                            <span class="tab-badge">Recommended</span>
                         </a>
                         <a href="{% url 'apply_account' %}?mode=permanent"
                            class="apply-mode-tab {% if active_tab == 'permanent' %}active-permanent{% endif %}"
                            role="tab"
                            aria-selected="{% if active_tab == 'permanent' %}true{% else %}false{% endif %}">
                             <i class="bi bi-shield-check me-1"></i>
-                            <span class="tab-label">Official Permanent Account</span>
+                            <span class="tab-label">Verified Permanent Account</span>
                             <span class="tab-badge">ID Verified</span>
                         </a>
                     </div>
@@ -60,11 +60,11 @@
                 {% if early_launch_mode and active_tab == 'early' %}
                     <div class="mb-4">
                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill fw-semibold mb-2">
-                            <i class="bi bi-lightning-charge-fill me-1"></i> FAST-TRACK STUDENT REGISTRATION
+                            <i class="bi bi-lightning-charge-fill me-1"></i> QUICK-BYPASS STUDENT REGISTRATION
                         </span>
-                        <h2 class="fw-bold mb-1">Fast-Track Student Registration</h2>
+                        <h2 class="fw-bold mb-1">Quick-Bypass Student Registration</h2>
                         <p class="text-secondary small">
-                            Fast-track access for cab sharing and transit coordination. You can submit official physical ID verification at any time right from your dashboard.
+                            Temporary account that allows basic functionalities without requiring physical verification of identity. Later, temporary accounts can be converted into verified permanent accounts after identity verification.
                         </p>
                     </div>
 
@@ -299,7 +299,7 @@
                         {% if early_launch_mode %}
                         <div class="text-center mt-3 small">
                             <span class="text-secondary">Need immediate cab sharing before ID verification?</span>
-                            <a href="{% url 'apply_account' %}?mode=early" class="text-warning fw-semibold ms-1">Use Fast-Track Early Access &rarr;</a>
+                            <a href="{% url 'apply_account' %}?mode=early" class="text-warning fw-semibold ms-1">Use Quick-Bypass Account &rarr;</a>
                         </div>
                         {% endif %}
                     </form>
@@ -342,7 +342,7 @@
                         <div class="p-3 rounded border border-secondary bg-black bg-opacity-30">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="bi bi-shield-check text-info"></i>
-                                <strong class="text-white">Fast-Track Status</strong>
+                                <strong class="text-white">Quick-Bypass Status</strong>
                             </div>
                             <div class="text-secondary small">
                                 Active for transit coordination. Official verified student privileges are unlocked when you apply for permanent ID verification.

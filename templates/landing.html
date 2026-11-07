@@ -4,10 +4,10 @@
 {% block title %}Campus Nexus — Central Student Platform & COORDINATE{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container pt-2 pt-md-3 pb-5">
     <!-- Umbrella Platform Hero -->
-    <div class="row align-items-center py-4 mb-4">
-        <div class="col-lg-7 mb-5 mb-lg-0">
+    <div class="row align-items-center pt-1 pb-3 mb-4">
+        <div class="col-lg-6 col-xl-6 mb-4 mb-lg-0">
             {% if early_launch_mode %}
             <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-semibold mb-3 border border-warning-subtle d-inline-flex align-items-center">
                 <i class="bi bi-rocket-takeoff-fill me-2"></i> Early Launch Mode Active &middot; Instant Self-Declaration
@@ -25,20 +25,29 @@
             <p class="hero-subtitle mb-4">
                 Campus Nexus is the centralized digital ecosystem connecting students across hostels, departments, and services. Launch <strong>COORDINATE</strong> for cab shares today, with additional campus modules coming soon.
             </p>
-            <div class="d-flex gap-3 flex-wrap align-items-center">
-                <a href="{% url 'login' %}" class="btn btn-dark-custom px-4 py-2 fs-6">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Student Sign In <span class="text-secondary small fw-normal ms-1">(Already have an account)</span>
-                </a>
-                <a href="#catalogue" class="btn btn-outline-green px-4 py-2 fs-6">
-                    <i class="bi bi-grid-fill me-1"></i> Explore Services
-                </a>
+            <div class="mb-4">
+                <div class="row g-2 align-items-center" style="max-width: 440px;">
+                    <div class="col-6">
+                        <a href="{% url 'login' %}" class="btn btn-green w-100 py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Student Sign In
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#catalogue" class="btn btn-outline-green w-100 py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-grid-fill me-2"></i> Explore Services
+                        </a>
+                    </div>
+                </div>
+                <div class="text-secondary small mt-2" style="font-size: 0.8rem;">
+                    <i class="bi bi-person-check me-1 text-success"></i> Sign In is for students who have already created an account.
+                </div>
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="glass p-4 p-md-5 glass-glow">
+        <div class="col-lg-6 col-xl-6">
+            <div class="glass p-3 p-xl-4 glass-glow">
                 {% if early_launch_mode %}
-                <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="badge bg-success-subtle green-accent px-3 py-1 rounded-pill fw-bold border border-success-subtle">
                         <i class="bi bi-mortarboard-fill me-1"></i> NIT Srinagar Campus
                     </span>
@@ -46,50 +55,64 @@
                         <i class="bi bi-incognito me-1"></i> Guest Demo
                     </span>
                 </div>
-                <h4 class="fw-bold mb-2">Welcome to Campus Nexus</h4>
-                <p class="text-secondary small mb-4">
+                <h4 class="fw-bold mb-1 fs-5">Welcome to Campus Nexus</h4>
+                <p class="text-secondary small mb-3">
                     The verified digital ecosystem built exclusively for students at NIT Srinagar.
                 </p>
 
-                <div class="d-flex flex-column gap-3 mb-4">
+                <div class="d-flex flex-column gap-2 mb-3">
                     <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon flex-shrink-0" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
+                        <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-1">1. Fast-Track Account</h6>
-                            <p class="text-secondary small mb-0">If you are a student at NIT Srinagar, create a fast-track account first for immediate cab sharing and ride coordination.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">1. Quick-Bypass Account <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill small fw-semibold ms-1" style="font-size: 0.65rem;">Recommended</span></h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Temporary account that allows basic functionalities without requiring physical verification of identity. Later, temporary accounts can be converted into verified permanent accounts after identity verification.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon flex-shrink-0" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
+                        <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-1">2. Apply for Permanent ID</h6>
-                            <p class="text-secondary small mb-0">Once registered, submit your institute details to receive your permanent student verification badge.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">2. Apply for Verified Permanent Account</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Accounts with details physically verified against the holder. Full access to all features. Permanent account.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon flex-shrink-0" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;"><i class="bi bi-incognito"></i></div>
+                        <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(14, 165, 233, 0.15); color: #38bdf8;"><i class="bi bi-incognito"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-1">Not from NIT Srinagar?</h6>
-                            <p class="text-secondary small mb-0">This platform is exclusive to NIT Srinagar students, but you can demo all platform features using <strong>Guest Mode</strong>.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">3. Not from NIT Srinagar?</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">This platform is exclusive to NIT Srinagar students, but you can demo all platform features using <strong>Guest Mode</strong>.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="d-grid gap-2">
                     <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark fw-bold py-2">
-                        <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Student Registration
+                        <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Student Registration
                     </a>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-outline-green w-100 py-2 small">
-                                <i class="bi bi-shield-check me-1"></i> Apply for ID
+                    <div class="row g-2 align-items-stretch">
+                        <div class="col-sm-7 col-12">
+                            <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-outline-green w-100 h-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
+                                <i class="bi bi-shield-check me-1"></i> Apply for Verified Account
                             </a>
                         </div>
-                        <div class="col-6">
-                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 py-2 small">
+                        <div class="col-sm-5 col-12">
+                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 h-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
                                 <i class="bi bi-incognito me-1"></i> Try Guest Demo
                             </a>
                         </div>
+                    </div>
+                </div>
+
+                <div class="p-2 px-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 mt-2">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="badge bg-secondary-subtle text-secondary small fw-semibold" style="font-size: 0.68rem;">
+                            <i class="bi bi-shield-exclamation me-1"></i> Platform Disclaimer
+                        </span>
+                        <button type="button" class="btn btn-link btn-sm text-info text-decoration-none p-0 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#earlyLaunchDetailsModal">
+                            <i class="bi bi-info-circle me-1"></i> More Details &rarr;
+                        </button>
+                    </div>
+                    <div class="text-secondary small" style="font-size: 0.74rem; line-height: 1.35;">
+                        <strong class="text-light">THIS PLATFORM IS NOT MONETIZED.</strong> Quick-Bypass Accounts and Verified Permanent Accounts aren't tiers of accounts and neither incurs a charge. Verified Permanent Accounts simply requires you to submit an application and present yourself physically for verification before a Designated Application Approver along with your physical ID card for verification of details.
                     </div>
                 </div>
                 {% else %}
@@ -241,4 +264,35 @@
         </div>
     </div>
 </div>
+<!-- Early Launch & Verification Policy Modal -->
+<div class="modal fade" id="earlyLaunchDetailsModal" tabindex="-1" aria-labelledby="earlyLaunchDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass border-secondary shadow-lg">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold text-light d-flex align-items-center gap-2" id="earlyLaunchDetailsModalLabel">
+                    <i class="bi bi-info-circle-fill text-info"></i> Campus Nexus Early-Launch &amp; Verification
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-light text-opacity-90 py-4">
+                <p class="mb-3" style="line-height: 1.6;">
+                    The platform was originally supposed to release with all accounts requiring physical verification before activation to prevent fake accounts and enforce accountability.
+                </p>
+                <p class="mb-3" style="line-height: 1.6;">
+                    However, due to the approaching end of semester, student need was prioritized and the platform has been released in early-launch, allowing for self-declared Quick-Bypass Accounts that do not require verification.
+                </p>
+                <p class="mb-0" style="line-height: 1.6;">
+                    These accounts will get a chance for physical verification at the earliest in the following semester (Spring 2027). Until then, services can be availed using these temporary Quick-Bypass Accounts.
+                </p>
+            </div>
+            <div class="modal-footer border-secondary border-opacity-25">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+                <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark btn-sm fw-bold px-3">
+                    <i class="bi bi-lightning-charge-fill me-1"></i> Create Quick-Bypass Account
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -329,7 +329,7 @@
                     </span>
                     {% elif early_launch_mode %}
                     <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill fw-semibold" title="Fast-track self-declared access">
-                        <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Access
+                        <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Account
                     </span>
                     {% else %}
                     <span class="badge bg-secondary-subtle text-secondary px-3 py-1 rounded-pill fw-semibold">
@@ -349,10 +349,10 @@
                         Your profile is completely verified and in good standing.
                     {% elif early_launch_mode %}
                         {% if pending_application %}
-                            <span class="text-info fw-semibold"><i class="bi bi-clock-history me-1"></i>Permanent ID Application Pending:</span> Application #{{ pending_application.application_number }} submitted on {{ pending_application.created_at|date:"M d, Y" }}. You can continue coordinating rides while our desk reviews your permanent verification.
+                            <span class="text-info fw-semibold"><i class="bi bi-clock-history me-1"></i>Verified Permanent Account Application Pending:</span> Application #{{ pending_application.application_number }} submitted on {{ pending_application.created_at|date:"M d, Y" }}. You can continue coordinating rides while our desk reviews your permanent verification.
                         {% else %}
-                            <span class="text-warning fw-semibold">Fast-Track Account:</span> Active for transit coordination.
-                            <a href="{% url 'apply_account' %}?mode=permanent" class="green-accent fw-semibold ms-1">Apply for Permanent Verified ID &rarr;</a>
+                            <span class="text-warning fw-semibold">Quick-Bypass Account:</span> Active for transit coordination.
+                            <a href="{% url 'apply_account' %}?mode=permanent" class="green-accent fw-semibold ms-1">Apply for Verified Permanent Account &rarr;</a>
                         {% endif %}
                     {% else %}
                         Your account verification is pending physical desk approval.

@@ -143,8 +143,8 @@ class EarlyLaunchViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.context["form"], EarlyLaunchDeclarationForm)
         self.assertTrue(response.context.get("early_launch_mode"))
-        self.assertContains(response, "FAST-TRACK STUDENT REGISTRATION")
-        self.assertContains(response, "Fast-Track Student Registration")
+        self.assertContains(response, "QUICK-BYPASS STUDENT REGISTRATION")
+        self.assertContains(response, "Quick-Bypass Student Registration")
         self.assertNotContains(response, "Designated Application Approvers")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
@@ -185,7 +185,7 @@ class EarlyLaunchViewTests(TestCase):
         self.assertFalse(response.context.get("early_launch_mode", False))
         self.assertContains(response, "STUDENT REGISTRATION")
         self.assertContains(response, "Apply for Verification")
-        self.assertNotContains(response, "FAST-TRACK STUDENT REGISTRATION")
+        self.assertNotContains(response, "QUICK-BYPASS STUDENT REGISTRATION")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
     def test_apply_view_permanent_tab_in_early_launch_mode(self):
@@ -368,8 +368,8 @@ class EarlyLaunchViewTests(TestCase):
         response = self.client.get(reverse("landing"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Early Launch Mode Active")
-        self.assertContains(response, "Fast-Track")
-        self.assertContains(response, "Apply for Permanent ID")
+        self.assertContains(response, "Quick-Bypass")
+        self.assertContains(response, "Apply for Verified Permanent Account")
         self.assertContains(response, "Welcome to Campus Nexus")
 
     @override_settings(EARLY_LAUNCH_MODE=False)
@@ -377,7 +377,7 @@ class EarlyLaunchViewTests(TestCase):
         response = self.client.get(reverse("landing"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Apply for Verification")
-        self.assertNotContains(response, "Fast-Track Early Access")
+        self.assertNotContains(response, "Fast-Track")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
     def test_dashboard_displays_untrusted_badge_for_early_access_user(self):
@@ -391,8 +391,8 @@ class EarlyLaunchViewTests(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse("dashboard"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Fast-Track Access")
-        self.assertContains(response, "Fast-Track Account:")
+        self.assertContains(response, "Quick-Bypass Account")
+        self.assertContains(response, "Quick-Bypass Account:")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
     def test_profile_displays_untrusted_badge(self):
@@ -406,7 +406,7 @@ class EarlyLaunchViewTests(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse("profile", kwargs={"enrollment_number": "2024BCSE907"}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Fast-Track Access")
+        self.assertContains(response, "Quick-Bypass Account")
 
 
 class EarlyLaunchPolicyTests(TestCase):
@@ -547,7 +547,7 @@ class TemporaryUserPermanentApplicationTests(TestCase):
         with override_settings(EARLY_LAUNCH_MODE=True):
             dash_res = self.client.get(reverse("dashboard"))
             self.assertEqual(dash_res.status_code, 200)
-            self.assertContains(dash_res, "Permanent ID Application Pending")
+            self.assertContains(dash_res, "Verified Permanent Account Application Pending")
 
             rides_res = self.client.get(reverse("ride_list"))
             self.assertEqual(rides_res.status_code, 200)
