@@ -7,12 +7,15 @@ Includes dynamic membership checks, safe frame parsing, rate limiting, and post-
 
 import datetime
 import json
+import logging
 import time
 
 from channels.db import database_sync_to_async
 from django.template.defaultfilters import date as date_filter
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 class RideChatConsumer(AsyncWebsocketConsumer):
@@ -167,6 +170,12 @@ class RideChatConsumer(AsyncWebsocketConsumer):
 
         # Persist message
         message = await self._save_message(content)
+
+        # Dispatch real-time user notification to confirmed ride participants
+        try:
+            await self._notify_ride_participants(message)
+        except Exception as e:
+            logger.debug(f"Failed to dispatch ride chat notification: {e}")
 
         # Broadcast to ride group
         await self.channel_layer.group_send(
@@ -323,3 +332,33 @@ class RideChatConsumer(AsyncWebsocketConsumer):
             author=self.user,
             content=content,
         )
+
+    @database_sync_to_async
+    def _notify_ride_participants(self, message):
+        from coordinate.models import RideParticipant, RideRequest
+        from accounts.notifications import send_user_notification
+        try:
+            ride = RideRequest.objects.filter(id=self.ride_id).first()
+            if not ride:
+                return
+            participant_ids = list(
+                RideParticipant.objects.filter(ride_id=self.ride_id, status='CONFIRMED')
+                .exclude(user_id=self.user.id)
+                .values_list('user_id', flat=True)
+            )
+            sender_name = self.user.get_full_name() or self.user.enrollment_number
+            route = ride.route_display or f"Ride #{ride.id}"
+            for uid in participant_ids:
+                send_user_notification(
+                    user_id=uid,
+                    title=f"Ride Chat ({route})",
+                    content=f"{sender_name}: {message.content[:80]}",
+                    url=f"/coordinate/{ride.id}/",
+                    category="ride_chat",
+                    sender_user=self.user,
+                    badge="Ride Message",
+                    badge_class="bg-info-subtle text-info border border-info-subtle",
+                    icon="bi-chat-dots-fill",
+                )
+        except Exception as e:
+            logger.debug(f"Failed to dispatch ride chat notifications: {e}")

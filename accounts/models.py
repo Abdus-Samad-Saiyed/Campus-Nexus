@@ -77,6 +77,8 @@ class User(AbstractUser):
 
     @property
     def last_seen_display(self) -> str:
+        if self.hide_online_status:
+            return "Hidden"
         if not self.last_seen:
             return "Never"
         import zoneinfo, datetime

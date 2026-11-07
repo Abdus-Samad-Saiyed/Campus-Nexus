@@ -5,7 +5,7 @@ import json
 from datetime import timedelta
 from unittest.mock import patch, MagicMock
 
-from django.test import TestCase, Client
+from django.test import TestCase, TransactionTestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -97,6 +97,7 @@ class UserLastOnlineOptionTests(TestCase):
         self.user.save()
 
         self.assertFalse(self.user.is_online_now)
+        self.assertEqual(self.user.last_seen_display, "Hidden")
 
         resp = self.client.get(reverse('profile', kwargs={'enrollment_number': self.user.enrollment_number}))
         self.assertContains(resp, "Last online hidden")
@@ -113,7 +114,7 @@ class UserLastOnlineOptionTests(TestCase):
         self.assertIn("IST", self.user.last_seen_display)
 
 
-class RideNotificationDispatchTests(TestCase):
+class RideNotificationDispatchTests(TransactionTestCase):
     """Test ride update notifications for cancellation and rescheduling."""
 
     def setUp(self):
@@ -172,3 +173,29 @@ class RideNotificationDispatchTests(TestCase):
         call_kwargs = mock_notify.call_args.kwargs
         self.assertEqual(call_kwargs['user_id'], self.passenger.id)
         self.assertEqual(call_kwargs['title'], 'Ride Cancelled')
+
+    @patch('accounts.notifications.send_user_notification')
+    def test_ride_chat_message_notifies_participants(self, mock_notify):
+        """Posting a ride chat message dispatches notifications to other confirmed participants."""
+        from coordinate.consumers import RideChatConsumer
+        from coordinate.models import RideMessage
+
+        consumer = RideChatConsumer()
+        consumer.ride_id = self.ride.id
+        consumer.user = self.host
+
+        msg = RideMessage.objects.create(
+            ride=self.ride,
+            author=self.host,
+            content="Hey all, leaving from main gate at 5 PM!",
+        )
+
+        import asyncio
+        asyncio.run(consumer._notify_ride_participants(msg))
+
+        self.assertTrue(mock_notify.called)
+        call_kwargs = mock_notify.call_args.kwargs
+        self.assertEqual(call_kwargs['user_id'], self.passenger.id)
+        self.assertIn("Ride Chat", call_kwargs['title'])
+        self.assertEqual(call_kwargs['category'], 'ride_chat')
+        self.assertIn("leaving from main gate", call_kwargs['content'])
