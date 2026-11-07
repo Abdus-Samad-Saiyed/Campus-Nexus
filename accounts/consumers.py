@@ -10,7 +10,10 @@ Features:
 """
 
 import json
+import logging
 from channels.db import database_sync_to_async
+
+logger = logging.getLogger(__name__)
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
 
@@ -48,8 +51,13 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
         self.group_name = f'direct_chat_{u1_id}_{u2_id}'
         self.user_group_name = f'user_{self.user.id}'
 
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        try:
+            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        except Exception as e:
+            logger.warning(f"FriendChatConsumer: channel layer group_add failed: {e}")
+            await self.close(code=1012)
+            return
         await self.accept()
 
         # Announce online presence to the friend if not hidden and first connection
@@ -427,15 +435,23 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         self.notification_group_name = f'user_notifications_{self.user.id}'
         self.user_group_name = f'user_{self.user.id}'
 
-        await self.channel_layer.group_add(self.notification_group_name, self.channel_name)
-        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        try:
+            await self.channel_layer.group_add(self.notification_group_name, self.channel_name)
+            await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        except Exception as e:
+            logger.warning(f"NotificationConsumer: channel layer group_add failed: {e}")
+            await self.close(code=1012)
+            return
         await self.accept()
 
     async def disconnect(self, close_code):
-        if hasattr(self, 'notification_group_name') and self.channel_layer:
-            await self.channel_layer.group_discard(self.notification_group_name, self.channel_name)
-        if hasattr(self, 'user_group_name') and self.channel_layer:
-            await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
+        try:
+            if hasattr(self, 'notification_group_name') and self.channel_layer:
+                await self.channel_layer.group_discard(self.notification_group_name, self.channel_name)
+            if hasattr(self, 'user_group_name') and self.channel_layer:
+                await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
+        except Exception as e:
+            logger.debug(f"NotificationConsumer disconnect cleanup error: {e}")
 
     async def chat_notification(self, event):
         """Receive incoming direct message notification and push to client."""

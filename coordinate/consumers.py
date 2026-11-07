@@ -44,8 +44,13 @@ class RideChatConsumer(AsyncWebsocketConsumer):
             return
 
         self.user_group_name = f'user_{self.user.id}'
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        try:
+            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+        except Exception as e:
+            logger.warning(f"RideChatConsumer: channel layer group_add failed: {e}")
+            await self.close(code=1012)
+            return
         await self.accept()
 
         # Track presence: mark user online in this ride

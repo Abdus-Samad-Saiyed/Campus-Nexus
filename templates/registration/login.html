@@ -15,7 +15,7 @@
                     <p class="text-secondary small">Access verified rides across campus</p>
                 </div>
 
-                <form method="POST" action="{% url 'login' %}">
+                <form method="POST" action="{% url 'login' %}" toolname="student_login" tooldescription="Authenticate student account using campus email and password or WebAuthn passkey">
                     {% csrf_token %}
                     {% if next %}
                         <input type="hidden" name="next" value="{{ next }}">

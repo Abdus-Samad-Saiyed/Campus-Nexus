@@ -185,7 +185,7 @@
 
     <!-- Date-Time Range & Attribute Filter Form -->
     <div class="glass p-4 mb-4">
-        <form method="GET" action="{% url 'ride_list' %}" hx-get="{% url 'ride_list' %}" class="row g-3">
+        <form method="GET" action="{% url 'ride_list' %}" hx-get="{% url 'ride_list' %}" toolname="filter_rides" tooldescription="Filter available student rides by departure time, seat availability, and destination" class="row g-3">
             <div class="col-12 mb-1">
                 <span class="small text-secondary fw-semibold text-uppercase">
                     <i class="bi bi-sliders me-1 green-accent"></i> Filter & Sort Controls

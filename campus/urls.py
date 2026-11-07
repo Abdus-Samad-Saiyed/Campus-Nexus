@@ -36,6 +36,7 @@ from campus.operations import (
 )
 from campus.services import service_gateway_view
 from campus.views import about_view, contact_view, contributors_view, feedback_view, nominate_contributor, remove_contributor
+from campus.agentic import robots_txt, llms_txt, ard_json
 
 # Enforce platform 2FA and single-session on Django admin
 admin.site.login = custom_login_view
@@ -141,6 +142,11 @@ urlpatterns = [
     path('operations/export/rides/', export_rides_csv, name='export_rides_csv'),
     path('operations/export/users/', export_users_csv, name='export_users_csv'),
     path('operations/export/applications/', export_applications_csv, name='export_applications_csv'),
+
+    # Autonomous Agentic & Discovery Endpoints
+    path('robots.txt', robots_txt, name='robots_txt'),
+    path('llms.txt', llms_txt, name='llms_txt'),
+    path('.well-known/ard.json', ard_json, name='ard_json'),
 
     # System Health Check & Root Favicon
     path('favicon.ico', favicon_view, name='favicon'),

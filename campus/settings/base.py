@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 # --- Middleware ---------------------------------------------------------------
 
 MIDDLEWARE = [
+    'django.middleware.gzip.GZipMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -316,3 +317,7 @@ LOGGING = {
     },
 }
 
+
+# --- WhiteNoise Long-Lived Static Cache Headers --------------------------------
+WHITENOISE_MAX_AGE = env.int("WHITENOISE_MAX_AGE", default=31536000)
+WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True
