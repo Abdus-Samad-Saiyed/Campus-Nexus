@@ -1139,54 +1139,68 @@ def apply_account(request):
                             description=f'Application #{application.application_number} submitted; temporary account activated for {enrollment}',
                             target_id=enrollment,
                         )
+
+                    # Dispatch staff WebSocket alert and confirmation email in background to prevent client lag
+                    is_temp_user_upgrade = bool(is_real_authenticated and not request.user.verified)
+                    app_id = application.id
+                    app_num = application.application_number
+                    app_full_name = application.full_name
+                    app_email = application.email
+                    app_phone = application.phone_number
+                    app_gender = application.get_gender_display()
+                    app_first_name = first_name
+
+                    import threading
+                    def _post_submission_bg():
                         try:
                             from channels.layers import get_channel_layer
                             from asgiref.sync import async_to_sync
                             import zoneinfo
                             layer = get_channel_layer()
                             if layer:
-                                is_temp_user_upgrade = bool(is_real_authenticated and not request.user.verified)
                                 ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
-                                ts_str = timezone.localtime(application.created_at, ist_tz).strftime("%b %d, %H:%M")
+                                ts_str = timezone.now().astimezone(ist_tz).strftime("%b %d, %H:%M")
                                 async_to_sync(layer.group_send)(
                                     'staff_applications',
                                     {
                                         'type': 'application_created',
-                                        'id': application.id,
-                                        'application_number': application.application_number,
-                                        'enrollment_number': application.enrollment_number,
-                                        'full_name': application.full_name,
-                                        'email': application.email or '',
-                                        'phone_number': application.phone_number,
-                                        'gender': application.get_gender_display(),
+                                        'id': app_id,
+                                        'application_number': app_num,
+                                        'enrollment_number': enrollment,
+                                        'full_name': app_full_name,
+                                        'email': app_email or '',
+                                        'phone_number': app_phone,
+                                        'gender': app_gender,
                                         'is_temp_upgrade': is_temp_user_upgrade,
                                         'created_at': ts_str,
                                     }
                                 )
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            logger.warning("Staff application broadcast failed: %s", exc)
 
-                    # Send application received confirmation email
-                    try:
-                        send_mail(
-                            subject='Campus Nexus — Student Verification Application Received',
-                            message=(
-                                f'Hi {first_name},\n\n'
-                                f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
-                                f'Application Reference: #{application.application_number}\n'
-                                f'Status: Under Review\n\n'
-                                f'A temporary campus access account has been activated for you immediately. '
-                                f'You can coordinate rides, browse campus activities, and connect with peers right away '
-                                f'while your permanent verification is pending review.\n\n'
-                                f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
-                                f'— The Campus Nexus Team, NIT Srinagar'
-                            ),
-                            from_email=None,
-                            recipient_list=[application.email] if application.email else [],
-                            fail_silently=True,
-                        )
-                    except Exception:
-                        pass
+                        if app_email:
+                            try:
+                                send_mail(
+                                    subject='Campus Nexus — Student Verification Application Received',
+                                    message=(
+                                        f'Hi {app_first_name},\n\n'
+                                        f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
+                                        f'Application Reference: #{app_num}\n'
+                                        f'Status: Under Review\n\n'
+                                        f'A temporary campus access account has been activated for you immediately. '
+                                        f'You can coordinate rides, browse campus activities, and connect with peers right away '
+                                        f'while your permanent verification is pending review.\n\n'
+                                        f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
+                                        f'— The Campus Nexus Team, NIT Srinagar'
+                                    ),
+                                    from_email=None,
+                                    recipient_list=[app_email],
+                                    fail_silently=True,
+                                )
+                            except Exception as exc:
+                                logger.warning("Application confirmation email failed: %s", exc)
+
+                    threading.Thread(target=_post_submission_bg, daemon=True).start()
 
                     # Clean guest session if applicable and log user in immediately
                     if in_guest_demo and hasattr(request, 'session'):
