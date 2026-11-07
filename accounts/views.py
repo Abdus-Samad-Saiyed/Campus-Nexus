@@ -764,7 +764,7 @@ def send_signup_otp(request):
 
     otp, raw_code = create_phone_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
     if not getattr(otp, 'any_delivered', True):
-        return JsonResponse({'success': False, 'error': 'Unable to deliver verification code via SMS or email. Please check your contact details or try again.'}, status=400)
+        return JsonResponse({'success': False, 'error': 'The server has reached a temporary OTP limit. Please try another day.'}, status=400)
 
     dest_parts = []
     if getattr(otp, 'email_sent', False) or (email and not getattr(otp, 'sms_sent', False)):
@@ -801,19 +801,17 @@ def send_security_otp(request):
 
     otp, raw_code = create_phone_otp(user=user, phone_number=target_phone, email=target_email, purpose='SECURITY_CHANGE')
     if not getattr(otp, 'any_delivered', True):
-        return JsonResponse({'success': False, 'error': 'Unable to deliver security code to your registered contacts right now. Please try again later.'}, status=400)
+        return JsonResponse({'success': False, 'error': 'The server has reached a temporary OTP limit. Please try another day.'}, status=400)
 
     dest_parts = []
-    if getattr(otp, 'ws_sent', False):
-        dest_parts.append("active screen notification")
-    if getattr(otp, 'email_sent', False) or (target_email and not getattr(otp, 'sms_sent', False) and not getattr(otp, 'ws_sent', False)):
+    if getattr(otp, 'email_sent', False) or (target_email and not getattr(otp, 'sms_sent', False)):
         dest_parts.append(f"email ({target_email})")
     if getattr(otp, 'sms_sent', False):
         dest_parts.append(f"mobile ({target_phone[-4:]})")
     dest_str = " and ".join(dest_parts) or "your registered contacts"
     return JsonResponse({
         'success': True,
-        'message': f'Verification code dispatched to {dest_str}. Check your notifications or inbox.',
+        'message': f'Verification code dispatched to {dest_str}. Check your email or SMS.',
     })
 
 
