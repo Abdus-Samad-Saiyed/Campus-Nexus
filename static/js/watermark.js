@@ -571,6 +571,10 @@ if (isForegroundScattered) {
 body.classList.add('foreground-scattered');
 if (restoreBanner) {
 restoreBanner.classList.add('active');
+restoreBanner.style.display = 'block';
+restoreBanner.removeAttribute('aria-hidden');
+const rBtn = restoreBanner.querySelector('button');
+if (rBtn) { rBtn.tabIndex = 0; rBtn.removeAttribute('aria-hidden'); }
 restoreBanner.style.opacity = '1';
 restoreBanner.style.pointerEvents = 'auto';
 restoreBanner.style.transform = 'translateX(-50%) translateY(0)';
@@ -629,6 +633,10 @@ el.style.pointerEvents = 'none';
 body.classList.remove('foreground-scattered');
 if (restoreBanner) {
 restoreBanner.classList.remove('active');
+restoreBanner.style.display = 'none';
+restoreBanner.setAttribute('aria-hidden', 'true');
+const rBtn = restoreBanner.querySelector('button');
+if (rBtn) { rBtn.tabIndex = -1; rBtn.setAttribute('aria-hidden', 'true'); }
 restoreBanner.style.opacity = '0';
 restoreBanner.style.pointerEvents = 'none';
 restoreBanner.style.transform = 'translateX(-50%) translateY(100px)';

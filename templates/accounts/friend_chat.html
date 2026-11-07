@@ -95,7 +95,7 @@
                             <i class="bi bi-lock-fill me-1"></i> This student's account is inactive. Conversation history is read-only.
                         </div>
                         {% else %}
-                        <form id="direct-chat-form" method="POST" action="{% url 'direct_chat' friend.enrollment_number %}" class="d-flex gap-2 m-0 align-items-center">
+                        <form id="direct-chat-form" method="POST" action="{% url 'direct_chat' friend.enrollment_number %}" toolname="send_direct_message" tooldescription="Send an encrypted 1-on-1 direct message to a verified campus friend" class="d-flex gap-2 m-0 align-items-center">
                             {% csrf_token %}
                             <input type="text" id="direct-chat-input" name="content" class="form-control"
                                    placeholder="Type a message to {{ friend.enrollment_number }}…"

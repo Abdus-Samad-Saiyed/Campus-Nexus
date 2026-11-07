@@ -387,7 +387,7 @@
                     <!-- Message input form -->
                     <div class="chat-footer">
                         {% if can_message %}
-                            <form id="chat-form" method="POST" action="{% url 'send_message' ride.id %}" class="d-flex gap-2 m-0">
+                            <form id="chat-form" method="POST" action="{% url 'send_message' ride.id %}" toolname="send_ride_message" tooldescription="Send a coordination message to the active ride discussion channel" class="d-flex gap-2 m-0">
                                 {% csrf_token %}
                                 <input type="text" id="chat-input" name="content" class="form-control" placeholder="Type message..." maxlength="1000" autocomplete="off" required>
                                 <button type="submit" class="btn btn-green px-3">
@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{% url 'join_ride' ride.id %}" method="POST">
+            <form action="{% url 'join_ride' ride.id %}" method="POST" toolname="join_ride" tooldescription="Submit a passenger reservation or join request for this campus ride">
                 {% csrf_token %}
                 <div class="modal-body">
                     <p class="small text-secondary mb-3">

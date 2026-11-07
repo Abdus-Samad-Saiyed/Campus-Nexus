@@ -321,3 +321,8 @@ LOGGING = {
 # --- WhiteNoise Long-Lived Static Cache Headers --------------------------------
 WHITENOISE_MAX_AGE = env.int("WHITENOISE_MAX_AGE", default=31536000)
 WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True
+
+# Security Headers & HSTS
+SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', default=31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True)
+SECURE_HSTS_PRELOAD = env.bool('DJANGO_SECURE_HSTS_PRELOAD', default=True)

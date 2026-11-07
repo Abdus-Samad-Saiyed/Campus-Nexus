@@ -20,7 +20,7 @@
                     <p class="text-secondary small">Set your departure route, passenger capacity, and audience comfort settings.</p>
                 </div>
 
-                <form method="POST">
+                <form method="POST" toolname="create_ride" tooldescription="Create and publish a new campus ride listing with route details, seat capacity, departure schedule, and passenger requirements">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}

@@ -15,7 +15,7 @@ def robots_txt(request):
     return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
 
 def llms_txt(request):
-    text = """# Campus Nexus ? Centralized Student Digital Services & Mobility
+    text = """# Campus Nexus — Centralized Student Digital Services & Mobility
 > Decentralized, real-time campus mobility, ride sharing, and digital identity network for universities.
 
 ## System Overview

@@ -36,3 +36,8 @@ experiments/
 # IDE
 .idea/
 .vscode/
+
+# Local Dev Isolated Database Cluster
+pgdata_dev/
+pg_dev.log
+
