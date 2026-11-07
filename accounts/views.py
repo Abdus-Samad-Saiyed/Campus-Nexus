@@ -764,14 +764,26 @@ def send_signup_otp(request):
         except Exception:
             pass
 
+    from accounts.demo import is_guest_demo
+    is_real_auth = request.user.is_authenticated and not is_guest_demo(request.user)
+    if is_real_auth:
+        if not phone and getattr(request.user, 'phone_number', ''):
+            phone = request.user.phone_number
+        if not email and getattr(request.user, 'email', ''):
+            email = request.user.email
+
     if not phone or len(phone) < 10:
         return JsonResponse({'success': False, 'error': 'Please provide a valid phone number.'}, status=400)
 
-    can_resend, wait_sec = can_resend_otp(phone_number=phone, email=email, purpose='SIGNUP')
+    if not email or '@' not in email:
+        return JsonResponse({'success': False, 'error': 'Please provide a valid institute or personal email address so we can deliver your verification code.'}, status=400)
+
+    auth_user = request.user if is_real_auth else None
+    can_resend, wait_sec = can_resend_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
     if not can_resend:
         return JsonResponse({'success': False, 'error': f'Please wait {wait_sec} seconds before requesting a new code.'}, status=429)
 
-    otp, raw_code = create_phone_otp(phone_number=phone, email=email, purpose='SIGNUP')
+    otp, raw_code = create_phone_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
     if not getattr(otp, 'any_delivered', True):
         return JsonResponse({'success': False, 'error': 'Unable to deliver verification code via SMS or email. Please check your contact details or try again.'}, status=502)
 
@@ -1036,11 +1048,12 @@ def apply_account(request):
                     phone_verified = True
                 else:
                     if not phone_otp:
-                        form.add_error(None, "Phone verification code is required. Please verify your phone number via OTP.")
+                        form.add_error(None, "Phone verification code is required. Please verify your contact details via OTP.")
                     else:
-                        phone_verified, otp_err = verify_phone_otp(phone_number=phone_num, email=email_addr, submitted_code=phone_otp, purpose='SIGNUP')
+                        auth_user = request.user if is_real_authenticated else None
+                        phone_verified, otp_err = verify_phone_otp(user=auth_user, phone_number=phone_num, email=email_addr, submitted_code=phone_otp, purpose='SIGNUP')
                         if not phone_verified:
-                            form.add_error(None, f"Phone verification failed: {otp_err}")
+                            form.add_error(None, f"Verification failed: {otp_err}")
 
                 if phone_verified:
                     with transaction.atomic():
@@ -1083,8 +1096,12 @@ def apply_account(request):
                             user.is_active = True
                             user.save()
 
-                        # Mirror application and temporary user to permanent DB if running with isolated early launch temporary DB
-                        if 'permanent' in connections:
+                        # Mirror application and temporary user to permanent DB ONLY if running with an isolated secondary temporary DB
+                        is_distinct_permanent = (
+                            'permanent' in connections
+                            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+                        )
+                        if is_distinct_permanent:
                             try:
                                 AccountApplication.objects.using('permanent').update_or_create(
                                     enrollment_number=application.enrollment_number,
@@ -1128,6 +1145,7 @@ def apply_account(request):
                             import zoneinfo
                             layer = get_channel_layer()
                             if layer:
+                                is_temp_user_upgrade = bool(is_real_authenticated and not request.user.verified)
                                 ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
                                 ts_str = timezone.localtime(application.created_at, ist_tz).strftime("%b %d, %H:%M")
                                 async_to_sync(layer.group_send)(
@@ -1995,10 +2013,14 @@ def approve_application(request, application_id):
 
     with transaction.atomic():
         application = get_object_or_404(AccountApplication, id=application_id, approved=False)
+        is_distinct_permanent = (
+            'permanent' in connections
+            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+        )
         if application.enrollment_number == 'GUEST_DEMO':
             messages.error(request, "Cannot approve applications for GUEST_DEMO. The application is invalid and has been purged.")
             application.delete()
-            if 'permanent' in connections:
+            if is_distinct_permanent:
                 try:
                     AccountApplication.objects.using('permanent').filter(enrollment_number='GUEST_DEMO').delete()
                 except Exception:
@@ -2013,7 +2035,7 @@ def approve_application(request, application_id):
         if existing_user:
             if existing_user.verified:
                 application.delete()
-                if 'permanent' in connections:
+                if is_distinct_permanent:
                     try:
                         AccountApplication.objects.using('permanent').filter(enrollment_number=application.enrollment_number).delete()
                     except Exception:
@@ -2054,8 +2076,12 @@ def approve_application(request, application_id):
 
         application.delete()
 
-        # Mirror approved user to permanent DB if running with isolated early launch temporary DB
-        if 'permanent' in connections:
+        # Mirror approved user to permanent DB ONLY if running with an isolated secondary temporary DB
+        is_distinct_permanent = (
+            'permanent' in connections
+            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+        )
+        if is_distinct_permanent:
             try:
                 User.objects.using('permanent').update_or_create(
                     enrollment_number=user.enrollment_number,
@@ -2177,7 +2203,11 @@ def reject_application(request, application_id):
         applicant_name = application.full_name
         applicant_email = application.email
         application.delete()
-        if 'permanent' in connections:
+        is_distinct_permanent = (
+            'permanent' in connections
+            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+        )
+        if is_distinct_permanent:
             try:
                 AccountApplication.objects.using('permanent').filter(enrollment_number=enrollment).delete()
             except Exception:

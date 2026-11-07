@@ -257,6 +257,60 @@ class EarlyLaunchViewTests(TestCase):
         self.assertIsNotNone(app)
 
     @override_settings(EARLY_LAUNCH_MODE=True)
+    def test_early_access_user_send_signup_otp_and_upgrade(self):
+        # 1. Create untrusted early access user
+        untrusted = User.objects.create_user(
+            enrollment_number="2024BCSE925",
+            username="2024BCSE925",
+            phone_number="9876543225",
+            email="early925@nitsri.ac.in",
+            password="InitialPass123!",
+            verified=False,
+            is_active=True,
+        )
+        self.client.force_login(untrusted)
+
+        # 2. Dispatch OTP via send_signup_otp endpoint
+        res = self.client.post(reverse("send_signup_otp"), {
+            "phone_number": "9876543225",
+            "email": "early925@nitsri.ac.in",
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json().get("success"))
+
+        # Find latest OTP in DB
+        from accounts.models import PhoneOTP
+        from accounts.two_factor import hash_otp
+        import hmac
+        otp_row = PhoneOTP.objects.filter(purpose="SIGNUP", is_used=False).order_by("-created_at").first()
+        self.assertIsNotNone(otp_row)
+
+        # Find which 6-digit code matches (fast brute-force in memory for test verification)
+        code = None
+        for candidate in range(100000, 1000000):
+            if hmac.compare_digest(otp_row.otp_hash, hash_otp(str(candidate))):
+                code = str(candidate)
+                break
+        self.assertIsNotNone(code)
+
+        # 3. Submit permanent application with code
+        submit_res = self.client.post(reverse("apply_account"), {
+            "registration_mode": "permanent",
+            "enrollment_number": "2024BCSE925",
+            "full_name": "Upgraded Permanent Student",
+            "gender": "M",
+            "phone_number": "9876543225",
+            "email": "early925@nitsri.ac.in",
+            "phone_otp": code,
+        })
+        self.assertEqual(submit_res.status_code, 200)
+        self.assertTemplateUsed(submit_res, "accounts/application_success.html")
+
+        app = AccountApplication.objects.filter(enrollment_number="2024BCSE925").first()
+        self.assertIsNotNone(app)
+        self.assertTrue(app.phone_verified)
+
+    @override_settings(EARLY_LAUNCH_MODE=True)
     def test_admin_approval_upgrades_untrusted_user_to_verified(self):
         # Create unverified user from early access
         untrusted = User.objects.create_user(

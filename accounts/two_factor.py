@@ -224,14 +224,19 @@ def create_phone_otp(
         raise ValueError("Phone number or email required to dispatch OTP.")
 
     # Invalidate prior active OTPs
+    from django.db.models import Q
+    inval_q = Q(purpose=purpose, is_used=False)
+    target_q = Q()
     if user:
-        PhoneOTP.objects.filter(user=user, purpose=purpose, is_used=False).update(is_used=True)
-    elif target_phone and target_email and purpose == 'SIGNUP':
-        PhoneOTP.objects.filter(phone_number=target_phone, email=target_email, purpose=purpose, is_used=False).update(is_used=True)
+        target_q |= Q(user=user)
+    if target_phone and target_email:
+        target_q |= (Q(phone_number=target_phone) & Q(email=target_email))
     elif target_phone:
-        PhoneOTP.objects.filter(phone_number=target_phone, purpose=purpose, is_used=False).update(is_used=True)
+        target_q |= Q(phone_number=target_phone)
     elif target_email:
-        PhoneOTP.objects.filter(email=target_email, purpose=purpose, is_used=False).update(is_used=True)
+        target_q |= Q(email=target_email)
+    if target_q:
+        PhoneOTP.objects.filter(inval_q & target_q).update(is_used=True)
 
     # Cryptographically secure 6-digit code: 100000 - 999999
     raw_code = str(secrets.randbelow(900000) + 100000)
@@ -279,15 +284,20 @@ def can_resend_otp(user: User = None, phone_number: str = None, email: str = Non
     """Check if the resend cooldown has elapsed for this target and purpose."""
     target_phone = normalize_phone_number(phone_number or (user.phone_number if user else None))
     target_email = (email or (user.email if user else None) or '').strip().lower()
+    from django.db.models import Q
     qs = PhoneOTP.objects.filter(purpose=purpose)
+    match_q = Q()
     if user:
-        qs = qs.filter(user=user)
-    elif target_phone and target_email and purpose == 'SIGNUP':
-        qs = qs.filter(phone_number=target_phone, email=target_email)
+        match_q |= Q(user=user)
+    if target_phone and target_email:
+        match_q |= (Q(phone_number=target_phone) & Q(email=target_email))
     elif target_phone:
-        qs = qs.filter(phone_number=target_phone)
+        match_q |= Q(phone_number=target_phone)
     elif target_email:
-        qs = qs.filter(email=target_email)
+        match_q |= Q(email=target_email)
+
+    if match_q:
+        qs = qs.filter(match_q)
     else:
         return True, 0
 
@@ -330,18 +340,19 @@ def verify_phone_otp(
 
     with transaction.atomic():
         qs = PhoneOTP.objects.select_for_update().filter(purpose=purpose, is_used=False)
+        from django.db.models import Q
+        match_q = Q()
         if user:
-            qs = qs.filter(user=user)
-        elif target_phone and target_email and purpose == 'SIGNUP':
-            # Bind both channels to prevent phone hijacking
-            qs = qs.filter(phone_number=target_phone, email=target_email)
-        elif target_phone and target_email:
-            from django.db.models import Q
-            qs = qs.filter(Q(phone_number=target_phone) | Q(email=target_email))
-        elif target_phone:
-            qs = qs.filter(phone_number=target_phone)
-        elif target_email:
-            qs = qs.filter(email=target_email)
+            match_q |= Q(user=user)
+        if target_phone and target_email:
+            match_q |= (Q(phone_number=target_phone) & Q(email=target_email))
+        if target_phone:
+            match_q |= Q(phone_number=target_phone)
+        if target_email:
+            match_q |= Q(email=target_email)
+
+        if match_q:
+            qs = qs.filter(match_q)
         else:
             return False, "User, phone number, or email required to verify code."
 

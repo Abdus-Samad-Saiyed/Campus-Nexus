@@ -258,19 +258,22 @@
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                                <label for="{{ form.password.id_for_label }}" class="form-label">Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.password }}
                                     <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
+                                {% if user.is_authenticated and not is_guest_demo %}
+                                    <div class="form-text text-secondary small">Leave blank to keep your current password.</div>
+                                {% endif %}
                                 {% if form.password.errors %}
                                     <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password</label>
+                                <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.confirm_password }}
                                     <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
@@ -439,11 +442,19 @@ async function requestSignupOtp() {
         return;
     }
 
+    if (!emailVal || !emailVal.includes('@')) {
+        feedback.style.display = 'block';
+        feedback.className = 'small mt-1 text-danger font-monospace';
+        feedback.textContent = 'Please enter a valid email address so we can deliver your 6-digit verification code.';
+        if (emailInput) emailInput.focus();
+        return;
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
     feedback.style.display = 'block';
     feedback.className = 'small mt-1 text-info font-monospace';
-    feedback.textContent = 'Dispatching 6-digit verification code to your email and phone...';
+    feedback.textContent = 'Dispatching 6-digit verification code to your email...';
 
     try {
         const formData = new FormData();

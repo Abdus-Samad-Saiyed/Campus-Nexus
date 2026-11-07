@@ -119,7 +119,11 @@ class AccountApplicationForm(forms.ModelForm):
             )
 
         from django.db import connections
-        perm_db = 'permanent' if 'permanent' in connections else 'default'
+        is_distinct_perm = (
+            'permanent' in connections
+            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+        )
+        perm_db = 'permanent' if is_distinct_perm else 'default'
 
         # Only block if an already verified user exists
         if User.objects.filter(enrollment_number=enrollment, verified=True).exists():
@@ -163,7 +167,11 @@ class AccountApplicationForm(forms.ModelForm):
             raise forms.ValidationError('Email address is required.')
 
         from django.db import connections
-        perm_db = 'permanent' if 'permanent' in connections else 'default'
+        is_distinct_perm = (
+            'permanent' in connections
+            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+        )
+        perm_db = 'permanent' if is_distinct_perm else 'default'
 
         if User.objects.filter(email=email, verified=True).exists():
             raise forms.ValidationError('An account with this email address already exists.')
