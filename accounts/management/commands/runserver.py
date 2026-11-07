@@ -91,40 +91,13 @@ class Command(DaphneRunserverCommand):
             os.environ['CAMPUS_EARLY_LAUNCH_MODE'] = 'True'
             settings.EARLY_LAUNCH_MODE = True
 
-            # Safely configure DATABASES using connections.configure_settings to guarantee all Django keys (TIME_ZONE, etc.)
-            early_db_path = getattr(settings, 'EARLY_LAUNCH_DB_PATH', settings.BASE_DIR / 'temp_early_access.sqlite3')
-            import environ
-            env = environ.Env()
-            if 'permanent' not in settings.DATABASES:
-                settings.DATABASES['permanent'] = dict(settings.DATABASES['default'])
-
-            temp_config = env.db(
-                'EARLY_LAUNCH_DATABASE_URL',
-                default=f'sqlite:///{early_db_path}'
-            )
-            # Use configure_settings to ensure TIME_ZONE, CONN_MAX_AGE, etc. are populated
-            configured = connections.configure_settings({'default': temp_config})
-            settings.DATABASES['default'] = configured['default']
-
-            # Reset connection handler for 'default' so it uses the configured dictionary
-            connections.close_all()
-            if 'default' in connections:
-                del connections['default']
-
-            # Only run migrations & print banner once (in worker process if autoreload, or parent if no reload)
             is_worker = os.environ.get('RUN_MAIN') == 'true' or not options.get('use_reloader', True)
             if is_worker:
-                self.stdout.write(self.style.MIGRATE_HEADING("Auto-migrating temporary database (temp_early_access.sqlite3)..."))
-                call_command('migrate', database='default', interactive=False, verbosity=0)
-                self._sync_superusers_to_temp_db()
-
                 self.stdout.write(self.style.WARNING(
                     "\n" + "=" * 70 + "\n"
-                    "CAMPUS NEXUS — EARLY LAUNCH MODE ACTIVE (TEMPORARY DATABASE)\n"
-                    "  * Isolated database: temp_early_access.sqlite3\n"
-                    "  * Permanent database is untouched; zero conflict with real accounts.\n"
+                    "CAMPUS NEXUS — EARLY LAUNCH MODE ACTIVE (POSTGRESQL PRODUCTION ENGINE)\n"
+                    "  * Primary Database: PostgreSQL (campus_nexus)\n"
                     "  * Self-declared accounts are untrusted (verified=False).\n"
-                    "  * Account records will NOT be stored permanently.\n"
                     + "=" * 70 + "\n"
                 ))
 

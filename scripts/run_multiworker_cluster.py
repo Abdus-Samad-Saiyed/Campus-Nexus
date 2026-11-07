@@ -100,6 +100,14 @@ class MultiWorkerCluster:
             "REDIS_URL",
             "redis://127.0.0.1:6379/0?protocol=2&socket_timeout=15&socket_connect_timeout=5",
         )
+        env.setdefault(
+            "DATABASE_URL",
+            "postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_nexus",
+        )
+        env.setdefault(
+            "GUEST_DEMO_DATABASE_URL",
+            "postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_guest_demo",
+        )
         if self.early_launch:
             env["CAMPUS_EARLY_LAUNCH_MODE"] = "True"
             env["EARLY_LAUNCH_MODE"] = "True"

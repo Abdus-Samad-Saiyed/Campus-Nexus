@@ -166,20 +166,10 @@ else:
     ]
 
 # Early Launch Mode override from CLI flag or environment
-GUEST_DEMO_DB_PATH = BASE_DIR / 'guest_demo.sqlite3'
-
 if (
     '--early-launch' in sys.argv
     or os.environ.get('CAMPUS_EARLY_LAUNCH_MODE', '').lower() in ('true', '1', 'yes')
     or os.environ.get('EARLY_LAUNCH_MODE', '').lower() in ('true', '1', 'yes')
 ):
     EARLY_LAUNCH_MODE = True
-    EARLY_LAUNCH_DB_PATH = BASE_DIR / 'temp_early_access.sqlite3'
-    DATABASES = {
-        'default': env.db_url_config(os.environ.get('EARLY_LAUNCH_DATABASE_URL') or f'sqlite:///{EARLY_LAUNCH_DB_PATH}'),
-        'permanent': env.db_url_config(os.environ.get('DATABASE_URL') or f'sqlite:///{BASE_DIR}/db.sqlite3'),
-        'guest_demo': env.db_url_config(os.environ.get('GUEST_DEMO_DATABASE_URL') or f'sqlite:///{GUEST_DEMO_DB_PATH}'),
-    }
-else:
-    # Always guarantee guest_demo database is configured in all developer environments
-    DATABASES['guest_demo'] = env.db_url_config(os.environ.get('GUEST_DEMO_DATABASE_URL') or f'sqlite:///{GUEST_DEMO_DB_PATH}')
+

@@ -72,12 +72,9 @@ else:
             'transaction_mode': 'IMMEDIATE',
         })
 
-    # Isolated temporary database for early launch mode
+    # Early launch mode flag
     if os.environ.get('CAMPUS_EARLY_LAUNCH_MODE', '').lower() in ('true', '1', 'yes') or env.bool('EARLY_LAUNCH_MODE', default=False):
         EARLY_LAUNCH_MODE = True
-        EARLY_LAUNCH_DB_PATH = BASE_DIR / 'temp_early_access.sqlite3'
-        DATABASES['permanent'] = DATABASES['default']
-        DATABASES['default'] = env.db('EARLY_LAUNCH_DATABASE_URL', default=f'sqlite:///{EARLY_LAUNCH_DB_PATH}')
 
 # --- 4. Distributed Cache / Channel Layer (Redis or Local) -------------------
 # Production strictly retains high-iteration standard PBKDF2 algorithm for credential safety
