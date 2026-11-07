@@ -116,6 +116,8 @@ class MultiWorkerCluster:
             "127.0.0.1",
             "-p",
             str(port),
+            "--access-log",
+            "",
             "--proxy-headers",
             "campus.asgi:application",
         ]

@@ -17,7 +17,13 @@ from django.core.management import call_command
 from django.db import connections
 from daphne.management.commands.runserver import Command as DaphneRunserverCommand
 
-from accounts.client_logger import ClientLoggingASGIWrapper, pop_client_request, set_action_logger_active
+from accounts.client_logger import (
+    ClientLoggingASGIWrapper,
+    pop_client_request,
+    set_action_logger_active,
+    get_request_color,
+    colorize,
+)
 
 
 def _configure_channels_logger():
@@ -139,6 +145,7 @@ class Command(DaphneRunserverCommand):
 
             details["enrollment"] = meta.get("enrollment", "N.A.") or "N.A."
             details["name"] = meta.get("name", "N.A.") or "N.A."
+            user_type = meta.get("user_type", "unregistered")
             real_client = meta.get("real_client")
             if real_client:
                 details["client"] = real_client
@@ -150,24 +157,23 @@ class Command(DaphneRunserverCommand):
             received_ts = meta.get("received_at") or (time.time() - time_taken)
             details["server_time"] = datetime.datetime.fromtimestamp(received_ts).strftime("%d/%b/%Y %H:%M:%S")
 
-            msg = "[%(server_time)s] HTTP %(method)s %(path)s %(status)s [%(time_taken).2f, %(client)s, %(enrollment)s, %(name)s]"
-
-            # Utilize terminal colors matching Daphne's standard styling
             status = details.get("status", 200)
-            if 200 <= status < 300:
-                logger.info(self.style.HTTP_SUCCESS(msg), details)
-            elif 100 <= status < 200:
-                logger.info(self.style.HTTP_INFO(msg), details)
-            elif status == 304:
-                logger.info(self.style.HTTP_NOT_MODIFIED(msg), details)
-            elif 300 <= status < 400:
-                logger.info(self.style.HTTP_REDIRECT(msg), details)
-            elif status == 404:
-                logger.warning(self.style.HTTP_NOT_FOUND(msg), details)
-            elif 400 <= status < 500:
-                logger.warning(self.style.HTTP_BAD_REQUEST(msg), details)
+            path = details.get("path", "")
+            method = details.get("method", "GET")
+            client = details.get("client", "127.0.0.1")
+            enrollment = details["enrollment"]
+            name = details["name"]
+
+            msg = f"[{details['server_time']}] HTTP {method} {path} {status} [{time_taken:.2f}, {client}, {enrollment}, {name}]"
+            color = get_request_color(status=status, path=path, user_type=user_type)
+            colored_msg = colorize(msg, color)
+
+            if status >= 500:
+                logger.error(colored_msg)
+            elif status >= 400:
+                logger.warning(colored_msg)
             else:
-                logger.error(self.style.HTTP_SERVER_ERROR(msg), details)
+                logger.info(colored_msg)
 
         elif protocol == "websocket" and action in ("connected", "disconnected", "connecting", "rejected"):
             client_key = details.get("client")
@@ -175,6 +181,7 @@ class Command(DaphneRunserverCommand):
 
             details["enrollment"] = meta.get("enrollment", "N.A.") or "N.A."
             details["name"] = meta.get("name", "N.A.") or "N.A."
+            user_type = meta.get("user_type", "unregistered")
             real_client = meta.get("real_client")
             if real_client:
                 details["client"] = real_client
@@ -190,7 +197,15 @@ class Command(DaphneRunserverCommand):
                 "connecting": "HANDSHAKING",
                 "rejected": "REJECT",
             }.get(action, action.upper())
-            logger.info(f"[%(server_time)s] WebSocket {action_name} %(path)s [%(client)s, %(enrollment)s, %(name)s]", details)
+
+            msg = f"[{details['server_time']}] WebSocket {action_name} {details.get('path', '')} [{details['client']}, {details['enrollment']}, {details['name']}]"
+            color = get_request_color(status=None, path=details.get("path"), user_type=user_type, action=action)
+            colored_msg = colorize(msg, color)
+
+            if action in ("rejected", "error"):
+                logger.warning(colored_msg)
+            else:
+                logger.info(colored_msg)
         else:
             super().log_action(protocol, action, details)
 

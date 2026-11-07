@@ -5,16 +5,136 @@ Maintains a thread-safe registry of in-flight client requests keyed by client co
 (host:port). Enriches HTTP and WebSocket request logs with:
   [timestamp] HTTP %(method)s %(path)s %(status)s [%(time_taken).2f, %(client)s, %(enrollment)s, %(name)s]
 where unauthenticated requests display N.A. for enrollment and name.
+
+Terminal Console Output Colour Coding:
+- Verified students  -> Green   (\033[92m)
+- Guests             -> Blue    (\033[94m)
+- Fastrack students  -> Yellow  (\033[93m)
+- Errors             -> Red     (\033[91m)
+- Unregistered users -> White   (\033[97m)
+- Asset requests     -> Cyan    (\033[96m)
 """
 
 import collections
 import datetime
 import logging
 import os
+import sys
 import threading
 import time
 
 logger = logging.getLogger("django.channels.server")
+
+# ------------------------------------------------------------------------------
+# ANSI Console Color Engine
+# ------------------------------------------------------------------------------
+
+class ConsoleColors:
+    RESET = "\033[0m"
+    RED = "\033[91m"       # Errors (status >= 400, rejected websocket)
+    GREEN = "\033[92m"     # Verified students
+    YELLOW = "\033[93m"    # Fastrack students (unverified)
+    BLUE = "\033[94m"      # Guests (guest demo)
+    CYAN = "\033[96m"      # Asset requests rather than user requests
+    WHITE = "\033[97m"     # Unregistered users
+    BOLD = "\033[1m"
+
+
+def _enable_windows_vt():
+    """Enable ANSI virtual terminal processing on Windows consoles if supported."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            hStdOut = kernel32.GetStdHandle(-11)
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(hStdOut, ctypes.byref(mode)):
+                kernel32.SetConsoleMode(hStdOut, mode.value | 0x0004)
+        except Exception:
+            pass
+
+
+_enable_windows_vt()
+
+
+def colorize(text: str, color_code: str) -> str:
+    """Wrap text in ANSI color escape codes unless NO_COLOR=1 is set."""
+    if os.environ.get("NO_COLOR") == "1":
+        return text
+    return f"{color_code}{text}{ConsoleColors.RESET}"
+
+
+def is_asset_path(path: str | None) -> bool:
+    """Return True if path represents a static/media asset or service manifest rather than a user request."""
+    if not path:
+        return False
+    p = path.split("?")[0].lower()
+    # Dynamic user-facing application routes are user requests, not assets
+    if p.startswith(("/api/", "/admin/", "/coordinate/", "/rides/", "/messages/", "/dashboard/", "/profile/", "/login/", "/apply/")):
+        return False
+    # Static asset and media directories
+    if p.startswith(("/static/", "/media/", "/.well-known/", "/cdn-cgi/")):
+        return True
+    # Common root-level static asset files
+    asset_files = {
+        "/favicon.ico", "/robots.txt", "/llms.txt", "/manifest.json",
+        "/sw.js", "/service-worker.js", "/apple-touch-icon.png",
+        "/clientaccesspolicy.xml", "/crossdomain.xml",
+    }
+    if p in asset_files:
+        return True
+    # Standard static asset file extensions
+    asset_exts = (
+        ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif", ".svg",
+        ".ico", ".webp", ".woff", ".woff2", ".ttf", ".eot", ".otf",
+        ".map", ".mp4", ".webm"
+    )
+    return p.endswith(asset_exts)
+
+
+def get_request_color(
+    status: int | None = 200,
+    path: str | None = None,
+    user_type: str | None = None,
+    action: str | None = None,
+) -> str:
+    """Determine the ANSI color code matching the user category and request type:
+    - Errors -> Red (\033[91m)
+    - Asset requests -> Cyan (\033[96m)
+    - Guests -> Blue (\033[94m)
+    - Fastrack students -> Yellow (\033[93m)
+    - Verified students -> Green (\033[92m)
+    - Unregistered users -> White (\033[97m)
+    """
+    # 1. Errors: status >= 400 or rejected/error websocket action
+    if status is not None and status >= 400:
+        return ConsoleColors.RED
+    if action in ("rejected", "error"):
+        return ConsoleColors.RED
+
+    # 2. Asset requests (status < 400)
+    if is_asset_path(path):
+        return ConsoleColors.CYAN
+
+    # 3. Guests
+    if user_type == "guest":
+        return ConsoleColors.BLUE
+
+    # 4. Fastrack students (authenticated, verified=False)
+    if user_type == "fastrack":
+        return ConsoleColors.YELLOW
+
+    # 5. Verified students (authenticated, verified=True or admin)
+    if user_type == "verified":
+        return ConsoleColors.GREEN
+
+    # 6. Unregistered users (unauthenticated / anonymous)
+    return ConsoleColors.WHITE
+
+
+# ------------------------------------------------------------------------------
+# Request Identity Registry & ASGI State Engine
+# ------------------------------------------------------------------------------
 
 # Maximum lifetime of a queued client record in seconds (prevents memory accumulation on dropped sockets)
 CLIENT_META_TTL_SECONDS = 120
@@ -23,11 +143,11 @@ CONNECTION_CACHE_TTL_SECONDS = 600  # 10 minutes for active TCP connection
 
 # Thread-safe mapping: client_key (e.g. '127.0.0.1:65521') -> collections.deque of request metadata dicts
 _CLIENT_REGISTRY = collections.defaultdict(collections.deque)
-# Session key -> dict(enrollment, name, real_client, ts)
+# Session key -> dict(enrollment, name, real_client, user_type, ts)
 _SESSION_IDENTITY_CACHE = {}
-# Client connection key (ip:port) -> dict(enrollment, name, real_client, ts)
+# Client connection key (ip:port) -> dict(enrollment, name, real_client, user_type, ts)
 _CONNECTION_IDENTITY_CACHE = {}
-# WebSocket client connection key -> dict(enrollment, name, real_client, ts, path)
+# WebSocket client connection key -> dict(enrollment, name, real_client, user_type, ts, path)
 _WEBSOCKET_REGISTRY = {}
 
 _REGISTRY_LOCK = threading.Lock()
@@ -78,6 +198,7 @@ def register_client_identity(
     enrollment: str = "N.A.",
     name: str = "N.A.",
     real_client: str | None = None,
+    user_type: str = "unregistered",
 ):
     """Register authenticated identity in memory caches for instant ASGI lookups."""
     if not enrollment or enrollment == "N.A.":
@@ -88,6 +209,7 @@ def register_client_identity(
         "enrollment": enrollment,
         "name": name or enrollment,
         "real_client": real_client or client_key or "127.0.0.1",
+        "user_type": user_type or "unregistered",
         "ts": now,
     }
     with _REGISTRY_LOCK:
@@ -99,6 +221,7 @@ def register_client_identity(
                 _WEBSOCKET_REGISTRY[client_key].update({
                     "enrollment": enrollment,
                     "name": name or enrollment,
+                    "user_type": user_type or "unregistered",
                     "ts": now,
                 })
 
@@ -147,6 +270,7 @@ def seed_client_request(
     path: str | None = None,
     method: str | None = None,
     scope_type: str | None = None,
+    user_type: str = "unregistered",
 ):
     """Pre-seed client metadata when an ASGI connection or request scope is initialized."""
     if not client_key:
@@ -162,6 +286,7 @@ def seed_client_request(
         "path": path,
         "method": method,
         "scope_type": scope_type or "http",
+        "user_type": user_type or "unregistered",
         "ts": now,
     }
     with _REGISTRY_LOCK:
@@ -178,6 +303,7 @@ def update_or_record_client_request(
     real_client: str | None = None,
     received_at: float | None = None,
     path: str | None = None,
+    user_type: str = "unregistered",
 ):
     """Update the in-flight request entry with authenticated user details from Django middleware."""
     if not client_key:
@@ -193,12 +319,14 @@ def update_or_record_client_request(
                 "enrollment": enrollment,
                 "name": name or enrollment,
                 "real_client": real_client or client_key,
+                "user_type": user_type or "unregistered",
                 "ts": now,
             }
             if client_key in _WEBSOCKET_REGISTRY:
                 _WEBSOCKET_REGISTRY[client_key].update({
                     "enrollment": enrollment,
                     "name": name or enrollment,
+                    "user_type": user_type or "unregistered",
                     "ts": now,
                 })
 
@@ -226,6 +354,8 @@ def update_or_record_client_request(
 
             if real_client:
                 target_item["real_client"] = real_client
+            if user_type and user_type != "unregistered":
+                target_item["user_type"] = user_type
             if received_at and not target_item.get("received_at"):
                 target_item["received_at"] = received_at
             target_item["ts"] = now
@@ -236,6 +366,7 @@ def update_or_record_client_request(
                 "real_client": real_client or client_key,
                 "received_at": received_at or now,
                 "path": path,
+                "user_type": user_type or "unregistered",
                 "ts": now,
             })
 
@@ -289,14 +420,13 @@ def pop_client_request(
                         _CLIENT_REGISTRY.pop(k, None)
                     break
 
-
-
         if not item:
             item = {
                 "enrollment": "N.A.",
                 "name": "N.A.",
                 "real_client": client_key if client_key != "DEFAULT" else "127.0.0.1",
                 "received_at": now,
+                "user_type": "unregistered",
                 "ts": now,
             }
 
@@ -306,6 +436,10 @@ def pop_client_request(
             if conn_cached:
                 item["enrollment"] = conn_cached["enrollment"]
                 item["name"] = conn_cached["name"]
+                item["user_type"] = conn_cached.get("user_type", "unregistered")
+
+        if item.get("enrollment") == "GUEST_DEMO":
+            item["user_type"] = "guest"
 
         return item
 
@@ -374,6 +508,7 @@ class ClientLoggingASGIWrapper:
                 user = scope.get("user")
                 enrollment = "N.A."
                 name = "N.A."
+                user_type = "unregistered"
 
                 # 1. Direct user on scope
                 if user and getattr(user, "is_authenticated", False):
@@ -382,12 +517,21 @@ class ClientLoggingASGIWrapper:
                     name = full_name.strip() or getattr(user, "display_name", "") or getattr(user, "username", "") or enrollment
                     if not name:
                         name = "N.A."
+
+                    if getattr(user, "is_guest_demo", False) or getattr(user, "username", "") == "GUEST_DEMO":
+                        user_type = "guest"
+                    elif getattr(user, "verified", False) or getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+                        user_type = "verified"
+                    else:
+                        user_type = "fastrack"
+
                     register_client_identity(
                         session_key=session_key,
                         client_key=client_key,
                         enrollment=enrollment,
                         name=name,
                         real_client=real_client,
+                        user_type=user_type,
                     )
                 else:
                     # 2. Check session cache
@@ -403,11 +547,13 @@ class ClientLoggingASGIWrapper:
                     if cached:
                         enrollment = cached["enrollment"]
                         name = cached["name"]
+                        user_type = cached.get("user_type", "unregistered")
                         register_client_identity(
                             client_key=client_key,
                             enrollment=enrollment,
                             name=name,
                             real_client=real_client,
+                            user_type=user_type,
                         )
 
                 seed_client_request(
@@ -419,6 +565,7 @@ class ClientLoggingASGIWrapper:
                     path=scope.get("path"),
                     method=scope.get("method"),
                     scope_type=scope_type,
+                    user_type=user_type,
                 )
 
         return await self.inner(scope, receive, send)

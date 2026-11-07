@@ -161,22 +161,37 @@ class ClientIdentityLoggingMiddleware:
                     user = self._get_user_from_token(token)
 
             from accounts.demo import is_guest_demo
-            in_guest_demo = is_guest_demo(request)
+            in_guest_demo = (
+                is_guest_demo(request)
+                or (user and getattr(user, 'is_guest_demo', False))
+                or (user and getattr(user, 'username', '') == 'GUEST_DEMO')
+            )
 
             enrollment = "N.A."
             name = "N.A."
-            if user and getattr(user, 'is_authenticated', False) and not in_guest_demo:
+            user_type = "unregistered"
+            if in_guest_demo:
+                user_type = "guest"
+            elif user and getattr(user, 'is_authenticated', False):
                 enrollment = getattr(user, 'enrollment_number', '') or getattr(user, 'username', 'N.A.') or 'N.A.'
                 full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
                 name = full_name.strip() or getattr(user, 'display_name', '') or getattr(user, 'username', '') or enrollment
                 if not name:
                     name = "N.A."
+                if getattr(user, 'verified', False) or getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+                    user_type = "verified"
+                else:
+                    user_type = "fastrack"
+            else:
+                user_type = "unregistered"
 
             from accounts.client_logger import (
                 register_client_identity,
                 update_or_record_client_request,
                 resolve_client_display,
                 is_action_logger_active,
+                get_request_color,
+                colorize,
             )
             real_client = resolve_client_display(client_key, real_ip)
             session_key = getattr(getattr(request, 'session', None), 'session_key', None)
@@ -186,6 +201,7 @@ class ClientIdentityLoggingMiddleware:
                 enrollment=enrollment,
                 name=name,
                 real_client=real_client,
+                user_type=user_type,
             )
             update_or_record_client_request(
                 client_key,
@@ -194,6 +210,7 @@ class ClientIdentityLoggingMiddleware:
                 real_client=real_client,
                 received_at=received_at,
                 path=request.path_info,
+                user_type=user_type,
             )
 
             # If Daphne's custom Command.log_action is NOT active, log directly as fallback
@@ -206,7 +223,15 @@ class ClientIdentityLoggingMiddleware:
                 method = request.method
                 path = request.get_full_path()
                 msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {real_client}, {enrollment}, {name}]"
-                logging.getLogger("django.channels.server").info(msg)
+                color = get_request_color(status=status_code, path=path, user_type=user_type)
+                colored_msg = colorize(msg, color)
+                logger_instance = logging.getLogger("django.channels.server")
+                if status_code >= 500:
+                    logger_instance.error(colored_msg)
+                elif status_code >= 400:
+                    logger_instance.warning(colored_msg)
+                else:
+                    logger_instance.info(colored_msg)
         except Exception:
             pass
 

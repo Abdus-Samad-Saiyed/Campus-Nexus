@@ -25,6 +25,10 @@ from accounts.client_logger import (
     resolve_client_display,
     seed_client_request,
     update_or_record_client_request,
+    ConsoleColors,
+    colorize,
+    is_asset_path,
+    get_request_color,
 )
 from accounts.management.commands.runserver import Command
 from accounts.middleware import ClientIdentityLoggingMiddleware
@@ -478,3 +482,86 @@ class ConnectionIdentityAndPipelineTests(TestCase):
             self.assertIn("WebSocket HANDSHAKING /ws/notifications/ [14.139.61.131:21582, 2024BCSE065, Abdus Samad Saiyed]", cm.output[0])
             self.assertIn("WebSocket CONNECT /ws/notifications/ [14.139.61.131:21582, 2024BCSE065, Abdus Samad Saiyed]", cm.output[1])
             self.assertIn("WebSocket DISCONNECT /ws/notifications/ [14.139.61.131:21582, 2024BCSE065, Abdus Samad Saiyed]", cm.output[2])
+
+
+
+class ConsoleColorCodingTests(TestCase):
+    """Test console output colour coding for all user categories and request types:
+    - Verified students -> Green (\033[92m)
+    - Guests            -> Blue (\033[94m)
+    - Fastrack students -> Yellow (\033[93m)
+    - Errors            -> Red (\033[91m)
+    - Unregistered      -> White (\033[97m)
+    - Asset requests    -> Cyan (\033[96m)
+    """
+
+    def setUp(self):
+        self.cmd = Command()
+        with _REGISTRY_LOCK:
+            _CLIENT_REGISTRY.clear()
+            _CONNECTION_IDENTITY_CACHE.clear()
+            _SESSION_IDENTITY_CACHE.clear()
+            _WEBSOCKET_REGISTRY.clear()
+
+    def test_errors_colored_red(self):
+        """Errors (status >= 400) are colored Red."""
+        self.assertEqual(get_request_color(status=404, path="/console/login/LoginForm.jsp"), ConsoleColors.RED)
+        self.assertEqual(get_request_color(status=403, path="/?canary=nyfyvhredw"), ConsoleColors.RED)
+        self.assertEqual(get_request_color(status=500, path="/"), ConsoleColors.RED)
+
+        details = {"method": "GET", "path": "/console/login/LoginForm.jsp", "status": 404, "client": "172.236.201.240:0"}
+        with self.assertLogs("django.channels.server", level="WARNING") as cm:
+            self.cmd.log_action("http", "complete", details)
+            self.assertIn(ConsoleColors.RED, cm.output[-1])
+
+    def test_asset_requests_colored_cyan(self):
+        """Asset requests (static files, media, manifests) are colored Cyan when status < 400."""
+        self.assertEqual(get_request_color(status=200, path="/static/css/main.min.css"), ConsoleColors.CYAN)
+        self.assertEqual(get_request_color(status=200, path="/static/js/watermark.min.js"), ConsoleColors.CYAN)
+        self.assertEqual(get_request_color(status=200, path="/robots.txt"), ConsoleColors.CYAN)
+        self.assertEqual(get_request_color(status=200, path="/.well-known/ard.json"), ConsoleColors.CYAN)
+        self.assertEqual(get_request_color(status=200, path="/favicon.ico"), ConsoleColors.CYAN)
+
+        details = {"method": "GET", "path": "/static/css/main.min.css", "status": 200, "client": "127.0.0.1:5000"}
+        with self.assertLogs("django.channels.server", level="INFO") as cm:
+            self.cmd.log_action("http", "complete", details)
+            self.assertIn(ConsoleColors.CYAN, cm.output[-1])
+
+    def test_guests_colored_blue(self):
+        """Guest demo user requests are colored Blue."""
+        self.assertEqual(get_request_color(status=200, path="/coordinate/", user_type="guest"), ConsoleColors.BLUE)
+
+        update_or_record_client_request("127.0.0.1:5001", enrollment="GUEST_DEMO", name="Guest", user_type="guest")
+        details = {"method": "GET", "path": "/coordinate/", "status": 200, "client": "127.0.0.1:5001"}
+        with self.assertLogs("django.channels.server", level="INFO") as cm:
+            self.cmd.log_action("http", "complete", details)
+            self.assertIn(ConsoleColors.BLUE, cm.output[-1])
+
+    def test_fastrack_students_colored_yellow(self):
+        """Fastrack unverified students are colored Yellow."""
+        self.assertEqual(get_request_color(status=200, path="/rides/", user_type="fastrack"), ConsoleColors.YELLOW)
+
+        update_or_record_client_request("127.0.0.1:5002", enrollment="2024BCSE999", name="Fastrack Student", user_type="fastrack")
+        details = {"method": "GET", "path": "/rides/", "status": 200, "client": "127.0.0.1:5002"}
+        with self.assertLogs("django.channels.server", level="INFO") as cm:
+            self.cmd.log_action("http", "complete", details)
+            self.assertIn(ConsoleColors.YELLOW, cm.output[-1])
+
+    def test_verified_students_colored_green(self):
+        """Verified students are colored Green."""
+        self.assertEqual(get_request_color(status=200, path="/dashboard/", user_type="verified"), ConsoleColors.GREEN)
+
+        update_or_record_client_request("127.0.0.1:5003", enrollment="2024BCSE065", name="Abdus Samad Saiyed", user_type="verified")
+        details = {"method": "GET", "path": "/dashboard/", "status": 200, "client": "127.0.0.1:5003"}
+        with self.assertLogs("django.channels.server", level="INFO") as cm:
+            self.cmd.log_action("http", "complete", details)
+            self.assertIn(ConsoleColors.GREEN, cm.output[-1])
+
+    def test_unregistered_users_colored_white(self):
+        """Unregistered anonymous users on user pages are colored White."""
+        self.assertEqual(get_request_color(status=200, path="/", user_type="unregistered"), ConsoleColors.WHITE)
+
+        details = {"method": "GET", "path": "/", "status": 200, "client": "127.0.0.1:5004"}
+        with self.assertLogs("django.channels.server", level="INFO") as cm:
+            self.cmd.log_action("http", "complete", details)
+            self.assertIn(ConsoleColors.WHITE, cm.output[-1])
