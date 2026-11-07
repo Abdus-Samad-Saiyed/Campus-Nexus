@@ -344,10 +344,18 @@
                                 <span class="text-secondary small d-block" id="profile-notif-desc">
                                     Receive instant push notifications for ride updates, instant messages, and friend requests.
                                 </span>
+                                <span class="text-secondary small d-block mt-1" style="font-size: 0.72rem; opacity: 0.85;">
+                                    <i class="bi bi-info-circle me-1"></i>Device setting &bull; No verification or security grace window required.
+                                </span>
                             </div>
-                            <button type="button" class="btn btn-sm btn-green ms-2 flex-shrink-0" id="btn-profile-notifs" onclick="window.requestNexusNotificationPermission(this)">
-                                <i class="bi bi-bell me-1"></i> Enable
-                            </button>
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                <button type="button" class="btn btn-sm btn-green" id="btn-profile-notifs" onclick="window.toggleNexusNotifications(this)">
+                                    <i class="bi bi-bell me-1"></i> Enable
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="btn-profile-test-notif" onclick="window.sendTestNotification(this)" title="Send a test alert to verify device sound and vibration">
+                                    <i class="bi bi-send me-1"></i> Test
+                                </button>
+                            </div>
                         </div>
                     </div>
 
