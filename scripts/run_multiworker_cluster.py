@@ -96,6 +96,10 @@ class MultiWorkerCluster:
     def _get_worker_env(self) -> Dict[str, str]:
         env = os.environ.copy()
         env["DJANGO_SETTINGS_MODULE"] = self.settings_module
+        env.setdefault(
+            "REDIS_URL",
+            "redis://127.0.0.1:6379/0?protocol=2&socket_timeout=15&socket_connect_timeout=5",
+        )
         if self.early_launch:
             env["CAMPUS_EARLY_LAUNCH_MODE"] = "True"
             env["EARLY_LAUNCH_MODE"] = "True"

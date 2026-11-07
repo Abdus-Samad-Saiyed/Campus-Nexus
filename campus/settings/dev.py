@@ -30,10 +30,13 @@ if not SECRET_KEY or SECRET_KEY == 'insecure-dev-key-change-me':
 # Redis Channel Layer for multi-worker WebSockets and real-time messaging
 # If Redis is running on localhost:6379 or specified via REDIS_URL, activate RedisChannelLayer.
 # Otherwise, safely fallback to InMemoryChannelLayer for standalone dev.
-_redis_url = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0?protocol=2')
+_redis_url = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0?protocol=2&socket_timeout=15&socket_connect_timeout=5')
 if 'protocol=' not in _redis_url:
     delimiter = '&' if '?' in _redis_url else '?'
     _redis_url = f"{_redis_url}{delimiter}protocol=2" 
+if 'socket_timeout=' not in _redis_url:
+    delimiter = '&' if '?' in _redis_url else '?'
+    _redis_url = f"{_redis_url}{delimiter}socket_timeout=15&socket_connect_timeout=5"
 _use_redis = False
 
 try:

@@ -109,11 +109,18 @@ if not REDIS_URL and not IS_BUILD_PHASE:
         }
     }
 else:
+    _redis_channel_url = REDIS_URL
+    if 'protocol=' not in _redis_channel_url:
+        delimiter = '&' if '?' in _redis_channel_url else '?'
+        _redis_channel_url = f"{_redis_channel_url}{delimiter}protocol=2"
+    if 'socket_timeout=' not in _redis_channel_url:
+        delimiter = '&' if '?' in _redis_channel_url else '?'
+        _redis_channel_url = f"{_redis_channel_url}{delimiter}socket_timeout=15&socket_connect_timeout=5"
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                'hosts': [REDIS_URL],
+                'hosts': [_redis_channel_url],
             },
         },
     }
