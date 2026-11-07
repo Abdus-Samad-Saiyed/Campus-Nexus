@@ -166,7 +166,8 @@ def enforce_single_session_login(request, user: User):
             pass
 
     user.current_session_key = current_key
-    user.save(update_fields=['current_session_key'])
+    user.last_seen = timezone.now()
+    user.save(update_fields=['current_session_key', 'last_seen'])
     request.session['last_activity'] = time.time()
 
     try:
@@ -1427,7 +1428,10 @@ def profile_view(request, enrollment_number):
             profile_user.bio = request.POST.get('bio', '').strip()[:500]
         # Privacy & Security toggles
         profile_user.show_friends_publicly = (request.POST.get('show_friends_publicly') == 'on')
-        profile_user.hide_online_status = (request.POST.get('hide_online_status') == 'on')
+        if 'show_online_status' in request.POST:
+            profile_user.hide_online_status = (request.POST.get('show_online_status') != 'on')
+        elif 'hide_online_status' in request.POST:
+            profile_user.hide_online_status = (request.POST.get('hide_online_status') == 'on')
         profile_user.hide_from_search = (request.POST.get('hide_from_search') == 'on')
         profile_user.hide_profile_photo = (request.POST.get('hide_profile_photo') == 'on')
         profile_user.show_contact_on_profile = (request.POST.get('show_contact_on_profile') == 'on')
@@ -1736,11 +1740,12 @@ def direct_chat_view(request, enrollment_number):
             return redirect('direct_chat', enrollment_number=friend.enrollment_number)
 
     # Mark unread messages from this friend as read
+    now = timezone.now()
     DirectMessage.objects.filter(
         sender=friend,
         recipient=request.user,
         is_read=False,
-    ).update(is_read=True)
+    ).update(is_read=True, read_at=now)
 
     # Load recent conversation history (last 100 messages)
     chat_messages = list(

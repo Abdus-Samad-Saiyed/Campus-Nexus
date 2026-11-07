@@ -49,7 +49,7 @@ class User(AbstractUser):
     bio = models.TextField(max_length=500, blank=True)
     show_friends_publicly = models.BooleanField(default=True)
     hide_online_status = models.BooleanField(default=False)
-    last_seen = models.DateTimeField(null=True, blank=True, db_index=True)
+    last_seen = models.DateTimeField(null=True, blank=True, db_index=True, default=timezone.now)
     hide_from_search = models.BooleanField(default=False)
     hide_profile_photo = models.BooleanField(default=False)
     show_contact_on_profile = models.BooleanField(default=True)
@@ -70,21 +70,25 @@ class User(AbstractUser):
 
     @property
     def is_online_now(self) -> bool:
-        if self.hide_online_status or not self.last_seen:
+        if self.hide_online_status:
+            return False
+        dt = self.last_seen or getattr(self, 'date_joined', None)
+        if not dt:
             return False
         from django.utils import timezone
-        return (timezone.now() - self.last_seen).total_seconds() < 180
+        return (timezone.now() - dt).total_seconds() < 180
 
     @property
     def last_seen_display(self) -> str:
         if self.hide_online_status:
             return "Hidden"
-        if not self.last_seen:
-            return "Never"
+        dt = self.last_seen or getattr(self, 'date_joined', None)
+        if not dt:
+            return "Recently"
         import zoneinfo, datetime
         from django.utils import timezone
         ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
-        local_dt = timezone.localtime(self.last_seen, ist_tz)
+        local_dt = timezone.localtime(dt, ist_tz)
         now_local = timezone.localtime(timezone.now(), ist_tz)
         diff = (now_local - local_dt).total_seconds()
         if diff < 180:
@@ -366,6 +370,36 @@ class DirectMessage(models.Model):
     content = models.TextField(max_length=2000)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    @property
+    def read_at_display(self) -> str:
+        if not self.read_at:
+            return ""
+        import zoneinfo, datetime
+        from django.utils import timezone
+        ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        local_dt = timezone.localtime(self.read_at, ist_tz)
+        now_local = timezone.localtime(timezone.now(), ist_tz)
+        if local_dt.date() == now_local.date():
+            return f"Today at {local_dt.strftime('%I:%M %p')} IST"
+        elif local_dt.date() == (now_local.date() - datetime.timedelta(days=1)):
+            return f"Yesterday at {local_dt.strftime('%I:%M %p')} IST"
+        else:
+            return local_dt.strftime("%b %d, %Y at %I:%M %p IST")
+
+    @property
+    def read_at_time(self) -> str:
+        if not self.read_at:
+            return ""
+        import zoneinfo
+        from django.utils import timezone
+        ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        local_dt = timezone.localtime(self.read_at, ist_tz)
+        now_local = timezone.localtime(timezone.now(), ist_tz)
+        if local_dt.date() == now_local.date():
+            return local_dt.strftime("%H:%M")
+        return local_dt.strftime("%b %d, %H:%M")
 
     class Meta:
         ordering = ['created_at']

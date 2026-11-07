@@ -66,6 +66,9 @@ class FriendDirectChatAndPrivacyTests(TestCase):
 
         msg.refresh_from_db()
         self.assertTrue(msg.is_read)
+        self.assertIsNotNone(msg.read_at)
+        self.assertIn("Today", msg.read_at_display)
+        self.assertTrue(len(msg.read_at_time) >= 4)
 
     def test_non_friends_can_access_and_send_direct_chat(self):
         """Non-friends can directly message each other without prior friendship."""

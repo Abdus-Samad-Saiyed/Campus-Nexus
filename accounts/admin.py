@@ -158,11 +158,11 @@ class DirectMessageAdmin(admin.ModelAdmin):
     DirectMessage admin registration with privacy safeguards:
     Message content is strictly omitted from changelist and changeform.
     """
-    list_display = ['sender', 'recipient', 'is_read', 'created_at']
-    list_filter = ['is_read', 'created_at']
+    list_display = ['sender', 'recipient', 'is_read', 'read_at', 'created_at']
+    list_filter = ['is_read', 'read_at', 'created_at']
     search_fields = ['sender__enrollment_number', 'recipient__enrollment_number']
-    readonly_fields = ['sender', 'recipient', 'is_read', 'created_at']
-    fields = ['sender', 'recipient', 'is_read', 'created_at']
+    readonly_fields = ['sender', 'recipient', 'is_read', 'read_at', 'created_at']
+    fields = ['sender', 'recipient', 'is_read', 'read_at', 'created_at']
 
     def get_actions(self, request):
         actions = super().get_actions(request)

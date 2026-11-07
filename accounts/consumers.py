@@ -61,6 +61,13 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=1012)
             return
         await self.accept()
+        try:
+            from asgiref.sync import sync_to_async
+            from django.utils import timezone
+            from accounts.models import User
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(last_seen=timezone.now())
+        except Exception:
+            pass
 
         # Announce online presence to the friend if not hidden and first connection
         user_hides_online = await self._user_hides_online()
@@ -127,15 +134,23 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
         if event_type == 'mark_read':
             msg_id = data.get('message_id')
             if msg_id:
-                await self._mark_message_read(msg_id)
+                read_time = await self._mark_message_read(msg_id)
                 # Check if this user permits DM read receipts
                 if await self._user_allows_read_receipts():
+                    import zoneinfo
+                    from django.utils import timezone
+                    ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+                    local_dt = timezone.localtime(read_time or timezone.now(), ist_tz)
+                    time_str = local_dt.strftime("%H:%M")
+                    display_str = f"Today at {local_dt.strftime('%I:%M %p')} IST"
                     await self.channel_layer.group_send(
                         self.group_name,
                         {
                             'type': 'chat.read_receipt',
                             'message_id': msg_id,
                             'reader': self.user.enrollment_number,
+                            'read_at_time': time_str,
+                            'read_at_display': display_str,
                         }
                     )
             return
@@ -266,12 +281,14 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             }))
 
     async def chat_read_receipt(self, event):
-        """Relay read receipt to other participant if sender permits."""
+        """Relay read receipt with viewed timestamp to other participant if sender permits."""
         if await self._user_allows_read_receipts():
             await self.send(text_data=json.dumps({
                 'type': 'read_receipt',
                 'message_id': event['message_id'],
                 'reader': event['reader'],
+                'read_at_time': event.get('read_at_time', ''),
+                'read_at_display': event.get('read_at_display', ''),
             }))
 
     async def chat_notification(self, event):
@@ -360,15 +377,21 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _mark_message_read(self, message_id):
         from accounts.models import DirectMessage
+        from django.utils import timezone
         try:
-            DirectMessage.objects.filter(
+            now = timezone.now()
+            updated = DirectMessage.objects.filter(
                 id=message_id,
                 sender=self.friend,
                 recipient=self.user,
                 is_read=False,
-            ).update(is_read=True)
+            ).update(is_read=True, read_at=now)
+            if updated:
+                return now
+            msg = DirectMessage.objects.filter(id=message_id).first()
+            return msg.read_at if (msg and msg.read_at) else now
         except Exception:
-            pass
+            return None
 
     @database_sync_to_async
     def _incr_user_connection(self, user_id: int) -> int:

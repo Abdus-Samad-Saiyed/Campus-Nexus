@@ -360,11 +360,12 @@
                     </div>
 
                     <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="hideOnlineSwitch" name="hide_online_status"
-                               {% if profile_user.hide_online_status %}checked{% endif %}>
-                        <label class="form-check-label small" for="hideOnlineSwitch">
-                            <strong>Hide last online &amp; active status</strong><br>
-                            <span class="text-secondary">Conceals when you were last online or active across your profile, student directory, and chats.</span>
+                        <input class="form-check-input" type="checkbox" role="switch" id="showOnlineSwitch" name="show_online_status"
+                               {% if not profile_user.hide_online_status %}checked{% endif %}>
+                        <label class="form-check-label small" for="showOnlineSwitch">
+                            <strong>Show Last Online &amp; Active Status</strong>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 small ms-1">Enabled by default</span><br>
+                            <span class="text-secondary">Shows fellow students when you are active now or last online across your profile, directory, and direct chats. Turn off if you wish to conceal your presence.</span>
                         </label>
                     </div>
 

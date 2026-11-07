@@ -75,9 +75,12 @@
                                     <div class="message-time d-flex align-items-center justify-content-end gap-1">
                                         <span>{{ msg.created_at|date:"M j, H:i" }}</span>
                                         {% if msg.sender == request.user %}
-                                            <span class="read-receipt ms-1" id="dm-receipt-{{ msg.id }}" title="{% if msg.is_read %}Read{% else %}Sent{% endif %}">
+                                            <span class="read-receipt ms-1" id="dm-receipt-{{ msg.id }}" title="{% if msg.is_read %}{% if msg.read_at %}Viewed {{ msg.read_at_display }}{% else %}Read{% endif %}{% else %}Sent{% endif %}">
                                                 {% if msg.is_read %}
                                                     <i class="bi bi-check2-all text-info"></i>
+                                                    {% if msg.read_at %}
+                                                        <small class="read-at-label text-info ms-1" style="font-size: 0.65rem;">Read {{ msg.read_at_time }}</small>
+                                                    {% endif %}
                                                 {% else %}
                                                     <i class="bi bi-check2 text-secondary"></i>
                                                 {% endif %}
@@ -284,8 +287,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (data.type === 'read_receipt') {
                     const receiptEl = document.getElementById(`dm-receipt-${data.message_id}`);
                     if (receiptEl) {
-                        receiptEl.innerHTML = '<i class="bi bi-check2-all text-info"></i>';
-                        receiptEl.title = 'Read';
+                        const timeStr = data.read_at_time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                        const displayStr = data.read_at_display || ('Viewed today at ' + timeStr + ' IST');
+                        receiptEl.innerHTML = `<i class="bi bi-check2-all text-info"></i><small class="read-at-label text-info ms-1" style="font-size: 0.65rem;">Read ${timeStr}</small>`;
+                        receiptEl.title = displayStr;
                     }
                 } else if (data.type === 'session_terminated') {
                     if (chatInput) {
