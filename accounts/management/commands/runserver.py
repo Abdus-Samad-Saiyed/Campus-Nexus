@@ -59,8 +59,18 @@ class Command(DaphneRunserverCommand):
     def handle(self, *args, **options):
         workers = options.get('workers', 1)
         if workers and workers > 1:
-            port_val = options.get('port') or 8000
+            addrport = options.get('addrport') or ''
             addr_val = options.get('addr') or '0.0.0.0'
+            port_val = options.get('port') or 8000
+            if addrport:
+                if ':' in addrport:
+                    parts = addrport.split(':', 1)
+                    addr_val = parts[0] or addr_val
+                    port_val = parts[1] or port_val
+                elif str(addrport).isdigit():
+                    port_val = addrport
+                else:
+                    addr_val = addrport
             call_command(
                 'run_cluster',
                 workers=workers,
