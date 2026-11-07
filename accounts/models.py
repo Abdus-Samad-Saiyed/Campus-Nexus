@@ -645,6 +645,51 @@ class Contributor(models.Model):
         return f"{self.name} ({self.role})"
 
 
+class DailyTrafficMetric(models.Model):
+    """Durable operational telemetry record for traffic, throughput, and latency.
+
+    Provides lasting historical metrics that survive server restarts, worker cycling,
+    and process crashes, updated via high-performance write-behind batching.
+    """
+    date = models.DateField(unique=True, db_index=True)
+    total_requests = models.PositiveBigIntegerField(default=0)
+    total_latency_ms = models.FloatField(default=0.0)
+    peak_rps = models.PositiveIntegerField(default=0)
+    hourly_requests = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+        verbose_name = 'Daily Traffic Metric'
+        verbose_name_plural = 'Daily Traffic Metrics'
+
+    def __str__(self) -> str:
+        return f"{self.date}: {self.total_requests:,} requests (Peak: {self.peak_rps} RPS)"
+
+    @property
+    def avg_latency_ms(self) -> float:
+        if self.total_requests > 0:
+            return round(self.total_latency_ms / self.total_requests, 1)
+        return 0.0
+
+
+class PlatformRuntimeState(models.Model):
+    """Durable platform runtime indicators (persistent uptime, server initialization, heartbeats)."""
+    key = models.CharField(max_length=64, unique=True, db_index=True)
+    value_text = models.CharField(max_length=255, blank=True)
+    value_int = models.BigIntegerField(default=0)
+    timestamp = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Platform Runtime State'
+        verbose_name_plural = 'Platform Runtime States'
+
+    def __str__(self) -> str:
+        return f"{self.key}: {self.value_text or self.value_int} ({self.timestamp})"
+
+
 def log_audit_event(
     event_type: str,
     actor_enrollment: str = '',

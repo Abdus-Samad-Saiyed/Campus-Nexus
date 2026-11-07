@@ -8,6 +8,7 @@ from .models import (
     AccountApplication,
     AuditEvent,
     Contributor,
+    DailyTrafficMetric,
     DirectMessage,
     DirectMessageReport,
     Friendship,
@@ -15,6 +16,7 @@ from .models import (
     PasskeyCredential,
     PhoneOTP,
     PlatformFeedback,
+    PlatformRuntimeState,
     User,
     log_audit_event,
 )
@@ -253,3 +255,17 @@ class ContributorAdmin(admin.ModelAdmin):
     list_filter = ['is_active', 'role']
     search_fields = ['name', 'enrollment_number', 'role', 'bio']
     readonly_fields = ['created_at']
+
+
+@admin.register(DailyTrafficMetric)
+class DailyTrafficMetricAdmin(admin.ModelAdmin):
+    list_display = ['date', 'total_requests', 'avg_latency_ms', 'peak_rps', 'updated_at']
+    ordering = ['-date']
+    readonly_fields = ['date', 'total_requests', 'total_latency_ms', 'peak_rps', 'hourly_requests', 'created_at', 'updated_at']
+
+
+@admin.register(PlatformRuntimeState)
+class PlatformRuntimeStateAdmin(admin.ModelAdmin):
+    list_display = ['key', 'value_text', 'value_int', 'timestamp', 'updated_at']
+    ordering = ['key']
+    readonly_fields = ['key', 'value_text', 'value_int', 'timestamp', 'updated_at']
