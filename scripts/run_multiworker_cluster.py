@@ -258,7 +258,7 @@ class MultiWorkerCluster:
                         "manage.py",
                         "migrate",
                         "--database=default",
-                        "--interactive=False",
+                        "--no-input",
                         f"--settings={self.settings_module}",
                     ],
                     env=self._get_worker_env(),
