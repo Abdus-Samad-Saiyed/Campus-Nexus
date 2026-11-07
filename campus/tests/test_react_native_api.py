@@ -3,7 +3,7 @@
 import io
 from PIL import Image
 from asgiref.sync import async_to_sync
-from django.test import TestCase, Client, override_settings
+from django.test import TransactionTestCase, Client, override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from campus.api.channels_middleware import get_user_from_token
@@ -11,7 +11,7 @@ from campus.api.channels_middleware import get_user_from_token
 User = get_user_model()
 
 
-class ReactNativeApiTest(TestCase):
+class ReactNativeApiTest(TransactionTestCase):
     """Verify endpoints and authentication used by React Native Android frontends."""
 
     def setUp(self):

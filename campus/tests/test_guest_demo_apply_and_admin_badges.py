@@ -134,7 +134,7 @@ class GuestDemoApplyAndAdminBadgesTests(TestCase):
             cursor.execute(
                 "INSERT INTO accounts_accountapplication "
                 "(enrollment_number, full_name, email, phone_number, gender, password, application_number, phone_verified, approved, created_at) "
-                "VALUES ('GUEST_DEMO', 'Corrupt Demo', 'c@c.com', '1234567890', 'M', 'pw', 'CORRUPT1', 1, 0, datetime('now'))"
+                "VALUES ('GUEST_DEMO', 'Corrupt Demo', 'c@c.com', '1234567890', 'M', 'pw', 'CORRUPT1', TRUE, FALSE, CURRENT_TIMESTAMP)"
             )
 
         app_id = AccountApplication.objects.get(enrollment_number="GUEST_DEMO").id

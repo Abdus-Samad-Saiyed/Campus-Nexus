@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.db import SessionStore
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from accounts.client_logger import (
     _CLIENT_REGISTRY,
@@ -298,7 +298,7 @@ class RunserverCommandLogActionTests(TestCase):
         self.assertEqual(item["name"], "N.A.")
 
 
-class ClientLoggingASGIWrapperTests(TestCase):
+class ClientLoggingASGIWrapperTests(SimpleTestCase):
     """Test ASGI application wrapper metadata interception."""
 
     async def test_asgi_wrapper_seeds_static_metadata(self):
@@ -394,8 +394,8 @@ class ProtectedMediaAuthorizationTests(TestCase):
 
             response = serve_protected_media(request, f'profiles/{self.photo_filename}')
             self.assertEqual(response.status_code, 200)
-            if hasattr(response, 'close'):
-                response.close()
+            if hasattr(response, 'file_to_stream') and response.file_to_stream:
+                response.file_to_stream.close()
 
     def test_unverified_user_in_early_launch_can_view_public_profile_photo(self):
         """In Early Launch Mode, untrusted users can view public profile photos."""
@@ -405,8 +405,8 @@ class ProtectedMediaAuthorizationTests(TestCase):
 
             response = serve_protected_media(request, f'profiles/{self.photo_filename}')
             self.assertEqual(response.status_code, 200)
-            if hasattr(response, 'close'):
-                response.close()
+            if hasattr(response, 'file_to_stream') and response.file_to_stream:
+                response.file_to_stream.close()
 
     def test_unverified_user_cannot_view_hidden_profile_photo_of_others(self):
         """If owner hid photo from search/public, other unverified users are denied with 403."""
@@ -427,8 +427,8 @@ class ProtectedMediaAuthorizationTests(TestCase):
 
             response = serve_protected_media(request, f'profiles/{self.photo_filename}')
             self.assertEqual(response.status_code, 403)
-            if hasattr(response, 'close'):
-                response.close()
+            if hasattr(response, 'file_to_stream') and response.file_to_stream:
+                response.file_to_stream.close()
 
 class ConnectionIdentityAndPipelineTests(TestCase):
     """Test connection-level identity persistence and pipelined request disambiguation."""

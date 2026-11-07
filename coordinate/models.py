@@ -263,7 +263,8 @@ class RideParticipant(models.Model):
         super().save(*args, **kwargs)
         if is_new and hasattr(self, 'ride') and hasattr(self, 'user'):
             try:
-                RideConsent.objects.get_or_create(
+                db_alias = self._state.db or 'default'
+                RideConsent.objects.using(db_alias).get_or_create(
                     ride=self.ride,
                     user=self.user,
                     defaults={
