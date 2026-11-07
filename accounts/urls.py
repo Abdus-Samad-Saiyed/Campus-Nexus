@@ -24,6 +24,8 @@ from .views import (
     user_search,
     verify_security_otp,
     verify_security_step_up,
+    acknowledge_announcement,
+    forget_app_remembered_user,
 )
 
 urlpatterns = [
@@ -48,4 +50,6 @@ urlpatterns = [
     path('friends/<str:enrollment_number>/unfriend/',   unfriend_user,          name='unfriend_user'),
     path('friends/<str:request_id>/accept/',            accept_friend_request,  name='accept_friend_request'),
     path('friends/<str:request_id>/decline/',           decline_friend_request, name='decline_friend_request'),
+    path('announcements/<int:announcement_id>/acknowledge/', acknowledge_announcement, name='account_acknowledge_announcement'),
+    path('auth/app-forget/', forget_app_remembered_user, name='account_forget_app_remembered_user'),
 ]

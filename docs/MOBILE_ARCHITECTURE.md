@@ -1,180 +1,114 @@
-# Campus Nexus — Android Mobile Architecture Plan (React Native + Expo)
+# Campus Nexus — Cross-Platform Mobile & Desktop Architecture (Progressive Web Application — PWA)
 
 ## Executive Summary
-This document outlines the complete architectural design and implementation plan for the **Campus Nexus Android Application**, built with **React Native (Expo SDK 51+) and TypeScript**. The mobile app brings all Campus Nexus digital services—including cab coordination (**COORDINATE**), real-time WebSocket ride chat, standby waitlists, 1-on-1 direct friend messaging, incident proctorial escalation, and student profiles—to Android devices with zero compromise on security, performance, or battery efficiency.
+Campus Nexus adopts a **Universal Progressive Web Application (PWA)** architecture across mobile (Android, iOS) and desktop (Windows, macOS, Linux) environments. This architectural choice replaces traditional native app frameworks (such as React Native / Flutter) to deliver a frictionless, zero-install, native-grade experience across the entire student body without app store friction, developer account fees, or distribution gatekeeping.
 
 In accordance with institutional guidelines:
-- **Zero Payment / Zero Fare Splitting:** The mobile client strictly excludes all financial handling, payments, UPI integrations, and fare disputes. It functions solely as a verified student ride-coordination platform.
-- **Standby Waitlist Management:** Full rides support a standby queue with real-time push notifications upon seat promotion.
-- **Lifecycle Teardowns:** Dynamic socket termination and instant UI lockdown when rides conclude.
-- **Strict Gender Segregation:** Girls-Only and Boys-Only ride creation and participation validated across UI, API, and model layers.
+- **Zero Payment / Zero Fare Splitting:** The mobile platform strictly excludes financial transactions, payments, and fare splitting. It functions solely as a verified peer-to-peer student mobility and campus coordination platform.
+- **Standby Waitlist Management:** Full rides feature an automated standby queue with real-time push and WebSocket promotions.
+- **Strict Gender Segregation:** Girls-Only, Boys-Only, and Open rides are enforced across UI, API, and database check constraints.
+- **Privacy & Trust:** Physical root of trust with in-person verification, redaction of phone numbers from non-co-passengers, and isolated sandbox preview (Guest Demo Mode).
 
 ---
 
-## 1. Technical Stack & Dependencies
+## 1. Architectural Decision: Why PWA Over React Native & App Stores
 
-| Layer | Library / Tool | Rationale |
-| :--- | :--- | :--- |
-| **Framework** | Expo SDK 51+ (React Native 0.74+) | Accelerated cross-platform compilation, Hermes engine, fast OTA updates. |
-| **Language** | TypeScript 5.4+ (Strict Mode) | Full compile-time type safety across API schemas, WebSocket frames, and navigation routes. |
-| **Navigation** | `@react-navigation/native-stack` + `@react-navigation/bottom-tabs` | 60 FPS native transition performance, gesture handlers, Android back-button compliance. |
-| **State & Store** | `Zustand` + `immer` | Ultra-lightweight reactive global state without Redux boilerplate. |
-| **Server Cache** | `@tanstack/react-query` (v5) | Automatic background refetching, mutation rollbacks, query invalidation, and offline caching. |
-| **HTTP Client** | `axios` with interceptors | Automated token refresh, enrollment request headers, and custom network timeout handling. |
-| **Secure Storage** | `expo-secure-store` | Hardware-backed keystore encryption for user tokens and authentication credentials. |
-| **Real-Time WS** | Custom `ReconnectingWebSocket` class | Exponential backoff reconnection, heartbeat ping/pong, and background app state resilience. |
-| **Notifications** | `expo-notifications` | Push notification delivery for standby promotions, friend requests, and urgent ride updates. |
-| **Styling** | `react-native-paper` + `twrnc` (Tailwind) | Dark/Light mode theme tokens mirroring the Campus Nexus design language (`#08B74F` neon green accent, glassmorphic cards). |
+| Dimension | Native / React Native App | Universal Progressive Web App (PWA) | Campus Nexus Advantage |
+| :--- | :--- | :--- | :--- |
+| **Distribution** | Google Play Store & Apple App Store | Direct Institute URL (`campus-nexus.institute`) | **Zero store gatekeeping:** No developer fees ($99/yr Apple, $25 Google), no review queues or rejections. |
+| **Student Friction** | 40–80 MB download, manual updates | Instant load, 1-tap "Add to Home Screen / Install" (< 1 MB) | **Instant onboarding:** Commuter students coordinate rides immediately without waiting for downloads. |
+| **Release Velocity** | Multi-day review cycles for every bug fix | Continuous atomic deployment on Daphne cluster | **Zero-lag releases:** Security patches and schedule updates are instantly live across all devices. |
+| **Cross-Platform Scope** | Separate builds for Android & iOS; no desktop | Unified codebase: Android, iOS, Windows, macOS, Linux | **100% Student Reach:** Works on budget Android phones, iPhones, campus lab PCs, and student laptops. |
+| **Storage & Performance** | Heavy device storage and memory overhead | Cached via Service Worker (`/sw.js`) with instant start | **Lightweight:** Negligible device footprint; smooth 60 FPS transitions using modern CSS & GPU acceleration. |
+| **Authentication** | Custom keystores and token refresh flows | WebAuthn FIDO2 Biometric Passkeys + 2-Week Sessions | **Hardware Biometrics:** Fingerprint, Face ID, Touch ID, and Windows Hello natively supported. |
 
 ---
 
-## 2. Directory Structure
-
-```
-campus-nexus-mobile/
-├── app.json
-├── babel.config.js
-├── tsconfig.json
-├── package.json
-└── src/
-    ├── api/
-    │   ├── client.ts             # Axios instance with auth interceptor
-    │   ├── authApi.ts            # Login, apply, session refresh
-    │   ├── ridesApi.ts           # Fetch rides, join, waitlist, reschedule, incident reports
-    │   └── friendsApi.ts         # Friend lists, requests, direct messages history
-    ├── socket/
-    │   ├── WebSocketManager.ts   # Core robust WS connection orchestrator
-    │   ├── useRideSocket.ts      # Hook for in-ride group chat
-    │   └── useFriendSocket.ts    # Hook for 1-on-1 DM chat, typing & presence
-    ├── navigation/
-    │   ├── RootNavigator.tsx     # Conditional rendering based on auth state
-    │   ├── AuthNavigator.tsx     # Login, Apply account stack
-    │   └── MainTabNavigator.tsx  # Bottom tab bar (Rides, Messages, Services, Profile)
-    ├── screens/
-    │   ├── auth/
-    │   │   ├── LoginScreen.tsx
-    │   │   └── ApplyAccountScreen.tsx
-    │   ├── rides/
-    │   │   ├── RideListScreen.tsx       # Date-time range filtering & quick date buttons
-    │   │   ├── RideDetailScreen.tsx     # Live room, passengers, standby queue, WS chat
-    │   │   ├── CreateRideScreen.tsx     # Route, spots, gender visibility checks
-    │   │   └── ReportIncidentModal.tsx  # Evidence snapshot & proctorial escalation
-    │   ├── messages/
-    │   │   ├── MessagesInboxScreen.tsx  # List of friend threads with unread badges
-    │   │   └── DirectChatScreen.tsx     # 1-on-1 friend chat with typing indicator & presence
-    │   ├── profile/
-    │   │   ├── UserProfileScreen.tsx    # Identification data, photo, friend toggle
-    │   │   └── EditProfileModal.tsx     # Image upload via expo-image-picker
-    │   └── nexus/
-    │       ├── ServiceCatalogueScreen.tsx
-    │       ├── AboutNexusScreen.tsx
-    │       └── ContributorsScreen.tsx
-    ├── components/
-    │   ├── common/
-    │   │   ├── GlassCard.tsx            # Styled glassmorphic container
-    │   │   ├── StatusBadge.tsx          # Open/Full/Standby/Visibility badges
-    │   │   └── ThemeSwitcherButton.tsx  # Dark/Light toggle
-    │   └── watermark/
-    │       └── ClockworkWatermark.tsx   # React Native SVG center clock + edge gears
-    ├── store/
-    │   ├── useAuthStore.ts       # User enrollment, session token, gender, permissions
-    │   └── useThemeStore.ts      # Persistent theme state
-    └── types/
-        ├── navigation.ts
-        ├── ride.ts
-        └── chat.ts
-```
-
----
-
-## 3. Screen Hierarchy & Navigation Architecture
+## 2. Technical Stack & Architecture
 
 ```mermaid
-graph TD
-    Root[RootNavigator] --> AuthCheck{Is Authenticated?}
-    AuthCheck -- No --> AuthStack[AuthNavigator]
-    AuthStack --> Login[LoginScreen]
-    AuthStack --> Apply[ApplyAccountScreen]
+flowchart TD
+    subgraph Clients ["Client Platforms (Universal PWA)"]
+        Android["Android (Chrome / Samsung Internet)"]
+        iOS["iOS / iPadOS (Safari)"]
+        Windows["Windows PC (Edge / Chrome)"]
+        Mac["macOS (Safari / Chrome)"]
+        Linux["Linux (Chrome / Firefox)"]
+    end
 
-    AuthCheck -- Yes --> TabNav[MainTabNavigator]
-    TabNav --> Tab1[RidesTab]
-    TabNav --> Tab2[MessagesTab]
-    TabNav --> Tab3[ServicesTab]
-    TabNav --> Tab4[ProfileTab]
+    subgraph PWAEngine ["Client-Side PWA Engine"]
+        Manifest["Web App Manifest (/manifest.json)"]
+        SW["Service Worker (/sw.js)"]
+        CacheStorage["CacheStorage (Static Shell & Offline Fallback)"]
+        PasskeyEngine["WebAuthn Biometric Passkeys (FIDO2)"]
+    end
 
-    Tab1 --> RideList[RideListScreen]
-    RideList --> CreateRide[CreateRideScreen]
-    RideList --> RideDetail[RideDetailScreen]
-    RideDetail --> RescheduleModal[RescheduleModal]
-    RideDetail --> ReportModal[ReportIncidentModal]
+    subgraph ServerInfrastructure ["Campus Nexus Server (Daphne ASGI)"]
+        NGINX["NGINX Reverse Proxy (TLS 1.3 / HTTP/2)"]
+        Daphne["Daphne ASGI Cluster (Port 8000)"]
+        DjangoCore["Django 6 Core Application"]
+        ChannelsWS["Django Channels (ASGI WebSockets)"]
+        Postgres[("PostgreSQL 16 / SQLite3")]
+        RedisCache[("Redis 7 Channel Layer & Cache")]
+    end
 
-    Tab2 --> Inbox[MessagesInboxScreen]
-    Inbox --> DirectChat[DirectChatScreen]
-
-    Tab3 --> Catalog[ServiceCatalogueScreen]
-    Catalog --> About[AboutNexusScreen]
-    Catalog --> Contributors[ContributorsScreen]
-
-    Tab4 --> Profile[UserProfileScreen]
-    Profile --> EditProfile[EditProfileModal]
-    Profile --> FriendsList[FriendsListScreen]
+    Android & iOS & Windows & Mac & Linux --> Manifest & SW
+    SW --> CacheStorage
+    Clients -->|HTTPS:443| NGINX
+    Clients -->|WSS:443| ChannelsWS
+    PasskeyEngine <-->|WebAuthn Assertion| DjangoCore
+    NGINX --> Daphne
+    Daphne --> DjangoCore & ChannelsWS
+    DjangoCore <--> Postgres
+    ChannelsWS <--> RedisCache
 ```
 
----
-
-## 4. Feature Implementations & Technical Contracts
-
-### 4.1. Ride Browsing, Date-Time Range & Capacity
-- **Date Strip:** Horizontally scrollable 7-day calendar strip matching backend dynamic date centering.
-- **Range Picker:** Native date and time dialogs allowing users to filter rides across customizable time windows.
-- **Capacity Indicator:** Animated progress bar displaying occupied spots (`p.count / total_spots`).
-- **Standby UX:**
-  - If ride is `OPEN` and user is eligible: primary `Join Ride` button.
-  - If ride is `FULL` and user is eligible: warning-styled `Join Standby` button.
-  - If user is already on waitlist: displays `Standby Position #X` with button to `Leave Standby`.
-
-### 4.2. In-Ride Chat & WebSocket Lifecycle
-- Connects to `wss://campus-nexus.institute/ws/ride/{ride_id}/`.
-- Sends typed JSON frames: `{"content": "..."}`.
-- Listens for server lifecycle events:
-  - `chat.message`: Appends bubble to chat list with delivery tick.
-  - `system_notice (rescheduled)`: Updates departure banner and displays system notification badge.
-  - `system_notice (waitlist_promoted)`: Updates passenger list dynamically.
-  - `system_notice (completed | cancelled | terminated)`: Displays session termination banner, locks chat input, and severs WebSocket connection with code 4001.
-
-### 4.3. 1-on-1 Direct Friend Messaging
-- Connects to `wss://campus-nexus.institute/ws/chat/direct/{friend_enrollment}/`.
-- **Typing Status:** Throttled typing broadcast (`{"type": "typing", "is_typing": true}`) on `onChangeText`; cancels after 1.5 seconds of inactivity.
-- **Presence Indicator:** Listens for `chat.presence` packets, updating the friend's avatar badge to live green dot (`Active now`).
-- **Offline Fallback:** If socket connection drops, messages fallback smoothly to standard REST POST `/messages/{enrollment}/` with optimistic UI insertion.
-
-### 4.4. Student Profile & Identification Data
-- Displays full verified identification:
-  - Degree, Department, Joining Year, Roll Number, On-time Reliability Rate, Rides Completed, Incident Flag status.
-- **Privacy Enforcement:** Phone number hidden unless co-passenger or confirmed friend.
-- **Profile Photo Upload:** Native image picking with compression (`expo-image-manipulator`) before multipart upload to `/profile/{enrollment}/`.
-- **Public Friends Toggle:** User can switch `show_friends_publicly` on/off directly from mobile settings modal.
+### Core Technologies
+- **Web App Manifest (`/manifest.json`):** Defines standalone display mode, theme colors (`#08B74F`), maskable and standard icons (192x192, 512x512), application title, and navigation shortcuts.
+- **Service Worker (`/sw.js`):** Intercepts network requests using a cache-first strategy for static assets (CSS, JS, fonts, SVG) and a network-first strategy for dynamic ride data, with graceful fallback to `/offline/` during network disconnects.
+- **WebAuthn / FIDO2 Passkeys:** Native browser hardware authentication utilizing the platform authenticator (Android fingerprint, Apple Touch ID / Face ID, Windows Hello).
+- **Django Channels (ASGI WebSockets):** Real-time bidirectional WebSocket pipes for in-ride group chat, 1-on-1 direct messaging, and instant notification dispatches.
+- **WhiteNoise Static Engine:** Compressed static asset delivery with immutable caching headers and cache busting.
 
 ---
 
-## 5. Security & Network Fault Tolerance
+## 3. Platform Capabilities Matrix
 
-1. **Hardware-Backed Keystore:**
-   Authentication credentials are encrypted using AES-256 via `expo-secure-store`.
-2. **App State Awareness:**
-   When the Android app moves to the background (`AppState.addEventListener('change', ...)`), active WebSocket connections pause non-essential frames, and push notification tokens are registered to ensure background delivery without battery drain.
-3. **Optimistic UI Updates:**
-   Messages are rendered immediately in state with a pending clock icon, replaced with a double-check icon once the server returns `{type: 'ack', status: 'sent'}`.
-4. **Offline Resiliency:**
-   TanStack Query caches ride listings in SQLite (`expo-sqlite` / MMKV persistence) so students with spotty campus Wi-Fi can view their booked rides offline.
+| Feature | Android (Chrome/Edge) | iOS / iPadOS (Safari) | Windows 10/11 (Chrome/Edge) | macOS (Safari/Chrome) | Linux (Chrome/Firefox) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Standalone Fullscreen** | ✅ Native | ✅ Native | ✅ Native Window | ✅ Native Window | ✅ Native Window |
+| **1-Click Install CTA** | ✅ `beforeinstallprompt` | ✅ Share > Add to Home | ✅ Address bar / prompt | ✅ Dock / Address bar | ✅ Address bar / prompt |
+| **Offline Shell & Fallback** | ✅ Service Worker | ✅ Service Worker | ✅ Service Worker | ✅ Service Worker | ✅ Service Worker |
+| **2-Week Biometric Sessions** | ✅ Fingerprint | ✅ Touch ID / Face ID | ✅ Windows Hello | ✅ Touch ID | ✅ Security Key |
+| **Web Push Notifications** | ✅ Native Web Push | ✅ Web Push (iOS 16.4+) | ✅ Native Windows Alerts| ✅ macOS Notification Center | ✅ System Notifications |
+| **Responsive UI Settings** | ✅ Mobile Drawer | ✅ Mobile Drawer | ✅ Navbar & Settings Modal | ✅ Navbar & Settings Modal | ✅ Navbar & Settings Modal |
 
 ---
 
-## 6. Implementation Milestones
+## 4. Key Subsystem Specifications
 
-- **Phase A (Foundation):** Expo scaffolding, theme tokens, SecureStore auth client, Login/Apply screens.
-- **Phase B (Coordinate Core):** Ride listing, custom date-time range filters, Create Ride screen with gender validation, Ride Detail passenger list.
-- **Phase C (Real-Time Websockets):** In-ride group chat, rate limiting, and lifecycle teardown handling.
-- **Phase D (Standby & Rescheduling):** Standby queue join/leave, automatic promotion UX, host rescheduling modal.
-- **Phase E (Social & Friends DM):** 1-on-1 direct messaging, typing indicator, live presence indicator, profile photo uploads.
-- **Phase F (Build & Release):** Android APK build via EAS Build (`eas build -p android --profile preview`), end-to-end integration testing.
+### 4.1. 2-Week Persistent Sessions & Biometric Passkey Login
+In downloaded standalone applications (`display-mode: standalone` or `nexus_standalone_app=1`):
+1. **14-Day Session Age:** When authenticated inside the standalone app, the Django session cookie expiry is extended to `14 * 86400` (1,209,600 seconds = 14 days).
+2. **Idle Timeout Exemption:** The `IdleSessionTimeoutMiddleware` recognizes standalone app requests (`X-Nexus-App=1` or `nexus_standalone_app=1`) and extends inactivity thresholds to 14 days.
+3. **Remembered User Cookie:** A secure, Lax cookie `nexus_app_remembered_user` is stored on the client.
+4. **1-Touch Biometric Sign-In:** Returning users on the login screen are presented with the passkey fast-sign-in card. Clicking **"Sign In with Passkey"** negotiates a cryptographic challenge without requiring password entry.
+
+### 4.2. Service Worker & Offline Caching Architecture
+- **Cache Name:** `campus-nexus-v1`
+- **Pre-cached Shell:** `/offline/`, CSS stylesheets, brand favicons, and core web fonts.
+- **Offline Fallback:** If a navigation request fails while traveling across disconnected highway stretches, the service worker immediately serves `/offline/` containing:
+  - Cached emergency campus security numbers.
+  - Active ride contact guidelines.
+  - Connection retry monitor with auto-reload upon reconnection.
+
+### 4.3. Post-Login Installation Prompting
+- When users sign in via a standard browser, the dashboard renders `#postLoginPwaPrompt`.
+- **Platform Customization:** Client JavaScript inspects `navigator.userAgent` and dynamically customizes the prompt title and button (e.g., *"Install on Windows"*, *"Install for Android"*, *"Install on Mac"*).
+- **Standalone Guard:** If `isRunningStandalone()` returns `true`, the prompt is permanently suppressed.
+- **Smart Dismissal:** Tapping *"Remind Later"* records a 7-day suppression in `localStorage`.
+
+### 4.4. Programmatic REST API v1
+For administrative scripts, automated integrations, and institutional partners:
+- Versioned REST endpoints under `/api/v1/` remain active.
+- Bearer session token authentication and `django-cors-headers` support headless access with full WebSocket parity.

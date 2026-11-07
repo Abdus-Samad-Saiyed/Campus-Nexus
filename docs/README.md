@@ -35,8 +35,8 @@ Welcome to the central documentation suite for **Campus Nexus** and its flagship
 | Document | Primary Audience | Core Topics Covered |
 | :--- | :--- | :--- |
 | [**`API_REFERENCE.md`**](file:///s:/Campus-Project/docs/API_REFERENCE.md) | Mobile/Client Devs | Versioned REST API (v1) endpoints, JSON schemas, Bearer token authentication challenge workflows, and Channels WebSocket packet protocol. |
-| [**`MOBILE_ARCHITECTURE.md`**](file:///s:/Campus-Project/docs/MOBILE_ARCHITECTURE.md) | Mobile Engineers (React Native) | Android app design (Expo SDK 51+, TypeScript), Zustand reactive state, TanStack React Query, secure keystore storage, and background notification triggers. |
-| [**`MOBILE_SCAFFOLDING.md`**](file:///s:/Campus-Project/docs/MOBILE_SCAFFOLDING.md) | Mobile Engineers | Directory structure, client boilerplate, WebSocket manager class, and implementation checklist for the Android client. |
+| [**`MOBILE_ARCHITECTURE.md`**](file:///s:/Campus-Project/docs/MOBILE_ARCHITECTURE.md) | Mobile & Frontend Engineers (PWA) | Cross-platform Progressive Web App (PWA) architecture, zero-install deployment, Web App Manifest, Service Worker caching, and 2-week persistent biometric passkey sessions. |
+| [**`MOBILE_SCAFFOLDING.md`**](file:///s:/Campus-Project/docs/MOBILE_SCAFFOLDING.md) | Frontend & Client Engineers | PWA scaffolding, Service Worker lifecycle, offline fallback engine, standalone detection, and desktop/mobile install prompt integration. |
 
 ### 🔍 Philosophy, Audits & Codebase Taxonomy
 

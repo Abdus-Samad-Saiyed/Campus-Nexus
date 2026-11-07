@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline — Campus Nexus</title>
+    <style>
+        :root {
+            --bg: #050B08;
+            --green: #08B74F;
+            --text: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --card-bg: rgba(14, 23, 18, 0.9);
+            --border: rgba(8, 183, 79, 0.25);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .offline-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.6), 0 0 24px rgba(8, 183, 79, 0.15);
+        }
+        .icon-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(8, 183, 79, 0.15);
+            border: 1px solid rgba(8, 183, 79, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            color: var(--green);
+            font-size: 1.75rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #FFFFFF;
+        }
+        p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin-bottom: 1.75rem;
+        }
+        .btn-retry {
+            display: inline-block;
+            width: 100%;
+            padding: 0.75rem 1.25rem;
+            background: var(--green);
+            color: #050B08;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s ease, filter 0.15s ease;
+            text-decoration: none;
+        }
+        .btn-retry:hover {
+            filter: brightness(1.1);
+        }
+        .btn-retry:active {
+            transform: scale(0.98);
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            padding: 3px 10px;
+            border-radius: 999px;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-card">
+        <div class="status-pill">
+            <span class="pulse-dot"></span> Offline Mode
+        </div>
+        <div class="icon-circle">
+            ⚡
+        </div>
+        <h1>Connection Lost</h1>
+        <p>
+            Campus Nexus couldn't connect to the server. Check your Wi-Fi or cellular network and try again.
+        </p>
+        <button class="btn-retry" onclick="window.location.reload()">
+            Retry Connection
+        </button>
+    </div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+{
+  "name": "Campus Nexus — University Digital Ecosystem",
+  "short_name": "Campus Nexus",
+  "id": "/?source=pwa",
+  "start_url": "/dashboard/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#050B08",
+  "theme_color": "#08B74F",
+  "description": "Centralized student mobility, verified cab shares, peer communication, and digital identity for university students.",
+  "categories": [
+    "education",
+    "travel",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/static/img/pwa/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/pwa/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/pwa/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/img/pwa/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Rides",
+      "short_name": "Rides",
+      "description": "View active verified campus carpools and transit rides",
+      "url": "/rides/?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/static/img/pwa/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Direct Messages",
+      "short_name": "Messages",
+      "description": "Open private chats and student conversations",
+      "url": "/messages/?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/static/img/pwa/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "My Rides",
+      "short_name": "My Rides",
+      "description": "Manage scheduled departure times and passenger rosters",
+      "url": "/rides/my/?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/static/img/pwa/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

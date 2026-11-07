@@ -71,7 +71,15 @@ class IdleSessionTimeoutMiddleware:
         if getattr(request, 'user', None) and request.user.is_authenticated:
             path = request.path_info
             if not any(path.startswith(prefix) for prefix in self.EXEMPT_PREFIXES):
-                idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800)
+                is_app = (
+                    request.session.get('is_downloaded_app') or
+                    request.COOKIES.get('nexus_standalone_app') == '1' or
+                    request.headers.get('X-Nexus-App') == '1'
+                )
+                if is_app:
+                    idle_timeout = 14 * 86400  # 2 weeks for downloaded app on PC and Mobile
+                else:
+                    idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800)
                 if idle_timeout and idle_timeout > 0:
                     now = time.time()
                     last_activity = request.session.get('last_activity')

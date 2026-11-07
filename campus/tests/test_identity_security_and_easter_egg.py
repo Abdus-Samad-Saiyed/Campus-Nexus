@@ -84,7 +84,7 @@ class IdentitySecurityArchitectureTests(TestCase):
         self.assertEqual(int(self.client.session["_auth_user_id"]), self.debug_user.id)
 
     def test_real_student_with_2fa_intercepted(self):
-        """Real student accounts with 2FA enabled must receive OTP and redirect to 2FA verification."""
+        """Real student accounts with 2FA enabled must redirect to 2FA choice without eager OTP dispatch."""
         self.assertFalse(self.student.is_debug_account)
         res = self.client.post(reverse("login"), {
             "username": "2024BCSE099",
@@ -94,7 +94,20 @@ class IdentitySecurityArchitectureTests(TestCase):
         self.assertRedirects(res, reverse("two_factor_verify"))
         self.assertEqual(self.client.session.get("pre_2fa_user_id"), self.student.id)
 
-        # OTP record created
+        # Unless OTP is explicitly chosen, no OTP is generated
+        otp_before_choice = PhoneOTP.objects.filter(user=self.student, is_used=False, purpose="2FA").first()
+        self.assertIsNone(otp_before_choice)
+
+        # Intermediate choice screen renders with option to use passkey or send OTP
+        choice_page = self.client.get(reverse("two_factor_verify"))
+        self.assertEqual(choice_page.status_code, 200)
+        self.assertIn("Passkey / Windows Hello", choice_page.content.decode())
+        self.assertIn("Send Verification Code", choice_page.content.decode())
+
+        # When user chooses OTP, the OTP is generated and dispatched
+        send_res = self.client.post(reverse("two_factor_verify"), {"action": "send_otp"})
+        self.assertRedirects(send_res, reverse("two_factor_verify"))
+
         otp = PhoneOTP.objects.filter(user=self.student, is_used=False, purpose="2FA").first()
         self.assertIsNotNone(otp)
 

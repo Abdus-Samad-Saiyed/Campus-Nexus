@@ -22,8 +22,14 @@ from accounts.views import (
     verify_security_step_up,
     service_catalogue,
     two_factor_verify,
+    acknowledge_announcement,
+    forget_app_remembered_user,
 )
 from campus.operations import (
+    admin_announcements_view,
+    admin_create_announcement,
+    admin_toggle_announcement,
+    admin_delete_announcement,
     admin_delete_account,
     admin_resolve_physical_verification,
     admin_update_phone,
@@ -35,7 +41,15 @@ from campus.operations import (
     operational_dashboard,
 )
 from campus.services import service_gateway_view
-from campus.views import about_view, contact_view, contributors_view, feedback_view, nominate_contributor, remove_contributor
+from campus.views import (
+    about_view,
+    contact_view,
+    contributors_view,
+    feedback_view,
+    nominate_contributor,
+    remove_contributor,
+    offline_view,
+)
 from campus.agentic import robots_txt, llms_txt, ard_json
 
 # Enforce platform 2FA and single-session on Django admin
@@ -142,11 +156,26 @@ def service_worker_view(request):
     raise Http404("Service worker not found")
 
 
+def manifest_view(request):
+    """Directly serve manifest.json with application/manifest+json content type and HTTP 200."""
+    manifest_path = os.path.join(settings.BASE_DIR, 'static', 'manifest.json')
+    if os.path.exists(manifest_path):
+        response = FileResponse(open(manifest_path, 'rb'), content_type='application/manifest+json')
+        response['Cache-Control'] = 'public, max-age=3600'
+        return response
+    raise Http404("Manifest not found")
+
+
 urlpatterns = [
     # Django admin & Operational Dashboard
     path('admin/', admin.site.urls),
     path('operations/', operational_dashboard, name='operational_dashboard'),
     path('operations/superusers/', manage_superusers, name='manage_superusers'),
+    path('operations/announcements/', admin_announcements_view, name='admin_announcements'),
+    path('operations/announcements/create/', admin_create_announcement, name='admin_create_announcement'),
+    path('operations/announcements/<int:announcement_id>/toggle/', admin_toggle_announcement, name='admin_toggle_announcement'),
+    path('operations/announcements/<int:announcement_id>/delete/', admin_delete_announcement, name='admin_delete_announcement'),
+    path('announcements/<int:announcement_id>/acknowledge/', acknowledge_announcement, name='acknowledge_announcement'),
     path('operations/users/<int:user_id>/update-phone/', admin_update_phone, name='admin_update_phone'),
     path('operations/users/<int:user_id>/delete/', admin_delete_account, name='admin_delete_account'),
     path('operations/physical-verification/<int:request_id>/resolve/', admin_resolve_physical_verification, name='admin_resolve_physical_verification'),
@@ -159,9 +188,11 @@ urlpatterns = [
     path('llms.txt', llms_txt, name='llms_txt'),
     path('.well-known/ard.json', ard_json, name='ard_json'),
 
-    # System Health Check & Root Favicon
+    # System Health Check, PWA Manifest & Root Favicon
     path('favicon.ico', favicon_view, name='favicon'),
+    path('manifest.json', manifest_view, name='pwa_manifest'),
     path('sw.js', service_worker_view, name='service_worker'),
+    path('offline/', offline_view, name='pwa_offline'),
     path('health/', health_check, name='health_check'),
     path('healthz/', health_check, name='healthz'),
 
@@ -193,6 +224,7 @@ urlpatterns = [
     path('auth/passkey/register/challenge/', passkey_reg_challenge, name='passkey_reg_challenge'),
     path('auth/passkey/register/verify/', passkey_reg_verify, name='passkey_reg_verify'),
     path('auth/passkey/<int:credential_id>/delete/', passkey_delete, name='passkey_delete'),
+    path('auth/app-forget/', forget_app_remembered_user, name='forget_app_remembered_user'),
     path(
         'logout/',
         auth_views.LogoutView.as_view(),

@@ -623,6 +623,8 @@ class AuditEvent(models.Model):
         ('INCIDENT_ESCALATED', 'Incident Escalated to Institute'),
         ('FEEDBACK_SUBMITTED', 'Platform Feedback Submitted'),
         ('EXPORT_GENERATED', 'Export Generated'),
+        ('ANNOUNCEMENT_CREATED', 'Admin Issued Announcement'),
+        ('ANNOUNCEMENT_DELETED', 'Admin Deleted Announcement'),
     ]
 
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -751,6 +753,167 @@ class PlatformRuntimeState(models.Model):
 
     def __str__(self) -> str:
         return f"{self.key}: {self.value_text or self.value_int} ({self.timestamp})"
+
+
+class Announcement(models.Model):
+    """Platform administrative announcement with targeting and first-login proclamation."""
+
+    PRIORITY_CHOICES = [
+        ('INFO', 'Informational Notice'),
+        ('WARNING', 'Important Warning'),
+        ('CRITICAL', 'Urgent / Critical Alert'),
+        ('SUCCESS', 'Platform Update / Good News'),
+    ]
+
+    TARGET_TYPE_CHOICES = [
+        ('ALL', 'All Platform Users'),
+        ('SET', 'Preset User Group'),
+        ('FILTERED', 'Filtered Audience Criteria'),
+        ('INDIVIDUAL', 'Specific Individual Users'),
+    ]
+
+    TARGET_SET_CHOICES = [
+        ('STUDENTS', 'All Students (Non-Staff)'),
+        ('STAFF', 'Institute Staff & Superusers'),
+        ('VERIFIED', 'Verified Students Only'),
+        ('UNVERIFIED', 'Unverified Students Only'),
+    ]
+
+    title = models.CharField(max_length=200)
+    content = models.TextField(help_text="Announcement message body")
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='INFO', db_index=True)
+
+    target_type = models.CharField(max_length=20, choices=TARGET_TYPE_CHOICES, default='ALL', db_index=True)
+    target_set = models.CharField(max_length=30, choices=TARGET_SET_CHOICES, blank=True, null=True)
+
+    # Filtered audience attributes
+    target_branches = models.CharField(max_length=255, blank=True, default='', help_text="Comma-separated branch codes e.g. CSE,ECE (empty for any)")
+    target_years = models.CharField(max_length=255, blank=True, default='', help_text="Comma-separated joining years e.g. 2024,2023 (empty for any)")
+    target_degrees = models.CharField(max_length=255, blank=True, default='', help_text="Comma-separated degree types e.g. B.Tech,M.Tech (empty for any)")
+    target_gender = models.CharField(max_length=10, blank=True, default='', help_text="Target gender e.g. M, F, or empty for any")
+
+    # Specific individual user targets
+    target_users = models.ManyToManyField(
+        'User',
+        blank=True,
+        related_name='targeted_announcements',
+        help_text="Explicitly chosen target users"
+    )
+
+    # Optional Action Link
+    action_url = models.CharField(max_length=255, blank=True, default='', help_text="Optional destination link e.g. /rides/ or external URL")
+    action_label = models.CharField(max_length=60, blank=True, default='', help_text="Button text e.g. View Details")
+
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='authored_announcements'
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Optional expiration timestamp")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Announcement'
+        verbose_name_plural = 'Announcements'
+
+    def __str__(self) -> str:
+        return f"[{self.priority}] {self.title}"
+
+    def is_user_targeted(self, user) -> bool:
+        """Evaluate whether a given user is in the audience for this announcement."""
+        if not self.is_active:
+            return False
+        if self.expires_at and timezone.now() > self.expires_at:
+            return False
+
+        # In guest demo mode, allow seeing ALL and SET announcements for preview
+        if getattr(user, 'is_guest_demo', False):
+            return self.target_type in ('ALL', 'SET')
+
+        if self.target_type == 'ALL':
+            return True
+
+        if self.target_type == 'SET':
+            if self.target_set == 'STUDENTS':
+                return not (user.is_staff or user.is_superuser)
+            elif self.target_set == 'STAFF':
+                return user.is_staff or user.is_superuser
+            elif self.target_set == 'VERIFIED':
+                return getattr(user, 'verified', False)
+            elif self.target_set == 'UNVERIFIED':
+                return not getattr(user, 'verified', False) and not (user.is_staff or user.is_superuser)
+            return False
+
+        if self.target_type == 'INDIVIDUAL':
+            return self.target_users.filter(id=user.id).exists()
+
+        if self.target_type == 'FILTERED':
+            if self.target_branches:
+                allowed_branches = [b.strip().upper() for b in self.target_branches.split(',') if b.strip()]
+                if (user.branch or '').strip().upper() not in allowed_branches:
+                    return False
+            if self.target_years:
+                allowed_years = [y.strip() for y in self.target_years.split(',') if y.strip()]
+                if str(user.joining_year or '') not in allowed_years:
+                    return False
+            if self.target_degrees:
+                DEGREE_ALIASES = {
+                    'B': {'B', 'BTECH', 'B.TECH', 'BACHELORS', 'BACHELOR'},
+                    'M': {'M', 'MTECH', 'M.TECH', 'MASTERS', 'MASTER', 'MSC', 'M.SC', 'MBA'},
+                    'P': {'P', 'PHD', 'PH.D', 'DOCTORATE'},
+                }
+                user_deg = (user.degree or '').strip().upper()
+                allowed_degrees = [d.strip().upper() for d in self.target_degrees.split(',') if d.strip()]
+                matched = user_deg in allowed_degrees
+                if not matched:
+                    for code, aliases in DEGREE_ALIASES.items():
+                        if user_deg in aliases or (len(getattr(user, 'enrollment_number', '') or '') > 4 and user.enrollment_number[4].upper() == code):
+                            if any(ad in aliases for ad in allowed_degrees):
+                                matched = True
+                                break
+                if not matched:
+                    return False
+            if self.target_gender:
+                if (user.gender or '').strip().upper() != self.target_gender.strip().upper():
+                    return False
+            return True
+
+        return False
+
+    @classmethod
+    def get_active_for_user(cls, user) -> list:
+        """Fetch all active, non-expired announcements matching user targeting criteria."""
+        now = timezone.now()
+        qs = cls.objects.filter(is_active=True).filter(
+            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+        ).prefetch_related('target_users').order_by('-created_at')
+
+        return [ann for ann in qs if ann.is_user_targeted(user)]
+
+
+class AnnouncementReceipt(models.Model):
+    """Audit receipt tracking when a user first saw and acknowledged an announcement."""
+
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, related_name='receipts')
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='announcement_receipts')
+    seen_at = models.DateTimeField(auto_now_add=True)
+    dismissed = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('announcement', 'user')
+        indexes = [
+            models.Index(fields=['user', 'announcement']),
+        ]
+        verbose_name = 'Announcement Receipt'
+        verbose_name_plural = 'Announcement Receipts'
+
+    def __str__(self) -> str:
+        return f"{self.user.enrollment_number} acknowledged #{self.announcement_id}"
 
 
 def log_audit_event(

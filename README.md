@@ -25,7 +25,7 @@ At university campuses, commuter students and hostel residents frequently need t
 2. **Mutual Physical Accountability:** Anonymity is strictly prohibited inside moving vehicles. Confirmed co-passengers mutually share verified identities and pickup phone numbers.
 3. **Real-Time Coordination:** ASGI WebSockets deliver instant ride chat, waitlist promotions, occupancy density curves, and departure synchronization.
 4. **Institutional Security:** Cryptographic HMAC-SHA256 dual-channel OTPs, FIDO2/WebAuthn biometric passkeys, rate-limited reputation anti-farming, and single active session controls.
-5. **Multi-Client Ready:** Complete dual support for both Web (Django Templates + HTMX) and Mobile (React Native Android via Bearer Token REST & WebSocket APIs with full CORS support).
+5. **Universal PWA & Multi-Client Ready:** Full cross-platform Progressive Web App (PWA) deployment for Android, iOS, Windows, macOS, and Linux—delivering zero-install convenience, offline caching, and 2-week persistent biometric passkey sessions without Play Store or App Store friction, alongside versioned REST API v1 endpoints.
 
 ---
 
@@ -33,7 +33,7 @@ At university campuses, commuter students and hostel residents frequently need t
 
 ```mermaid
 flowchart TD
-    Client(["Student Browsers & React Native Android Clients"]) -->|HTTPS:443 & WSS:443| NGINX["NGINX Reverse Proxy (SSL / HTTP/2)"]
+    Client(["Students: Universal PWA (Android / iOS / Windows / Mac / Linux) & REST API Clients"]) -->|HTTPS:443 & WSS:443| NGINX["NGINX Reverse Proxy (SSL / HTTP/2)"]
     
     subgraph CorePlatform ["Campus Nexus / COORDINATE Engine"]
         NGINX -->|HTTP Reverse Proxy & REST API| Daphne["Daphne ASGI Process Cluster (Port 8000)"]
@@ -57,9 +57,10 @@ flowchart TD
 * **Application Server:** Daphne ASGI cluster
 * **Database:** PostgreSQL 16 & SQLite3 (Dual production compatibility with WAL mode tuning)
 * **In-Memory Cache & Message Broker:** Redis 7 (`channels_redis` channel layer & distributed rate limiters) with standalone LocMem fallback
-* **Mobile / Frontend APIs:**
+* **Cross-Platform Mobile & Frontend Architecture:**
   * **Web Client:** Django Templates, HTMX, Vanilla ES6+ JavaScript, Bootstrap 5 Glassmorphism UI, Chart.js
-  * **React Native Android Client:** Dedicated `/api/v1/` REST endpoints, Bearer session token authentication, profile photo multipart upload, `django-cors-headers`, and `TokenOrSessionAuthMiddleware` ASGI WebSockets
+  * **Universal Progressive Web App (PWA):** Web App Manifest (`manifest.json`), Service Worker (`/sw.js`) with cache-first static shell and offline fallback (`/offline/`), standalone fullscreen launch, and post-login install prompts across Android, iOS, Windows, Mac, and Linux.
+  * **Programmatic REST & WebSocket APIs:** Dedicated `/api/v1/` REST endpoints with Bearer token auth, CORS headers, and `TokenOrSessionAuthMiddleware` ASGI WebSockets for external tools and bots.
 * **Security & Auth:** WebAuthn / FIDO2 Passkeys (`webauthn` library), HMAC-SHA256 OTP verification, Single Active Session Enforcement
 * **Reverse Proxy:** NGINX with Let's Encrypt TLS & HTTP/2
 
@@ -103,9 +104,9 @@ flowchart TD
 * To prevent collusion and reputation score farming on a public utility, on-time reliability score boosts (`on_time_count`) are mathematically capped at **3 boosts per 15-day rolling window** per user.
 * Enforced by database check constraint: `1 <= total_spots <= 6`.
 
-### 8. FIDO2 / WebAuthn Biometric Passkeys & Mobile Token Parity
+### 8. FIDO2 / WebAuthn Biometric Passkeys & 2-Week PWA Sessions
 * WebAuthn standard implementation allowing students to register and sign in with hardware security keys, Touch ID, Apple Face ID, or Windows Hello biometrics.
-* React Native Android clients authenticate using Bearer session tokens with full WebSocket parity.
+* Standalone PWA applications on desktop and mobile remain securely authenticated for 2 weeks with one-touch passkey-only login.
 
 ---
 
@@ -128,7 +129,7 @@ python scripts/package_release.py
 ```
 
 ### Verified Test Results:
-* **Django Test Suite:** `322 passed, 0 failures, 0 errors` (Coverage: Guest Demo Mode, Non-Overlapping Multi-Ride Scheduling, Early Launch Mode, Dynamic Capacity Modification, WebAuthn Passkeys, Single-Session Enforcer, Audience Comfort Filters, Concurrency Locks, Anti-Farming Capping, Protected Media Containment, React Native Mobile REST API, Dual Production DBs).
+* **Django Test Suite:** `345 passed, 0 failures, 0 errors` (Coverage: Guest Demo Mode, Non-Overlapping Multi-Ride Scheduling, Early Launch Mode, Dynamic Capacity Modification, WebAuthn Passkeys, Single-Session Enforcer, Audience Comfort Filters, Concurrency Locks, Anti-Farming Capping, Protected Media Containment, Universal PWA & Service Worker, Mobile REST API v1, Dual Production DBs).
 * **Platform Crawler:** `49 passed, 0 failed` across anonymous, authenticated, administrative, and REST API v1 routes.
 * **Full E2E Verification:** `64 passed, 0 failed` across end-to-end user journeys (Application &rarr; OTP Verification &rarr; Admin Physical Desk Approval &rarr; Ride Creation &rarr; Waitlist &rarr; Ride Teardown).
 * **Release Packager:** Zero secrets, zero bytecode, zero SQLite databases in git tracking (`0.37 MB` clean package).
@@ -149,8 +150,8 @@ All system documentation is organized modularly in the [**`docs/`**](docs/README
 | **Production Deployment** | Authoritative manual: Daphne, systemd, PostgreSQL 16, Redis 7, NGINX, Cloudflare | [**`DEPLOYMENT.md`**](docs/DEPLOYMENT.md) |
 | **Operations & Administration** | Operations desk, in-person verification manual, soft-deletion, audit exports | [**`OPERATIONS_AND_ADMINISTRATION.md`**](docs/OPERATIONS_AND_ADMINISTRATION.md) |
 | **REST & WebSocket API Reference** | Versioned API (v1), JSON contracts, Bearer token auth, WebSocket packets | [**`API_REFERENCE.md`**](docs/API_REFERENCE.md) |
-| **Mobile Architecture (React Native)** | Android app architecture, Hermes engine, TanStack Query, Zustand, Expo | [**`MOBILE_ARCHITECTURE.md`**](docs/MOBILE_ARCHITECTURE.md) |
-| **Mobile Scaffolding Checklist** | Mobile client project structure, WebSocket manager, component layout | [**`MOBILE_SCAFFOLDING.md`**](docs/MOBILE_SCAFFOLDING.md) |
+| **Mobile & Cross-Platform PWA Architecture** | Universal PWA architecture, Service Worker caching, offline engine, passkeys | [**`MOBILE_ARCHITECTURE.md`**](docs/MOBILE_ARCHITECTURE.md) |
+| **PWA Scaffolding & Offline Client Guide** | Web App Manifest, Service Worker lifecycle, standalone detection, offline assets | [**`MOBILE_SCAFFOLDING.md`**](docs/MOBILE_SCAFFOLDING.md) |
 | **Mechanical Zen & Themes** | Clockwork watermark SVG, gear physics, scatter animations, theme accents | [**`MECHANICAL_ZEN_AND_THEMES.md`**](docs/MECHANICAL_ZEN_AND_THEMES.md) |
 | **Audit-Driven Bug Register** | P0-P3 security vulnerability tracking, race condition fixes, verification proofs | [**`BUG_REGISTER.md`**](docs/BUG_REGISTER.md) |
 | **Architectural Baseline Inventory** | Phase 0 baseline inventory, application boundaries, and dependency matrix | [**`AUDIT_BASELINE.md`**](docs/AUDIT_BASELINE.md) |

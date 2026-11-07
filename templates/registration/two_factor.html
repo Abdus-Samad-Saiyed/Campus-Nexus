@@ -27,7 +27,8 @@
                     {% endfor %}
                 {% endif %}
 
-                <!-- Option A: Dual-Channel OTP Verification (SMS & Email) -->
+                {% if is_otp_screen %}
+                <!-- Mode A: 6-Digit OTP Verification Form -->
                 <div class="mb-4">
                     <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3 text-center">
                         <span class="text-secondary small d-block mb-1">Verification Code Dispatched To:</span>
@@ -79,6 +80,12 @@
                             <i class="bi bi-arrow-repeat me-1"></i> Didn't receive code? Resend Email Verification Code
                         </button>
                     </form>
+
+                    <div class="text-center mt-3 pt-2 border-top border-secondary border-opacity-50">
+                        <a href="{% url 'two_factor_verify' %}?method=choose" class="text-secondary small text-decoration-none">
+                            <i class="bi bi-arrow-left me-1"></i> Switch verification method (Use Passkey)
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Divider -->
@@ -112,6 +119,97 @@
                     {% endif %}
                     <div id="passkeyAuthStatus" class="small mt-2 text-center font-monospace" style="display: none;"></div>
                 </div>
+
+                {% else %}
+                <!-- Mode B: Intermediate Method Selection Screen (Passkey vs OTP) -->
+                <div class="mb-4">
+                    <p class="text-secondary small text-center mb-4">
+                        Choose your verification method to complete two-factor authentication.
+                    </p>
+
+                    <!-- Choice 1: Biometric Passkey / Windows Hello -->
+                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-25 mb-3">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);">
+                                <i class="bi bi-fingerprint fs-4 text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-white small">Passkey / Windows Hello</div>
+                                <div class="text-secondary" style="font-size: 0.76rem;">Fingerprint, Face ID, PIN, or hardware security key</div>
+                            </div>
+                            {% if registered_passkeys %}
+                                <span class="badge bg-success-subtle green-accent small">{{ registered_passkeys|length }} Key{{ registered_passkeys|length|pluralize }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if registered_passkeys %}
+                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                {% for pk in registered_passkeys %}
+                                    <span class="badge bg-dark border border-secondary text-light small py-1 px-2 font-monospace" style="font-size: 0.7rem;">
+                                        <i class="bi bi-key-fill text-warning me-1"></i>{{ pk.name }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-secondary small mb-3" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle me-1"></i>Authenticate using a platform key (Touch ID, Windows Hello, etc.).
+                            </div>
+                        {% endif %}
+
+                        <button type="button"
+                                id="btnPasskeyAuth"
+                                onclick="authenticateWithPasskey()"
+                                class="btn btn-outline-light w-100 py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                            <i class="bi bi-fingerprint fs-5 text-warning"></i>
+                            <span>Verify with Passkey</span>
+                        </button>
+                        <div id="passkeyAuthStatus" class="small mt-2 text-center font-monospace" style="display: none;"></div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="position-relative my-3 text-center">
+                        <hr class="border-secondary">
+                        <span class="position-absolute top-50 start-50 translate-middle px-3 bg-dark text-secondary small font-monospace">
+                            OR
+                        </span>
+                    </div>
+
+                    <!-- Choice 2: One-Time Verification Code (OTP) -->
+                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-25">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px; background: rgba(8, 183, 79, 0.15); border: 1px solid rgba(8, 183, 79, 0.3);">
+                                <i class="bi bi-shield-lock-fill fs-4 green-accent"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-bold text-white small">One-Time Verification Code (OTP)</div>
+                                <div class="text-secondary" style="font-size: 0.76rem;">Dispatch a 6-digit security code to your registered channels</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            {% if masked_email %}
+                            <span class="badge bg-dark border border-secondary font-monospace text-info px-2 py-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-envelope me-1"></i>{{ masked_email }}
+                            </span>
+                            {% endif %}
+                            {% if masked_phone %}
+                            <span class="badge bg-dark border border-secondary font-monospace text-secondary px-2 py-1" style="font-size: 0.72rem; opacity: 0.7;">
+                                <i class="bi bi-phone me-1"></i>{{ masked_phone }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <form method="POST" action="{% url 'two_factor_verify' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="send_otp">
+                            <button type="submit" class="btn btn-green w-100 py-2 fs-6 fw-bold d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-send-fill"></i>
+                                <span>Send Verification Code</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
 
                 <hr class="my-4 border-secondary">
 

@@ -50,6 +50,8 @@ from .forms import AccountApplicationForm, EarlyLaunchDeclarationForm, Enrollmen
 from .notifications import send_user_notification
 from .models import (
     AccountApplication,
+    Announcement,
+    AnnouncementReceipt,
     AuditEvent,
     DirectMessage,
     DirectMessageReport,
@@ -199,6 +201,19 @@ def _safe_redirect_url(request, redirect_to, fallback='dashboard'):
     return fallback
 
 
+def is_downloaded_app_request(request) -> bool:
+    """Determine if request originates from installed/downloaded PWA app on PC or Mobile."""
+    if request.COOKIES.get('nexus_standalone_app') == '1':
+        return True
+    if request.headers.get('X-Nexus-App') == '1':
+        return True
+    if request.GET.get('source') == 'pwa':
+        return True
+    if request.session.get('is_downloaded_app'):
+        return True
+    return False
+
+
 @rate_limit(key_prefix='login', limit=10, period_seconds=60)
 def custom_login_view(request, extra_context=None):
     """Enrollment-based authentication with single concurrent session & 2FA intercept.
@@ -224,35 +239,64 @@ def custom_login_view(request, extra_context=None):
             if user.is_debug_account:
                 auth_login(request, user)
                 enforce_single_session_login(request, user)
+                is_app = is_downloaded_app_request(request)
+                if is_app:
+                    request.session.set_expiry(14 * 86400)
+                    request.session['is_downloaded_app'] = True
+                else:
+                    request.session['just_signed_in'] = True
                 request.session['auth_timestamp'] = timezone.now().timestamp()
                 log_audit_event(
                     event_type='LOGIN_SUCCESS',
                     actor_enrollment=user.enrollment_number,
                     description='Debug account signed in successfully (2FA bypassed)',
                 )
-                return redirect(redirect_to or 'dashboard')
+                response = redirect(redirect_to or 'dashboard')
+                if is_app:
+                    response.set_cookie(
+                        'nexus_app_remembered_user',
+                        user.enrollment_number,
+                        max_age=14 * 86400,
+                        path='/',
+                        samesite='Lax',
+                        secure=request.is_secure(),
+                    )
+                return response
 
-            # Real accounts: Staff, Superusers, or users with 2FA enabled require 2FA OTP verification
+            # Real accounts: Staff, Superusers, or users with 2FA enabled require 2FA verification
             if user.two_factor_enabled or user.is_staff or user.is_superuser:
                 request.session['pre_2fa_user_id'] = user.pk
                 request.session['pre_2fa_redirect'] = redirect_to
                 request.session['pre_2fa_time'] = timezone.now().timestamp()
-                can_resend, _ = can_resend_otp(user, purpose='2FA')
-                if can_resend:
-                    otp, raw_code = create_phone_otp(user, purpose='2FA')
-                    if not getattr(otp, 'any_delivered', True):
-                        messages.warning(request, "Unable to deliver verification code to your email or SMS. If you have registered a passkey, you may authenticate using it below.")
+                request.session.pop('pre_2fa_method', None)
                 return redirect('two_factor_verify')
 
             auth_login(request, user)
             enforce_single_session_login(request, user)
+            is_app = is_downloaded_app_request(request)
+            if is_app:
+                request.session.set_expiry(14 * 86400)
+                request.session['is_downloaded_app'] = True
+            else:
+                request.session['just_signed_in'] = True
+
             request.session['auth_timestamp'] = timezone.now().timestamp()
             log_audit_event(
                 event_type='LOGIN_SUCCESS',
                 actor_enrollment=user.enrollment_number,
-                description='Student signed in successfully',
+                description='Student signed in successfully (2-week app session: %s)' % is_app,
             )
-            return redirect(redirect_to or 'dashboard')
+            response = redirect(redirect_to or 'dashboard')
+            if is_app:
+                response.set_cookie(
+                    'nexus_app_remembered_user',
+                    user.enrollment_number,
+                    max_age=14 * 86400,
+                    path='/',
+                    samesite='Lax',
+                    secure=request.is_secure(),
+                )
+            return response
         else:
             login_username = request.POST.get('username', '').strip().upper()
             log_audit_event(
@@ -275,9 +319,24 @@ def custom_login_view(request, extra_context=None):
     else:
         form = EnrollmentAuthenticationForm(request)
 
+    is_app = is_downloaded_app_request(request)
+    remembered_enrollment = request.COOKIES.get('nexus_app_remembered_user', '') or request.GET.get('remembered_enrollment', '')
+    remembered_user = None
+    has_app_passkey = False
+    if remembered_enrollment:
+        remembered_user = User.objects.filter(
+            enrollment_number=remembered_enrollment.strip().upper(),
+            is_active=True,
+        ).first()
+        if remembered_user:
+            has_app_passkey = PasskeyCredential.objects.filter(user=remembered_user).exists()
+
     context = {
         'form': form,
         'next': redirect_to,
+        'is_downloaded_app': is_app,
+        'remembered_user': remembered_user,
+        'has_app_passkey': has_app_passkey,
     }
     if extra_context:
         context.update(extra_context)
@@ -287,7 +346,7 @@ def custom_login_view(request, extra_context=None):
 
 @rate_limit(key_prefix='two_factor_verify', limit=10, period_seconds=60)
 def two_factor_verify(request):
-    """Handle 2FA Phone SMS verification and Passkey bypass options."""
+    """Handle 2FA verification: method choice (Passkey vs OTP), OTP dispatch, and verification."""
     user_id = request.session.get('pre_2fa_user_id')
     pre_2fa_time = request.session.get('pre_2fa_time')
     now_ts = timezone.now().timestamp()
@@ -297,6 +356,7 @@ def two_factor_verify(request):
         request.session.pop('pre_2fa_user_id', None)
         request.session.pop('pre_2fa_redirect', None)
         request.session.pop('pre_2fa_time', None)
+        request.session.pop('pre_2fa_method', None)
         messages.error(request, "Authentication session expired. Please sign in again.")
         return redirect('login')
 
@@ -305,6 +365,7 @@ def two_factor_verify(request):
         request.session.pop('pre_2fa_user_id', None)
         request.session.pop('pre_2fa_redirect', None)
         request.session.pop('pre_2fa_time', None)
+        request.session.pop('pre_2fa_method', None)
         messages.error(request, "This account is inactive or disabled.")
         return redirect('login')
     redirect_to = _safe_redirect_url(request, request.session.get('pre_2fa_redirect', 'dashboard'))
@@ -319,9 +380,33 @@ def two_factor_verify(request):
         .values('credential_id', 'name')
     )
 
+    # Allow switching back to the method selection screen
+    if request.GET.get('method') == 'choose':
+        request.session.pop('pre_2fa_method', None)
+        return redirect('two_factor_verify')
+
+    # Allow direct link to OTP screen if explicitly requested
+    if request.GET.get('method') == 'otp':
+        request.session['pre_2fa_method'] = 'otp'
+
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'resend':
+        if action == 'send_otp' or action == 'choose_otp':
+            can_resend, wait_seconds = can_resend_otp(user, purpose='2FA')
+            if can_resend:
+                otp, raw_code = create_phone_otp(user, purpose='2FA')
+                if not getattr(otp, 'any_delivered', True):
+                    messages.warning(request, "Delivery failed. Could not dispatch verification code to your email or mobile. You may authenticate using your passkey if registered.")
+                elif getattr(otp, 'email_sent', False) and not getattr(otp, 'sms_sent', False):
+                    messages.info(request, f"A 6-digit verification code has been dispatched to your email ({masked_email}). (SMS delivery is currently unavailable).")
+                else:
+                    messages.info(request, "A 6-digit verification code has been dispatched to your email and phone.")
+            else:
+                messages.info(request, f"A verification code was already dispatched recently. Please check your inbox or wait {wait_seconds} seconds before requesting a new code.")
+            request.session['pre_2fa_method'] = 'otp'
+            return redirect('two_factor_verify')
+
+        elif action == 'resend':
             can_resend, wait_seconds = can_resend_otp(user, purpose='2FA')
             if can_resend:
                 otp, raw_code = create_phone_otp(user, purpose='2FA')
@@ -333,6 +418,7 @@ def two_factor_verify(request):
                     messages.info(request, "A new 6-digit verification code has been dispatched to your email and phone.")
             else:
                 messages.warning(request, f"Please wait {wait_seconds} seconds before requesting a new code.")
+            request.session['pre_2fa_method'] = 'otp'
             return redirect('two_factor_verify')
 
         elif action == 'verify':
@@ -342,26 +428,50 @@ def two_factor_verify(request):
                 request.session.pop('pre_2fa_user_id', None)
                 request.session.pop('pre_2fa_redirect', None)
                 request.session.pop('pre_2fa_time', None)
+                request.session.pop('pre_2fa_method', None)
 
                 auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                 enforce_single_session_login(request, user)
+                is_app = is_downloaded_app_request(request)
+                if is_app:
+                    request.session.set_expiry(14 * 86400)
+                    request.session['is_downloaded_app'] = True
+                else:
+                    request.session['just_signed_in'] = True
+
                 request.session['auth_timestamp'] = timezone.now().timestamp()
                 request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=15)).isoformat()
                 log_audit_event(
                     event_type='LOGIN_SUCCESS',
                     actor_enrollment=user.enrollment_number,
-                    description='2FA OTP successfully verified via email/SMS',
+                    description='2FA OTP successfully verified via email/SMS (2-week app session: %s)' % is_app,
                 )
                 messages.success(request, f"Identity verified. Welcome back, {user.display_name}!")
-                return redirect(redirect_to or 'dashboard')
+                response = redirect(redirect_to or 'dashboard')
+                if is_app:
+                    response.set_cookie(
+                        'nexus_app_remembered_user',
+                        user.enrollment_number,
+                        max_age=14 * 86400,
+                        path='/',
+                        samesite='Lax',
+                        secure=request.is_secure(),
+                    )
+                return response
             else:
+                request.session['pre_2fa_method'] = 'otp'
                 messages.error(request, msg)
+
+    # Render intermediate choice screen unless user explicitly chose OTP
+    is_otp_screen = (request.session.get('pre_2fa_method') == 'otp')
 
     return render(request, 'registration/two_factor.html', {
         'masked_phone': masked_phone,
         'masked_email': masked_email,
         'user_obj': user,
         'registered_passkeys': registered_passkeys,
+        'has_passkeys': len(registered_passkeys) > 0,
+        'is_otp_screen': is_otp_screen,
     })
 
 
@@ -411,8 +521,32 @@ def _get_webauthn_rp_id(request):
 
 @rate_limit(key_prefix='passkey_auth_chal', limit=10, period_seconds=60)
 def passkey_auth_challenge(request):
-    """Generate WebAuthn challenge for bypassing 2FA with biometric / Windows Hello passkey."""
+    """Generate WebAuthn challenge for bypassing 2FA or direct 1-touch passkey sign-in on downloaded app."""
     user_id = request.session.get('pre_2fa_user_id') or (request.user.pk if request.user.is_authenticated else None)
+
+    # Direct passkey login on downloaded app: resolve user by enrollment if no active pre_2fa session
+    if not user_id:
+        enrollment = request.GET.get('enrollment_number', '').strip()
+        if not enrollment and request.body:
+            try:
+                body_data = json.loads(request.body.decode('utf-8'))
+                enrollment = body_data.get('enrollment_number', '').strip()
+            except Exception:
+                pass
+        if not enrollment:
+            enrollment = request.COOKIES.get('nexus_app_remembered_user', '').strip()
+
+        if enrollment:
+            target_user = User.objects.filter(
+                enrollment_number=enrollment.upper(),
+                is_active=True,
+            ).first()
+            if target_user and PasskeyCredential.objects.filter(user=target_user).exists():
+                user_id = target_user.pk
+                request.session['pre_2fa_user_id'] = target_user.pk
+                request.session['pre_2fa_time'] = timezone.now().timestamp()
+                request.session['is_downloaded_app'] = is_downloaded_app_request(request)
+
     if not user_id:
         return JsonResponse({'error': 'No authentication session in progress.'}, status=401)
 
@@ -482,17 +616,36 @@ def passkey_auth_verify(request):
             request.session.pop('pre_2fa_user_id', None)
             request.session.pop('pre_2fa_redirect', None)
             request.session.pop('pre_2fa_time', None)
+            request.session.pop('pre_2fa_method', None)
 
             auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             enforce_single_session_login(request, user)
+
+            is_app = is_downloaded_app_request(request) or request.session.get('is_downloaded_app')
+            if is_app:
+                request.session.set_expiry(14 * 86400)
+                request.session['is_downloaded_app'] = True
+            else:
+                request.session['just_signed_in'] = True
+
             request.session['auth_timestamp'] = timezone.now().timestamp()
             request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=15)).isoformat()
             log_audit_event(
                 event_type='LOGIN_SUCCESS',
                 actor_enrollment=user.enrollment_number,
-                description='2FA bypassed via Windows Hello / Biometric Passkey',
+                description='Signed in via Windows Hello / Biometric Passkey (2-week app session: %s)' % is_app,
             )
-            return JsonResponse({'success': True, 'redirect_url': redirect_to or '/dashboard/'})
+            response = JsonResponse({'success': True, 'redirect_url': redirect_to or '/dashboard/'})
+            if is_app:
+                response.set_cookie(
+                    'nexus_app_remembered_user',
+                    user.enrollment_number,
+                    max_age=14 * 86400,
+                    path='/',
+                    samesite='Lax',
+                    secure=request.is_secure(),
+                )
+            return response
         else:
             return JsonResponse({'success': False, 'error': msg}, status=400)
     except Exception as exc:
@@ -996,6 +1149,8 @@ def apply_account(request):
                     request.session.pop('is_guest_demo', None)
                 from django.contrib.auth import login
                 login(request, user, backend='accounts.backends.EnrollmentBackend')
+                if not is_downloaded_app_request(request):
+                    request.session['just_signed_in'] = True
                 messages.success(
                     request,
                     "Welcome to Campus Nexus! Your fast-track account is active so you can coordinate rides immediately. You can apply for official ID verification whenever you are ready."
@@ -1190,6 +1345,8 @@ def apply_account(request):
                         request.session.pop('is_guest_demo', None)
                     from django.contrib.auth import login
                     login(request, user, backend='accounts.backends.EnrollmentBackend')
+                    if not is_downloaded_app_request(request):
+                        request.session['just_signed_in'] = True
 
                     messages.success(
                         request,
@@ -1243,6 +1400,8 @@ def application_success(request):
 def dashboard(request):
     """User's home page. Shows their active ride if they have one."""
     from accounts.demo import is_guest_demo
+    active_announcements = Announcement.get_active_for_user(request.user)
+
     if is_guest_demo(request):
         demo_participations = list(
             RideParticipant.objects.using('guest_demo')
@@ -1256,6 +1415,7 @@ def dashboard(request):
         )
         active_participation = demo_participations[0] if demo_participations else None
         other_participations = demo_participations[1:] if len(demo_participations) > 1 else []
+        just_signed_in = request.session.pop('just_signed_in', False)
         return render(request, 'accounts/dashboard.html', {
             'active_participation': active_participation,
             'other_participations': other_participations,
@@ -1266,6 +1426,10 @@ def dashboard(request):
             'is_guest_demo': True,
             'recent_conversations': [],
             'total_unread_messages': 0,
+            'active_announcements': active_announcements,
+            'proclaiming_announcement': active_announcements[0] if active_announcements else None,
+            'seen_announcement_ids': set(),
+            'just_signed_in': just_signed_in,
         })
 
     active_participations = list(
@@ -1300,6 +1464,14 @@ def dashboard(request):
 
     recent_conversations, total_unread_messages = get_user_recent_conversations(request.user, limit=4, include_empty=False)
 
+    seen_announcement_ids = set(
+        AnnouncementReceipt.objects.filter(user=request.user).values_list('announcement_id', flat=True)
+    )
+    unseen_announcements = [ann for ann in active_announcements if ann.id not in seen_announcement_ids]
+    proclaiming_announcement = unseen_announcements[0] if unseen_announcements else None
+
+    just_signed_in = request.session.pop('just_signed_in', False)
+
     return render(request, 'accounts/dashboard.html', {
         'active_participation': active_participation,
         'other_participations': other_participations,
@@ -1309,6 +1481,10 @@ def dashboard(request):
         'incoming_ride_join_requests': incoming_ride_join_requests,
         'recent_conversations': recent_conversations,
         'total_unread_messages': total_unread_messages,
+        'active_announcements': active_announcements,
+        'proclaiming_announcement': proclaiming_announcement,
+        'seen_announcement_ids': seen_announcement_ids,
+        'just_signed_in': just_signed_in,
     })
 
 
@@ -2547,3 +2723,43 @@ def decline_friend_request(request, request_id):
     messages.info(request, f'Friend request from {sender_name} was declined.')
     return _redirect_after_friend_action(request, sender)
 
+
+
+@login_required
+@require_POST
+def acknowledge_announcement(request, announcement_id):
+    """Mark a priority announcement as received/acknowledged on first login."""
+    from accounts.demo import is_guest_demo
+    if is_guest_demo(request):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'status': 'acknowledged', 'announcement_id': announcement_id})
+        return redirect('dashboard')
+
+    announcement = get_object_or_404(Announcement, id=announcement_id, is_active=True)
+    receipt, created = AnnouncementReceipt.objects.get_or_create(
+        announcement=announcement,
+        user=request.user,
+        defaults={'dismissed': True}
+    )
+    if not receipt.dismissed:
+        receipt.dismissed = True
+        receipt.save(update_fields=['dismissed'])
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({
+            'status': 'acknowledged',
+            'acknowledged': True,
+            'announcement_id': announcement.id,
+            'message': 'Announcement acknowledged.',
+        })
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or '/dashboard/'
+    return redirect(next_url)
+
+
+@require_POST
+def forget_app_remembered_user(request):
+    """Clear 2-week remembered user on downloaded app when user chooses to switch accounts."""
+    response = JsonResponse({'success': True})
+    response.delete_cookie('nexus_app_remembered_user', path='/')
+    return response

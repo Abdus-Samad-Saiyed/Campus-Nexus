@@ -169,6 +169,43 @@
                 {% endif %}
             </div>
 
+            {% if is_self %}
+            <!-- Appearance & UI Accent Theme Card -->
+            <div class="glass p-4 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-palette2 green-accent me-2"></i>Appearance & Theme
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-green" data-bs-toggle="modal" data-bs-target="#uiSettingsModal">
+                        Customize
+                    </button>
+                </div>
+                <p class="text-secondary small mb-3">
+                    Customize your accent color palette, display theme, and ambient watermark background.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('emerald'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('emerald');" title="Emerald">
+                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #08B74F;"></span> Emerald
+                    </button>
+                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('cyan'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('cyan');" title="Cyan">
+                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #00D2FF;"></span> Cyan
+                    </button>
+                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('indigo'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('indigo');" title="Indigo">
+                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #818CF8;"></span> Indigo
+                    </button>
+                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('amber'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('amber');" title="Amber">
+                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #F59E0B;"></span> Amber
+                    </button>
+                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('rose'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('rose');" title="Rose">
+                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #FB7185;"></span> Rose
+                    </button>
+                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('purple'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('purple');" title="Purple">
+                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #A855F7;"></span> Purple
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Friends List Section -->
             <div class="glass p-4 mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">

@@ -34,11 +34,18 @@ def early_launch_context(request):
             except Exception:
                 pass
 
+    is_app = bool(
+        request.COOKIES.get('nexus_standalone_app') == '1' or
+        request.headers.get('X-Nexus-App') == '1' or
+        request.session.get('is_downloaded_app', False)
+    )
     return {
         'is_guest_demo': is_guest_demo(request),
         'early_launch_mode': getattr(settings, 'EARLY_LAUNCH_MODE', False),
         'pending_permanent_application': pending_app,
         'incoming_friend_requests_count': friend_requests_count,
         'pending_applications_count': pending_apps_count,
-        'session_idle_timeout': getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800),
+        'session_idle_timeout': (14 * 86400) if is_app else getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800),
+        'is_downloaded_app': is_app,
+        'app_remembered_user': request.COOKIES.get('nexus_app_remembered_user', ''),
     }

@@ -1,190 +1,174 @@
-# Campus Nexus — Mobile Scaffolding & Architecture Guide
+# Campus Nexus — Progressive Web App (PWA) Scaffolding & Client Guide
 
 ## 1. Overview
-The Campus Nexus mobile application is built using **React Native with Expo** (TypeScript), interfacing with the Django backend via the versioned **REST API v1** (`/api/v1/`) and WebSocket chat gateway (`/ws/ride/<id>/`).
-
-Mobile clients operate under identical server-side domain invariants as the web platform:
-- One active ride limit enforced at database transaction boundary.
-- Strict gender comfort gates (Boys-only, Girls-only, Mixed, Friends-only).
-- ID verification required for account access.
-- Redaction of private complaints and phone numbers from non-moderators/non-co-travelers.
+This guide provides the technical reference and implementation details for the **Campus Nexus Universal Progressive Web App (PWA)**. The PWA architecture delivers an installable, standalone, offline-resilient mobile and desktop client directly from the Django backend without third-party app stores.
 
 ---
 
-## 2. Directory Structure (Expo React Native Client)
+## 2. PWA File Structure & Core Assets
 
 ```
-mobile/
-├── App.tsx                        # App entry point, QueryClientProvider, AuthProvider
-├── app.json                       # Expo configuration (bundle ID, permissions, splash)
-├── package.json                   # React Native & Expo dependencies
-├── tsconfig.json                  # TypeScript compiler options
-├── src/
-│   ├── api/
-│   │   ├── client.ts              # Axios/Fetch client with Bearer auth & retry interceptor
-│   │   ├── auth.ts                # Login, logout, session restoration
-│   │   ├── catalogue.ts           # Service directory queries
-│   │   ├── rides.ts               # Ride discovery, creation, join, leave, history
-│   │   └── types.ts               # TypeScript interfaces matching API v1 schemas
-│   ├── auth/
-│   │   ├── AuthContext.tsx        # React context for auth state & secure storage token
-│   │   └── SecureStorage.ts       # expo-secure-store wrapper for session tokens
-│   ├── navigation/
-│   │   ├── RootNavigator.tsx      # Auth flow vs App flow navigation
-│   │   ├── AppTabs.tsx            # Bottom tabs: Services, Rides, My Rides, Profile
-│   │   └── RideStackNavigator.tsx# Ride List -> Ride Detail -> Live Chat
-│   ├── screens/
-│   │   ├── auth/
-│   │   │   ├── LoginScreen.tsx
-│   │   │   └── ApplyAccountScreen.tsx
-│   │   ├── nexus/
-│   │   │   ├── ServiceCatalogueScreen.tsx
-│   │   │   └── ServiceDetailScreen.tsx
-│   │   ├── coordinate/
-│   │   │   ├── RideListScreen.tsx
-│   │   │   ├── RideDetailScreen.tsx
-│   │   │   ├── CreateRideScreen.tsx
-│   │   │   ├── MyRidesScreen.tsx
-│   │   │   └── RideChatScreen.tsx
-│   │   └── profile/
-│   │       ├── ProfileScreen.tsx
-│   │       └── FriendsScreen.tsx
-│   ├── components/
-│   │   ├── common/
-│   │   │   ├── GlassCard.tsx       # Dark glassmorphism card matching web design tokens
-│   │   │   ├── StatusBadge.tsx     # Standardized status pills (Open, Full, etc.)
-│   │   │   ├── ErrorBanner.tsx     # User-facing failure alert with retry button
-│   │   │   └── ClockworkHeader.tsx # Geometric gear emblem header
-│   │   └── rides/
-│   │       ├── RideCard.tsx
-│   │       └── ParticipantRow.tsx
-│   └── theme/
-│       ├── colors.ts              # Hex tokens: #050B08 bg, #08B74F accent, #18181b cards
-│       └── typography.ts          # Inter font configurations
+Campus-Project/
+├── static/
+│   ├── manifest.json              # Web App Manifest schema, icons, display modes
+│   ├── sw.js                      # Root Service Worker with caching and offline handling
+│   ├── img/
+│   │   ├── favicon.svg            # Vector brand favicon
+│   │   └── pwa/
+│   │       ├── icon-192x192.png   # Standard Android / mobile launcher icon
+│   │       ├── icon-512x512.png   # Splash screen & high-DPI desktop icon
+│   │       ├── icon-maskable-192x192.png # Adaptive maskable icon
+│   │       └── icon-maskable-512x512.png # High-DPI adaptive maskable icon
+│   └── css/
+│       └── main.css               # Dark glassmorphism styles, accent CSS variables
+├── templates/
+│   ├── base.html                  # PWA registration script, install buttons, iOS & universal modals
+│   ├── offline.html               # Network failure fallback page
+│   └── accounts/
+│       ├── dashboard.html         # Post-login install hero prompt (#postLoginPwaPrompt)
+│       └── profile.html           # Appearance & UI customization card
+└── campus/
+    ├── views.py                   # /manifest.json, /sw.js, and /offline/ route handlers
+    └── tests/
+        └── test_pwa_installability_and_manifest.py # Automated PWA test suite
 ```
 
 ---
 
-## 3. Authentication & Secure Storage Pattern
+## 3. Web App Manifest Specification (`/manifest.json`)
 
-Mobile clients must **never** store authentication tokens in unencrypted `AsyncStorage`.
-Instead, use `expo-secure-store` which relies on iOS Keychain and Android Keystore.
+The manifest is served from `/manifest.json` with `Content-Type: application/manifest+json`:
 
-```typescript
-// src/auth/SecureStorage.ts
-import * as SecureStore from 'expo-secure-store';
-
-const TOKEN_KEY = 'campus_nexus_session_token';
-
-export async function saveAuthToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync(TOKEN_KEY, token, {
-    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-  });
-}
-
-export async function getAuthToken(): Promise<string | null> {
-  return await SecureStore.getItemAsync(TOKEN_KEY);
-}
-
-export async function clearAuthToken(): Promise<void> {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-}
-```
-
-### API Client Interceptor
-```typescript
-// src/api/client.ts
-import axios from 'axios';
-import { getAuthToken, clearAuthToken } from '../auth/SecureStorage';
-
-export const apiClient = axios.create({
-  baseURL: 'https://campusnexus.nitsri.ac.in/api/v1',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-});
-
-apiClient.interceptors.request.use(async (config) => {
-  const token = await getAuthToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Session revoked or expired
-      await clearAuthToken();
-      // Notify AuthContext to redirect to LoginScreen
-    }
-    return Promise.reject(error);
-  }
-);
-```
-
----
-
-## 4. API Endpoints Contract (v1)
-
-### 4.1 Service Catalogue
-- `GET /api/v1/catalogue/`
-  - Response: `{ status: "success", data: { services: [ ... ] } }`
-- `GET /api/v1/catalogue/<slug>/`
-  - Returns service capability and development status.
-
-### 4.2 Authentication
-- `POST /api/v1/auth/login/`
-  - Body: `{ enrollment_number: "2024BCSE001", password: "..." }`
-  - Response: `{ status: "success", data: { token: "<session_key>", user: { ... } } }`
-- `POST /api/v1/auth/logout/`
-  - Header: `Authorization: Bearer <token>`
-  - Response: `{ status: "success", message: "Successfully logged out." }`
-
-### 4.3 Current User & Stats
-- `GET /api/v1/me/`
-  - Header: `Authorization: Bearer <token>`
-  - Response:
-    ```json
+```json
+{
+  "name": "Campus Nexus — University Digital Ecosystem",
+  "short_name": "Campus Nexus",
+  "description": "Centralized digital mobility, verified carpooling, and communication platform for university students.",
+  "start_url": "/dashboard/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#050B08",
+  "theme_color": "#08B74F",
+  "icons": [
     {
-      "status": "success",
-      "data": {
-        "user": {
-          "id": 1,
-          "enrollment_number": "2024BCSE001",
-          "name": "Abdus Samad",
-          "branch": "CSE",
-          "gender": "M",
-          "on_time_percentage": 100.0,
-          "rides_completed": 4
-        },
-        "active_ride": { ... }
-      }
+      "src": "/static/img/pwa/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/pwa/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/pwa/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/img/pwa/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-    ```
-
-### 4.4 Ride Operations (COORDINATE Parity)
-- `GET /api/v1/rides/?origin=...&destination=...&date=...`
-  - Returns open rides visible to requesting user under gender/friend visibility rules.
-- `GET /api/v1/rides/<id>/`
-  - Returns ride details and participant rosters with sensitive data redacted.
-- `POST /api/v1/rides/create/`
-  - Body: `{ origin, destination, departure_time, total_spots, visibility, notes }`
-  - Enforces one active ride, max 14-day horizon, future departure, and gender eligibility.
-- `POST /api/v1/rides/<id>/join/`
-  - Atomically reserves a spot. Returns 409 if already participant or active ride exists.
-- `POST /api/v1/rides/<id>/leave/`
-  - Atomically leaves or cancels ride.
-- `GET /api/v1/my-rides/`
-  - Returns active and historical completed rides.
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Rides",
+      "short_name": "Rides",
+      "description": "Find and coordinate verified campus rides",
+      "url": "/rides/?source=pwa_shortcut",
+      "icons": [{ "src": "/static/img/pwa/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Offer a Ride",
+      "short_name": "Offer",
+      "description": "Create a shared ride for fellow students",
+      "url": "/rides/create/?source=pwa_shortcut",
+      "icons": [{ "src": "/static/img/pwa/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+```
 
 ---
 
-## 5. Offline and Interrupted Request Policy
-1. **Idempotent Join/Leave:** Network timeouts on join requests must re-check `GET /api/v1/me/` to verify if participant was enrolled before displaying error alerts.
-2. **Offline Mode:** The mobile client caches the latest ride list and profile in local storage for read-only offline viewing, visibly badging the screen with "Offline — Showing cached records".
-3. **Failure Honesty:** Mutating operations (Join, Leave, Create) are strictly rejected while offline with immediate clear feedback rather than queued optimistic updates that could violate capacity invariants.
+## 4. Service Worker Lifecycle (`/sw.js`)
+
+Served from the root scope with the `Service-Worker-Allowed: /` HTTP header:
+
+1. **Installation (`install`):** Pre-caches the offline fallback page (`/offline/`) and core brand assets in CacheStorage (`campus-nexus-v1`). Calls `self.skipWaiting()` for immediate activation.
+2. **Activation (`activate`):** Iterates over existing caches, purging stale cache keys from previous deployments, then calls `clients.claim()`.
+3. **Fetch Interception (`fetch`):**
+   - **Navigation Requests:** Attempts network fetch. If the network is unreachable, returns the cached `/offline/` page.
+   - **Static Assets:** Serves from cache when available, falling back to network.
+4. **Push Notifications (`push`):** Displays native system notifications with sound, vibration, and actionable URLs.
+5. **Notification Click (`notificationclick`):** Focuses an existing open window or navigates to the target destination.
+
+---
+
+## 5. Client Installation & Standalone Detection
+
+### 5.1. Standalone Mode Detection
+```javascript
+function isRunningStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true ||
+           document.referrer.includes('android-app://') ||
+           (typeof window.isNexusRunningStandalone === 'function' && window.isNexusRunningStandalone());
+}
+```
+
+### 5.2. Installation Entry Points
+1. **Desktop Navbar Button (`#btn-pwa-install`):** Visible in browser mode on desktop screens. Reflects dynamic accent colors (`var(--green)`).
+2. **Mobile Drawer Card (`#btn-pwa-install-mobile`):** Prominently placed inside the mobile navigation drawer.
+3. **Dashboard Hero Card (`#postLoginPwaPrompt`):** Rendered on the student dashboard after sign-in. Dynamically customized for the detected operating system (Windows, Mac, Android, Linux).
+4. **iOS Safari Instruction Modal (`#pwaIosInstallModal`):** 3-step visual instruction explaining *Share > Add to Home Screen* for Apple WebKit devices.
+5. **Universal Fallback Modal (`#pwaGenericInstallModal`):** Instructions for desktop Chrome/Edge address bar icons and Android menus if `beforeinstallprompt` was already dismissed.
+
+---
+
+## 6. Biometric Passkey Handshake for Downloaded App
+
+In downloaded standalone mode, students stay signed in for 2 weeks with one-touch biometrics:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    participant Client as PWA Standalone App
+    participant Server as Django Auth Backend
+    participant DB as PostgreSQL 16
+
+    Note over Student,Client: Student opens installed PWA on PC or Phone
+    Client->>Server: GET /auth/passkey/authenticate/challenge/?enrollment_number=2024BCSE001
+    Server->>Client: 200 OK { challenge: "...base64url...", rp_id: "..." }
+    Client->>Student: Prompt Touch ID / Face ID / Windows Hello
+    Student->>Client: Biometric Touch Confirmed
+    Client->>Server: POST /auth/passkey/authenticate/verify/ (Signature + ClientDataJSON)
+    Server->>DB: Verify cryptographic WebAuthn assertion signature
+    Server->>Client: 200 OK (Set-Cookie: sessionid; Max-Age=1209600 [14 Days])
+    Client->>Client: Redirect to /dashboard/
+```
+
+---
+
+## 7. Automated Testing & Verification
+
+The PWA subsystem is continuously verified via Django tests:
+
+```bash
+# Run PWA test suite
+python manage.py test campus.tests.test_pwa_installability_and_manifest --settings=campus.settings.test
+```
+
+### Verified Checks:
+- `/manifest.json` returns HTTP 200, `application/manifest+json`, and valid PWA schema.
+- High-DPI icons (`192x192`, `512x512`, maskable) exist on disk.
+- `/offline/` returns HTTP 200 with emergency campus guidelines.
+- `/sw.js` serves with root `Service-Worker-Allowed: /` header.
+- Standalone detection and post-login install prompt elements render cleanly on authenticated dashboards.

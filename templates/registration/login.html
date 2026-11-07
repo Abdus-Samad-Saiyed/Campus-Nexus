@@ -1,93 +1,321 @@
 {% extends 'base.html' %}
 
-{% block title %}Sign In — COORDINATE{% endblock %}
+{% block title %}Sign In — Campus Nexus{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-card {
+        border-radius: 20px;
+        background: linear-gradient(145deg, rgba(14, 23, 18, 0.90) 0%, rgba(10, 16, 12, 0.96) 100%);
+        border: 1.5px solid var(--border, rgba(255, 255, 255, 0.1));
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 28px var(--green-glow, rgba(8, 183, 79, 0.12));
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+    }
+    
+    [data-bs-theme="light"] .auth-card,
+    [data-theme="light"] .auth-card {
+        background: #ffffff !important;
+        border-color: #e2e8f0 !important;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .auth-security-tip {
+        background: rgba(8, 183, 79, 0.07);
+        border: 1px solid rgba(8, 183, 79, 0.22);
+    }
+
+    [data-bs-theme="light"] .auth-security-tip,
+    [data-theme="light"] .auth-security-tip {
+        background: rgba(5, 150, 73, 0.06) !important;
+        border-color: rgba(5, 150, 73, 0.25) !important;
+    }
+
+    .auth-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        border-radius: 12px;
+        border: 1.5px solid var(--border, rgba(255, 255, 255, 0.14));
+        background: rgba(12, 20, 15, 0.82);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+    }
+
+    [data-bs-theme="light"] .auth-input-wrapper,
+    [data-theme="light"] .auth-input-wrapper {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    .auth-input-wrapper:focus-within {
+        border-color: var(--green, #08B74F) !important;
+        box-shadow: 0 0 0 3.5px var(--green-glow, rgba(8, 183, 79, 0.24)), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+        background: rgba(15, 26, 19, 0.96);
+    }
+
+    [data-bs-theme="light"] .auth-input-wrapper:focus-within,
+    [data-theme="light"] .auth-input-wrapper:focus-within {
+        background: #ffffff !important;
+        border-color: var(--green, #059649) !important;
+    }
+
+    .auth-input-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        color: var(--text-muted, #9ca3af);
+        font-size: 1.15rem;
+        background: transparent;
+        transition: color 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .auth-input-wrapper:focus-within .auth-input-icon {
+        color: var(--green, #08B74F);
+    }
+
+    .auth-input-field {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 48px;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: var(--text, #f3f4f6) !important;
+        font-size: 0.95rem;
+        padding: 0.5rem 0.75rem 0.5rem 0;
+    }
+
+    .auth-input-field:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    [data-bs-theme="light"] .auth-input-field,
+    [data-theme="light"] .auth-input-field {
+        color: #0f172a !important;
+    }
+
+    .auth-input-field::placeholder {
+        color: var(--text-faint, #6b7280) !important;
+        font-size: 0.88rem;
+    }
+
+    .auth-password-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted, #9ca3af);
+        font-size: 1.15rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        padding: 0;
+    }
+
+    .auth-password-btn:hover {
+        color: var(--green, #08B74F);
+        transform: scale(1.08);
+    }
+
+    .auth-password-btn:active {
+        transform: scale(0.95);
+    }
+
+    .auth-password-btn:focus {
+        outline: none;
+    }
+
+    .btn-sign-in {
+        height: 48px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.98rem;
+        letter-spacing: 0.01em;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 16px var(--green-glow, rgba(8, 183, 79, 0.3));
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-sign-in:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 24px var(--green-glow, rgba(8, 183, 79, 0.45));
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center align-items-center" style="min-height: 65vh;">
         <div class="col-md-8 col-lg-5">
-            <div class="glass p-4 p-md-5">
+            <div class="auth-card p-4 p-md-5">
                 <div class="text-center mb-4">
                     <div class="feature-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.5rem;">
                         <i class="bi bi-person-badge"></i>
                     </div>
-                    <h2 class="fw-bold mb-1">Student Sign In</h2>
+                    <h2 class="fw-bold mb-1 text-white">Student Sign In</h2>
                     <p class="text-secondary small">Access verified rides across campus</p>
                 </div>
 
-                <form method="POST" action="{% url 'login' %}" toolname="student_login" tooldescription="Authenticate student account using campus email and password or WebAuthn passkey">
-                    {% csrf_token %}
-                    {% if next %}
-                        <input type="hidden" name="next" value="{{ next }}">
-                    {% endif %}
+                <!-- 2-Week Downloaded App Passkey Fast Sign-In Card -->
+                {% if remembered_user and has_app_passkey %}
+                    <div id="app-passkey-container" class="mb-4">
+                        <div class="glass p-4 text-center border-success" style="background: rgba(8, 183, 79, 0.08); border: 1.5px solid var(--green,#08B74F); box-shadow: 0 0 25px rgba(8, 183, 79, 0.15); border-radius: 16px;">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small fw-semibold mb-3">
+                                <i class="bi bi-shield-check me-1"></i> Downloaded App &middot; 2-Week Session
+                            </span>
 
-                    <!-- Account Security Reminder -->
-                    <div class="alert alert-dark border border-secondary py-2 px-3 mb-3 small d-flex align-items-center gap-2">
-                        <i class="bi bi-shield-lock text-success fs-5 flex-shrink-0"></i>
-                        <div class="text-secondary small">
-                            Keep your login credentials secure. Never share your password or 2FA codes with anyone.
-                        </div>
-                    </div>
+                            <div class="user-avatar-placeholder mx-auto mb-2" style="width: 54px; height: 54px; font-size: 1.6rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
 
-                    {% if form.errors %}
-                        <div class="alert alert-danger py-2 small mb-3">
-                            <i class="bi bi-exclamation-circle-fill me-1"></i> Invalid enrollment number or password.
-                        </div>
-                    {% endif %}
+                            <h4 class="fw-bold text-white mb-1" id="app-remembered-name">
+                                Welcome back, {{ remembered_user.first_name|default:remembered_user.enrollment_number }}!
+                            </h4>
+                            <div class="text-secondary small font-monospace mb-3" id="app-remembered-enrollment-display">
+                                {{ remembered_user.enrollment_number }}
+                            </div>
 
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Enrollment Number</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-person"></i></span>
-                            <input type="text" name="username" autofocus autocapitalize="characters" autocomplete="username" maxlength="11" required id="id_username" class="form-control" placeholder="e.g. 2024BCSE001">
-                        </div>
-                        <div class="form-text text-secondary small">Format: Year + Degree + Branch + Roll (e.g. 2024BCSE001)</div>
-                    </div>
+                            <div id="passkey-login-status" class="small text-secondary mb-3">
+                                Use your biometric sensor or Windows Hello to sign in instantly without password.
+                            </div>
 
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label for="id_password" class="form-label mb-0">Password</label>
-                            <a href="{% url 'forgot_password' %}" class="small text-secondary text-decoration-none">
-                                <i class="bi bi-question-circle me-1"></i> Forgot Password?
-                            </a>
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-key"></i></span>
-                            <input type="password" name="password" autocomplete="current-password" required id="id_password" class="form-control" placeholder="Enter your password">
-                            <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
-                                <i class="bi bi-eye"></i>
+                            <button type="button" class="btn btn-green w-100 py-3 fw-bold fs-6 d-flex align-items-center justify-content-center gap-2 shadow mb-3" id="btn-app-passkey" onclick="startAppPasskeyLogin('{{ remembered_user.enrollment_number }}')">
+                                <i class="bi bi-fingerprint fs-4"></i> Sign In with Passkey
                             </button>
-                        </div>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordLogin">
-                            <label class="form-check-label small text-secondary user-select-none" for="showPasswordLogin">
-                                Show password
-                            </label>
+
+                            <div class="d-flex justify-content-between align-items-center text-secondary small pt-2 border-top border-secondary border-opacity-25">
+                                <button type="button" class="btn btn-link btn-sm text-secondary text-decoration-none p-0" onclick="togglePasswordForm(true)">
+                                    <i class="bi bi-key me-1"></i> Sign in with password
+                                </button>
+                                <button type="button" class="btn btn-link btn-sm text-secondary text-decoration-none p-0" onclick="forgetAppRememberedUser()">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Switch Account
+                                </button>
+                            </div>
                         </div>
                     </div>
+                {% else %}
+                    <div id="app-passkey-container" class="d-none mb-4">
+                        <div class="glass p-4 text-center border-success" style="background: rgba(8, 183, 79, 0.08); border: 1.5px solid var(--green,#08B74F); box-shadow: 0 0 25px rgba(8, 183, 79, 0.15); border-radius: 16px;">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small fw-semibold mb-3">
+                                <i class="bi bi-shield-check me-1"></i> Downloaded App &middot; 2-Week Session
+                            </span>
 
-                    <button type="submit" class="btn btn-green w-100 py-2 fs-6 fw-bold">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-                    </button>
-                </form>
+                            <div class="user-avatar-placeholder mx-auto mb-2" style="width: 54px; height: 54px; font-size: 1.6rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+
+                            <h4 class="fw-bold text-white mb-1" id="app-remembered-name">
+                                Welcome back!
+                            </h4>
+                            <div class="text-secondary small font-monospace mb-3" id="app-remembered-enrollment-display">
+                            </div>
+
+                            <div id="passkey-login-status" class="small text-secondary mb-3">
+                                Use your biometric sensor or Windows Hello to sign in instantly without password.
+                            </div>
+
+                            <button type="button" class="btn btn-green w-100 py-3 fw-bold fs-6 d-flex align-items-center justify-content-center gap-2 shadow mb-3" id="btn-app-passkey" onclick="startAppPasskeyLogin()">
+                                <i class="bi bi-fingerprint fs-4"></i> Sign In with Passkey
+                            </button>
+
+                            <div class="d-flex justify-content-between align-items-center text-secondary small pt-2 border-top border-secondary border-opacity-25">
+                                <button type="button" class="btn btn-link btn-sm text-secondary text-decoration-none p-0" onclick="togglePasswordForm(true)">
+                                    <i class="bi bi-key me-1"></i> Sign in with password
+                                </button>
+                                <button type="button" class="btn btn-link btn-sm text-secondary text-decoration-none p-0" onclick="forgetAppRememberedUser()">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Switch Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Standard Password & 2FA Form -->
+                <div id="standard-login-container" class="{% if remembered_user and has_app_passkey %}d-none{% endif %}">
+                    <form method="POST" action="{% url 'login' %}" toolname="student_login" tooldescription="Authenticate student account using campus email and password or WebAuthn passkey" id="loginForm">
+                        {% csrf_token %}
+                        {% if next %}
+                            <input type="hidden" name="next" value="{{ next }}">
+                        {% endif %}
+
+                        <!-- Compact Security & Session Callout -->
+                        <div class="auth-security-tip py-2 px-3 mb-3 rounded-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-success fs-5 flex-shrink-0"></i>
+                            <div class="text-secondary small" style="font-size: 0.78rem; line-height: 1.35;">
+                                Keep your login credentials secure. Never share your password or 2FA codes with anyone. Downloaded app sessions stay active for <strong>2 weeks</strong> with biometric security.
+                            </div>
+                        </div>
+
+                        {% if form.errors %}
+                            <div class="alert alert-danger py-2 small mb-3">
+                                <i class="bi bi-exclamation-circle-fill me-1"></i> Invalid enrollment number or password.
+                            </div>
+                        {% endif %}
+
+                        <!-- Enrollment Number Box -->
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label text-light fw-semibold small mb-1.5 px-1 d-flex justify-content-between align-items-center">
+                                <span>Enrollment Number</span>
+                                <span class="text-secondary font-monospace" style="font-size: 0.7rem;">11 CHARACTERS</span>
+                            </label>
+                            <div class="auth-input-wrapper">
+                                <div class="auth-input-icon">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <input type="text" name="username" autofocus autocapitalize="characters" autocomplete="username" maxlength="11" required id="id_username" class="form-control auth-input-field font-monospace" placeholder="e.g. 2024BCSE001" value="{{ form.username.value|default:'' }}" style="letter-spacing: 0.04em;">
+                            </div>
+                            <div class="form-text text-secondary small px-1 mt-1" style="font-size: 0.74rem;">Format: Year + Degree + Branch + Roll (e.g. 2024BCSE001)</div>
+                        </div>
+
+                        <!-- Password Box with Integrated Precision Toggle -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1.5 px-1">
+                                <label for="id_password" class="form-label text-light fw-semibold small mb-0">Password</label>
+                                <a href="{% url 'forgot_password' %}" class="small text-secondary text-decoration-none">
+                                    <i class="bi bi-question-circle me-1"></i> Forgot Password?
+                                </a>
+                            </div>
+                            <div class="auth-input-wrapper">
+                                <div class="auth-input-icon">
+                                    <i class="bi bi-key"></i>
+                                </div>
+                                <input type="password" name="password" autocomplete="current-password" required id="id_password" class="form-control auth-input-field" placeholder="Enter your password">
+                                <button type="button" class="auth-password-btn password-toggle-btn" id="btnTogglePassword" tabindex="-1" title="Show password" aria-label="Show password" onclick="togglePasswordVisibility()">
+                                    <i class="bi bi-eye" id="passwordEyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sign In CTA Button -->
+                        <button type="submit" class="btn btn-green btn-sign-in w-100 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-box-arrow-in-right fs-5"></i>
+                            <span>Sign In</span>
+                        </button>
+                    </form>
+                </div>
 
                 <div class="my-3 text-center">
                     <div class="d-flex align-items-center my-3">
-                        <hr class="flex-grow-1 border-secondary m-0">
+                        <hr class="flex-grow-1 border-secondary border-opacity-25 m-0">
                         <span class="px-3 text-secondary small font-monospace">OR</span>
-                        <hr class="flex-grow-1 border-secondary m-0">
+                        <hr class="flex-grow-1 border-secondary border-opacity-25 m-0">
                     </div>
-                    <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 py-2 fw-semibold">
-                        <i class="bi bi-incognito me-1"></i> Explore in Guest Demo Mode
+                    <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3">
+                        <i class="bi bi-incognito fs-5"></i> Explore in Guest Demo Mode
                     </a>
-                    <div class="form-text text-secondary small mt-1">Instant preview of COORDINATE with student privacy protections.</div>
+                    <div class="form-text text-secondary small mt-1.5">Instant preview of Campus Nexus with student privacy protections.</div>
                 </div>
 
-                <hr class="my-4">
+                <hr class="my-4 border-secondary border-opacity-25">
 
                 <div class="text-center small">
                     <p class="text-secondary mb-2">New student or haven't verified yet?</p>
-                    <a href="{% url 'apply_account' %}" class="green-accent fw-semibold">
+                    <a href="{% url 'apply_account' %}" class="green-accent fw-semibold text-decoration-none">
                         <i class="bi bi-pencil-square me-1"></i> Submit Account Application &rarr;
                     </a>
                 </div>
@@ -95,4 +323,205 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Mark standalone downloaded app on client
+(function() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                         window.navigator.standalone === true ||
+                         document.referrer.includes('android-app://') ||
+                         window.location.search.includes('source=pwa');
+    if (isStandalone) {
+        document.cookie = "nexus_standalone_app=1; path=/; max-age=31536000; SameSite=Lax";
+        localStorage.setItem('nexus_standalone_app', '1');
+    }
+
+    // Check localStorage fallback for remembered enrollment within 14 days
+    const localEnrollment = localStorage.getItem('nexus_app_remembered_enrollment');
+    const localTs = parseInt(localStorage.getItem('nexus_app_remembered_ts') || '0', 10);
+    const fourteenDaysMs = 14 * 86400 * 1000;
+
+    if (localEnrollment && (Date.now() - localTs) < fourteenDaysMs) {
+        const appCard = document.getElementById('app-passkey-container');
+        const stdCard = document.getElementById('standard-login-container');
+        if (appCard && stdCard && appCard.classList.contains('d-none')) {
+            const nameEl = document.getElementById('app-remembered-name');
+            const enrEl = document.getElementById('app-remembered-enrollment-display');
+            if (nameEl) nameEl.textContent = 'Welcome back!';
+            if (enrEl) enrEl.textContent = localEnrollment;
+            const btn = document.getElementById('btn-app-passkey');
+            if (btn) btn.setAttribute('onclick', "startAppPasskeyLogin('" + localEnrollment + "')");
+            appCard.classList.remove('d-none');
+            stdCard.classList.add('d-none');
+        }
+    }
+})();
+
+function togglePasswordVisibility() {
+    const pwInput = document.getElementById('id_password');
+    const eyeIcon = document.getElementById('passwordEyeIcon');
+    const btn = document.getElementById('btnTogglePassword');
+    if (!pwInput) return;
+    const isVisible = pwInput.type === 'text';
+    pwInput.type = isVisible ? 'password' : 'text';
+    if (eyeIcon) {
+        eyeIcon.className = isVisible ? 'bi bi-eye' : 'bi bi-eye-slash green-accent';
+    }
+    if (btn) {
+        btn.setAttribute('title', isVisible ? 'Show password' : 'Hide password');
+        btn.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+    }
+    pwInput.focus();
+}
+
+function togglePasswordForm(showPassword) {
+    const appCard = document.getElementById('app-passkey-container');
+    const stdCard = document.getElementById('standard-login-container');
+    if (showPassword) {
+        if (appCard) appCard.classList.add('d-none');
+        if (stdCard) stdCard.classList.remove('d-none');
+    } else {
+        if (appCard) appCard.classList.remove('d-none');
+        if (stdCard) stdCard.classList.add('d-none');
+    }
+}
+
+function forgetAppRememberedUser() {
+    document.cookie = "nexus_app_remembered_user=; path=/; max-age=0; SameSite=Lax";
+    localStorage.removeItem('nexus_app_remembered_enrollment');
+    localStorage.removeItem('nexus_app_remembered_ts');
+
+    fetch("{% url 'forget_app_remembered_user' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+        }
+    }).finally(() => {
+        togglePasswordForm(true);
+        const nameEl = document.getElementById('app-remembered-name');
+        if (nameEl) nameEl.textContent = 'Welcome back!';
+        const usernameInput = document.getElementById('id_username');
+        if (usernameInput) {
+            usernameInput.value = '';
+            usernameInput.focus();
+        }
+    });
+}
+
+async function startAppPasskeyLogin(enrollment) {
+    const statusDiv = document.getElementById('passkey-login-status');
+    const btn = document.getElementById('btn-app-passkey');
+
+    const targetEnrollment = enrollment ||
+                             document.getElementById('app-remembered-enrollment-display')?.textContent.trim() ||
+                             localStorage.getItem('nexus_app_remembered_enrollment') ||
+                             '';
+
+    if (!window.PublicKeyCredential) {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger">Biometric authentication is not supported on this browser. Please use your password.</span>';
+        togglePasswordForm(true);
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Waiting for biometrics...';
+    }
+    if (statusDiv) statusDiv.textContent = 'Awaiting Windows Hello, Touch ID, or fingerprint...';
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const challengeUrl = "{% url 'passkey_auth_challenge' %}" + (targetEnrollment ? ("?enrollment_number=" + encodeURIComponent(targetEnrollment)) : "");
+        const challengeRes = await fetch(challengeUrl, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRFToken': csrfToken,
+            }
+        });
+
+        if (!challengeRes.ok) {
+            const err = await challengeRes.json();
+            throw new Error(err.error || 'Challenge negotiation failed');
+        }
+        const chalData = await challengeRes.json();
+
+        // Convert base64url challenge to Uint8Array
+        const challengeBytes = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+        const getOptions = {
+            challenge: challengeBytes,
+            timeout: 60000,
+            userVerification: 'preferred',
+        };
+        if (chalData.rp_id && !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(chalData.rp_id)) {
+            getOptions.rpId = chalData.rp_id;
+        }
+
+        const assertion = await navigator.credentials.get({
+            publicKey: getOptions
+        });
+
+        if (!assertion) {
+            throw new Error('Biometric passkey sign-in cancelled.');
+        }
+
+        function bufferToBase64url(buffer) {
+            if (!buffer) return '';
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        const clientDataB64 = bufferToBase64url(assertion.response.clientDataJSON);
+        if (statusDiv) statusDiv.textContent = 'Verifying cryptographic passkey signature...';
+
+        const verifyRes = await fetch("{% url 'passkey_auth_verify' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Nexus-App': '1',
+            },
+            body: JSON.stringify({
+                id: assertion.id,
+                credential_id: assertion.id,
+                rawId: bufferToBase64url(assertion.rawId),
+                type: assertion.type,
+                client_data_json: clientDataB64,
+                response: {
+                    authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+                    clientDataJSON: clientDataB64,
+                    signature: bufferToBase64url(assertion.response.signature),
+                    userHandle: bufferToBase64url(assertion.response.userHandle),
+                }
+            })
+        });
+
+        const verifyData = await verifyRes.json();
+        if (verifyData.success) {
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Passkey verified! Signing in...</span>';
+            if (targetEnrollment) {
+                localStorage.setItem('nexus_app_remembered_enrollment', targetEnrollment);
+                localStorage.setItem('nexus_app_remembered_ts', Date.now());
+            }
+            window.location.href = verifyData.redirect_url || "{% url 'dashboard' %}";
+        } else {
+            throw new Error(verifyData.error || 'Passkey verification failed');
+        }
+
+    } catch (err) {
+        console.error('[Passkey] Sign-in failed:', err);
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> ' + (err.message || 'Passkey authentication failed.') + '</span>';
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-fingerprint fs-4 me-2"></i> Try Passkey Again';
+        }
+    }
+}
+</script>
 {% endblock %}

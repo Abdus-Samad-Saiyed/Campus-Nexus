@@ -154,6 +154,114 @@ class TwoFactorAndPasskeyTests(TestCase):
         )
         self.assertFalse(fail_success)
 
+    def test_intermediate_2fa_choice_screen_no_eager_otp(self):
+        """Entering UserId and Password directs to 2FA choice screen without generating or sending OTP."""
+        res = self.client.post(reverse("login"), {
+            "username": "2024BCSE101",
+            "password": "StrongPassword123!",
+        })
+        self.assertRedirects(res, reverse("two_factor_verify"))
+        self.assertEqual(self.client.session.get("pre_2fa_user_id"), self.user.id)
+
+        # Unless OTP is chosen, no OTP is generated
+        otp = PhoneOTP.objects.filter(user=self.user, is_used=False, purpose="2FA").first()
+        self.assertIsNone(otp)
+
+        # Renders the choice screen
+        choice_page = self.client.get(reverse("two_factor_verify"))
+        self.assertEqual(choice_page.status_code, 200)
+        self.assertFalse(choice_page.context.get("is_otp_screen"))
+        self.assertContains(choice_page, "Passkey / Windows Hello")
+        self.assertContains(choice_page, "Send Verification Code")
+
+    def test_choosing_otp_dispatches_code_and_shows_entry_screen(self):
+        """Explicitly choosing OTP dispatches the 6-digit code and presents the verification form."""
+        self.client.post(reverse("login"), {
+            "username": "2024BCSE101",
+            "password": "StrongPassword123!",
+        })
+
+        # Submit action to choose/send OTP
+        send_res = self.client.post(reverse("two_factor_verify"), {"action": "send_otp"})
+        self.assertRedirects(send_res, reverse("two_factor_verify"))
+
+        # OTP is now generated
+        otp = PhoneOTP.objects.filter(user=self.user, is_used=False, purpose="2FA").first()
+        self.assertIsNotNone(otp)
+
+        # Now shows the OTP entry screen
+        otp_page = self.client.get(reverse("two_factor_verify"))
+        self.assertEqual(otp_page.status_code, 200)
+        self.assertTrue(otp_page.context.get("is_otp_screen"))
+        self.assertContains(otp_page, "Enter 6-Digit Code")
+
+    def test_switch_back_to_choice_screen(self):
+        """User on OTP screen can switch back to method choice screen via ?method=choose."""
+        self.client.post(reverse("login"), {
+            "username": "2024BCSE101",
+            "password": "StrongPassword123!",
+        })
+        self.client.post(reverse("two_factor_verify"), {"action": "send_otp"})
+
+        # Switch back to choice screen
+        switch_res = self.client.get(reverse("two_factor_verify") + "?method=choose")
+        self.assertRedirects(switch_res, reverse("two_factor_verify"))
+
+        page = self.client.get(reverse("two_factor_verify"))
+        self.assertFalse(page.context.get("is_otp_screen"))
+        self.assertContains(page, "Send Verification Code")
+
+    def test_choosing_passkey_authenticates_without_generating_otp(self):
+        """Choosing passkey bypasses 2FA cleanly without generating or sending any OTP."""
+        from webauthn.helpers import bytes_to_base64url
+        from campus.tests.webauthn_test_utils import generate_test_keypair, make_assertion_response
+
+        priv_key, _, pubkey_b64 = generate_test_keypair()
+        cred_bytes = b"my_registered_passkey"
+        cred_b64 = bytes_to_base64url(cred_bytes)
+        PasskeyCredential.objects.create(
+            user=self.user,
+            credential_id=cred_b64,
+            public_key=pubkey_b64,
+            name="My Laptop Key",
+        )
+
+        # Primary password login
+        self.client.post(reverse("login"), {
+            "username": "2024BCSE101",
+            "password": "StrongPassword123!",
+        })
+
+        # Ensure NO OTP was created
+        self.assertIsNone(PhoneOTP.objects.filter(user=self.user, is_used=False, purpose="2FA").first())
+
+        # Complete passkey challenge & verification
+        chal_res = self.client.get(reverse("passkey_auth_challenge"))
+        self.assertEqual(chal_res.status_code, 200)
+        challenge = chal_res.json()["challenge"]
+
+        assertion = make_assertion_response(
+            private_key=priv_key,
+            challenge_b64=challenge,
+            credential_id=cred_bytes,
+            origin="http://testserver",
+            rp_id="testserver",
+        )
+
+        auth_res = self.client.post(
+            reverse("passkey_auth_verify"),
+            data=json.dumps(assertion),
+            content_type="application/json",
+        )
+        self.assertEqual(auth_res.status_code, 200)
+        self.assertTrue(auth_res.json().get("success"))
+
+        # User is logged in
+        self.assertEqual(int(self.client.session.get("_auth_user_id")), self.user.id)
+
+        # NO OTP was EVER created in this entire flow
+        self.assertIsNone(PhoneOTP.objects.filter(user=self.user, purpose="2FA").first())
+
 
 class AuthenticationAndSecurityPageTests(TestCase):
     def setUp(self):

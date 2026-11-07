@@ -15,11 +15,19 @@
     <title>{% block title %}Campus Nexus — Centralized Student Digital Services{% endblock %}</title>
 
     <!-- Favicon & Dynamic Accent-Matched Brand Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Campus Nexus">
+    <meta name="application-name" content="Campus Nexus">
     <link id="nexus-favicon-32" rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32x32.png' %}?v=6">
     <link id="nexus-favicon-16" rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon-16x16.png' %}?v=6">
     <link id="nexus-favicon-svg" rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}?v=6">
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'favicon.ico' %}?v=6">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}?v=6">
+    <link rel="apple-touch-icon" sizes="192x192" href="{% static 'img/pwa/icon-192x192.png' %}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{% static 'img/pwa/icon-512x512.png' %}">
     <meta id="nexus-theme-color-meta" name="theme-color" content="#08B74F">
     <script>
         (function() {
@@ -138,6 +146,185 @@
     <link rel="stylesheet" href="{% static 'css/main.min.css' %}?v=3.2.0">
     <link rel="preload" href="{% static 'css/watermark.min.css' %}?v=3.2.0" as="style" data-asset="watermark.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{% static 'css/watermark.min.css' %}?v=3.2.0" data-asset="watermark.css"></noscript>
+
+    <!-- PWA Installation Button Dynamic Accent Styles -->
+    <style id="pwa-install-styles">
+        .btn-pwa-install {
+            height: 34px;
+            padding: 0 14px 0 10px;
+            display: inline-flex;
+            align-items: center;
+            border-radius: var(--radius-full, 999px);
+            background: rgba(14, 23, 18, 0.75);
+            border: 1px solid var(--green, #08B74F);
+            color: var(--green, #08B74F);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 10px var(--green-glow, rgba(8, 183, 79, 0.2));
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            white-space: nowrap;
+        }
+
+        .btn-pwa-install .pwa-install-icon {
+            font-size: 0.85rem;
+            color: var(--green, #08B74F);
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .btn-pwa-install .pwa-install-label {
+            color: var(--text, #f3f4f6);
+            transition: color 0.2s ease;
+        }
+
+        .btn-pwa-install:hover {
+            background: var(--green, #08B74F) !important;
+            border-color: var(--green, #08B74F) !important;
+            box-shadow: 0 0 20px var(--green-glow, rgba(8, 183, 79, 0.45)), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+            transform: translateY(-1px);
+        }
+
+        .btn-pwa-install:hover .pwa-install-icon,
+        .btn-pwa-install:hover .pwa-install-label {
+            color: #050B08 !important;
+        }
+
+        .btn-pwa-install:hover .pwa-install-icon {
+            transform: translateY(1px);
+        }
+
+        .btn-pwa-install:active {
+            transform: scale(0.97);
+        }
+
+        /* Mobile PWA Install Card Button */
+        .btn-pwa-install-mobile {
+            display: none;
+            align-items: center;
+            background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.14)) 0%, rgba(14, 23, 18, 0.85) 100%);
+            border: 1.5px solid var(--green, #08B74F) !important;
+            color: var(--text, #f3f4f6);
+            padding: 10px 14px;
+            border-radius: var(--radius, 14px);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 14px var(--green-glow, rgba(8, 183, 79, 0.22));
+            cursor: pointer;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .btn-pwa-install-mobile:hover,
+        .btn-pwa-install-mobile:focus {
+            background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.22)) 0%, rgba(14, 23, 18, 0.95) 100%);
+            border-color: var(--green-hover, #10B981) !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--green-glow, rgba(8, 183, 79, 0.38));
+            transform: translateY(-1px);
+        }
+
+        .btn-pwa-install-mobile:active {
+            transform: scale(0.98);
+        }
+
+        .pwa-mobile-icon-bubble {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--green, #08B74F);
+            color: #050B08;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px var(--green-glow, rgba(8, 183, 79, 0.4));
+            transition: transform 0.2s ease;
+        }
+
+        .btn-pwa-install-mobile:hover .pwa-mobile-icon-bubble {
+            transform: scale(1.06);
+        }
+
+        .pwa-mobile-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.25;
+        }
+
+        .pwa-mobile-subtitle {
+            font-size: 0.72rem;
+            color: var(--text-muted, #9ca3af);
+            line-height: 1.2;
+            margin-top: 2px;
+        }
+
+        .pwa-mobile-badge .badge {
+            background: var(--green, #08B74F);
+            color: #050B08;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 5px 9px;
+            letter-spacing: 0.02em;
+            box-shadow: 0 1px 6px var(--green-glow, rgba(8, 183, 79, 0.3));
+        }
+
+        /* Light Theme Overrides */
+        [data-bs-theme="light"] .btn-pwa-install,
+        [data-theme="light"] .btn-pwa-install {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border-color: var(--green, #059649) !important;
+            color: var(--green, #059649) !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 10px var(--green-glow, rgba(5, 150, 73, 0.15)) !important;
+        }
+
+        [data-bs-theme="light"] .btn-pwa-install .pwa-install-label,
+        [data-theme="light"] .btn-pwa-install .pwa-install-label {
+            color: #0f172a !important;
+        }
+
+        [data-bs-theme="light"] .btn-pwa-install:hover,
+        [data-theme="light"] .btn-pwa-install:hover {
+            background: var(--green, #059649) !important;
+            border-color: var(--green, #059649) !important;
+            box-shadow: 0 0 16px var(--green-glow, rgba(5, 150, 73, 0.3)) !important;
+        }
+
+        [data-bs-theme="light"] .btn-pwa-install:hover .pwa-install-icon,
+        [data-bs-theme="light"] .btn-pwa-install:hover .pwa-install-label,
+        [data-theme="light"] .btn-pwa-install:hover .pwa-install-icon,
+        [data-theme="light"] .btn-pwa-install:hover .pwa-install-label {
+            color: #ffffff !important;
+        }
+
+        [data-bs-theme="light"] .btn-pwa-install-mobile,
+        [data-theme="light"] .btn-pwa-install-mobile {
+            background: linear-gradient(135deg, var(--green-dim, rgba(5, 150, 73, 0.12)) 0%, #ffffff 100%) !important;
+            border: 1.5px solid var(--green, #059649) !important;
+            color: #0f172a !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06), 0 0 12px var(--green-glow, rgba(5, 150, 73, 0.16)) !important;
+        }
+
+        [data-bs-theme="light"] .pwa-mobile-title,
+        [data-theme="light"] .pwa-mobile-title {
+            color: #0f172a !important;
+        }
+
+        [data-bs-theme="light"] .pwa-mobile-subtitle,
+        [data-theme="light"] .pwa-mobile-subtitle {
+            color: #64748b !important;
+        }
+
+        [data-bs-theme="light"] .pwa-mobile-badge .badge,
+        [data-theme="light"] .pwa-mobile-badge .badge {
+            color: #ffffff !important;
+        }
+    </style>
     <script>
         (function() {
             try {
@@ -449,6 +636,10 @@
                     <i class="bi bi-bell text-secondary"></i>
                 </button>
                 {% endif %}
+                <!-- Mobile Dedicated Visual Controls & Accent Colours Button -->
+                <button class="btn btn-icon-nav" type="button" data-bs-toggle="modal" data-bs-target="#uiSettingsModal" title="Visual Controls & Accent Colours" aria-label="Visual Controls & Accent Colours">
+                    <i class="bi bi-palette2 green-accent"></i>
+                </button>
                 <button class="btn btn-icon-nav theme-toggle-btn" type="button" onclick="window.toggleNexusTheme()" title="Switch Theme" aria-label="Toggle theme">
                     <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i>
                 </button>
@@ -530,6 +721,11 @@
 
                 <!-- Right Utility Bar & User Controls -->
                 <div class="d-none d-lg-flex align-items-center gap-2 ms-lg-auto pt-2 pt-lg-0 navbar-utility-bar">
+                    <!-- PWA Universal Install Button (Desktop) -->
+                    <button class="btn btn-pwa-install d-none align-items-center gap-2" id="btn-pwa-install" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
+                        <i class="bi bi-download pwa-install-icon"></i>
+                        <span class="pwa-install-label">Install App</span>
+                    </button>
                     {% if user.is_staff or user.is_superuser %}
                         <!-- Admin Quick Pending Applications Badge Button -->
                         <a href="{% url 'application_list' %}"
@@ -777,6 +973,11 @@
                                             <i class="bi bi-speedometer me-2 text-success"></i>Operations Overview
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item py-1" href="{% url 'admin_announcements' %}">
+                                            <i class="bi bi-megaphone me-2 text-primary"></i>Announcements
+                                        </a>
+                                    </li>
                                     {% if user.is_superuser %}
                                         <li>
                                             <a class="dropdown-item py-1" href="{% url 'manage_superusers' %}">
@@ -878,8 +1079,27 @@
                                     <i class="bi bi-speedometer me-2 text-success"></i> Operations Overview
                                 </a>
                             </li>
+                            <li>
+                                <a href="{% url 'admin_announcements' %}" class="nav-link px-2 py-2 rounded d-flex align-items-center">
+                                    <i class="bi bi-megaphone me-2 text-primary"></i> Announcements
+                                </a>
+                            </li>
                             {% endif %}
                         </ul>
+
+                        <!-- Mobile Appearance & UI Settings Section -->
+                        <div class="mb-3 pt-2 border-top border-secondary border-opacity-25">
+                            <div class="small text-uppercase fw-bold text-secondary mb-2 px-1">
+                                <i class="bi bi-palette2 green-accent me-1"></i> Appearance & UI Settings
+                            </div>
+                            <button type="button" class="btn btn-dark-custom w-100 py-2.5 d-flex align-items-center justify-content-between px-3" data-bs-toggle="modal" data-bs-target="#uiSettingsModal">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="rounded-circle d-inline-block mobile-drawer-accent-dot" id="mobileDrawerAccentDot" style="width: 14px; height: 14px; background: var(--green, #08B74F);"></span>
+                                    <span>Accent Colours & Visuals</span>
+                                </span>
+                                <span class="badge bg-dark border border-secondary text-secondary small" id="mobileDrawerAccentName">Emerald</span>
+                            </button>
+                        </div>
 
                         <form action="{% url 'logout' %}" method="POST" class="m-0 p-0">
                             {% csrf_token %}
@@ -888,7 +1108,7 @@
                             </button>
                         </form>
                     {% else %}
-                        <div class="d-grid gap-2">
+                        <div class="d-grid gap-2 mb-3">
                             <a href="{% url 'login' %}" class="btn btn-dark-custom py-2">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
                             </a>
@@ -896,11 +1116,112 @@
                                 <i class="bi bi-person-plus-fill me-1"></i> Register Account
                             </a>
                         </div>
+                        <div class="mb-3 pt-2 border-top border-secondary border-opacity-25">
+                            <button type="button" class="btn btn-dark-custom w-100 py-2 d-flex align-items-center justify-content-between px-3" data-bs-toggle="modal" data-bs-target="#uiSettingsModal">
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="rounded-circle d-inline-block mobile-drawer-accent-dot" style="width: 14px; height: 14px; background: var(--green, #08B74F);"></span>
+                                    <span>Accent Colours & Visuals</span>
+                                </span>
+                                <span class="badge bg-dark border border-secondary text-secondary small">Customise</span>
+                            </button>
+                        </div>
                     {% endif %}
+
+                    <!-- Mobile PWA Install Card Button -->
+                    <button class="btn-pwa-install-mobile d-none align-items-center w-100 mt-2 text-decoration-none border-0" id="btn-pwa-install-mobile" type="button">
+                        <div class="pwa-mobile-icon-bubble me-3 flex-shrink-0">
+                            <i class="bi bi-download"></i>
+                        </div>
+                        <div class="pwa-mobile-content text-start flex-grow-1 min-w-0">
+                            <div class="pwa-mobile-title text-truncate">Install Campus Nexus</div>
+                            <div class="pwa-mobile-subtitle text-truncate">Fast, offline & fullscreen native experience</div>
+                        </div>
+                        <div class="pwa-mobile-badge ms-2 flex-shrink-0">
+                            <span class="badge rounded-pill">Install</span>
+                        </div>
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- iOS Safari PWA Installation Modal -->
+    <div class="modal fade" id="pwaIosInstallModal" tabindex="-1" aria-labelledby="pwaIosInstallModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border border-secondary text-white">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="pwaIosInstallModalLabel">
+                        <i class="bi bi-apple green-accent"></i> Install Campus Nexus on iOS
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-secondary small">
+                    <p class="text-white mb-3">Install Campus Nexus on your iPhone or iPad for fullscreen access, faster navigation, and native app experience:</p>
+                    <ol class="ps-3 mb-3 d-flex flex-column gap-2 text-white">
+                        <li>Tap the <strong class="green-accent"><i class="bi bi-box-arrow-up"></i> Share</strong> icon in Safari's bottom toolbar.</li>
+                        <li>Scroll down and tap <strong class="green-accent"><i class="bi bi-plus-square"></i> Add to Home Screen</strong>.</li>
+                        <li>Tap <strong class="green-accent">Add</strong> in the top-right corner.</li>
+                    </ol>
+                    <p class="mb-0 text-muted" style="font-size: 0.75rem;">Campus Nexus will appear on your Home Screen as a standalone app with its own icon.</p>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-sm btn-green" data-bs-dismiss="modal">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop & Android PWA Installation Modal (Fallback when beforeinstallprompt is not directly triggered) -->
+    <div class="modal fade" id="pwaGenericInstallModal" tabindex="-1" aria-labelledby="pwaGenericInstallModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass border-secondary text-white shadow-lg" style="background: rgba(15, 23, 42, 0.96); border: 1.5px solid var(--green, #08B74F);">
+                <div class="modal-header border-bottom border-secondary border-opacity-25">
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="pwaGenericInstallModalLabel">
+                        <i class="bi bi-download green-accent"></i> Install Campus Nexus
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-secondary small">
+                    <p class="text-white mb-3">Install Campus Nexus for lightning-fast fullscreen coordination, 2-week persistent passkey sign-in, and offline safety features:</p>
+
+                    <div class="p-3 mb-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                        <div class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-laptop green-accent"></i> On Desktop (Chrome, Edge, Brave, Opera)
+                        </div>
+                        <ol class="ps-3 mb-0 d-flex flex-column gap-1 text-light">
+                            <li>Look at the right end of your browser's address bar (URL bar).</li>
+                            <li>Click the <strong class="green-accent"><i class="bi bi-box-arrow-in-down"></i> Install Campus Nexus</strong> icon.</li>
+                            <li>Click <strong>Install</strong> when prompted.</li>
+                        </ol>
+                    </div>
+
+                    <div class="p-3 mb-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                        <div class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-android2 text-success"></i> On Android (Chrome, Samsung Internet, Edge)
+                        </div>
+                        <ol class="ps-3 mb-0 d-flex flex-column gap-1 text-light">
+                            <li>Tap the three dots <strong class="green-accent"><i class="bi bi-three-dots-vertical"></i> Menu</strong> in the top-right corner.</li>
+                            <li>Select <strong class="green-accent">Install app</strong> or <strong>Add to Home screen</strong>.</li>
+                            <li>Tap <strong>Install</strong> to add Campus Nexus to your device.</li>
+                        </ol>
+                    </div>
+
+                    <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                        <div class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-apple text-info"></i> On Mac (Safari)
+                        </div>
+                        <ol class="ps-3 mb-0 d-flex flex-column gap-1 text-light">
+                            <li>In the Safari top menu bar, click <strong class="green-accent">File</strong>.</li>
+                            <li>Select <strong class="green-accent">Add to Dock...</strong> and click <strong>Add</strong>.</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-sm btn-green px-3" data-bs-dismiss="modal">Got It</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Global Messages Container -->
     <div class="container mt-3">
@@ -1690,6 +2011,365 @@
     })();
     </script>
     {% endif %}
+
+    <!-- Progressive Web App (PWA) Universal Install & Offline Engine -->
+    <script>
+    (function() {
+        // Register Service Worker for all visitors (standalone, desktop, and mobile)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function(e) {
+                    console.debug('[PWA] ServiceWorker registration omitted:', e);
+                });
+            });
+
+            // Handle cross-tab navigation messages from Service Worker notification clicks
+            navigator.serviceWorker.addEventListener('message', function(event) {
+                if (event.data && event.data.action === 'navigate' && event.data.url) {
+                    window.location.href = event.data.url;
+                }
+            });
+        }
+
+        let deferredPrompt = null;
+        const desktopInstallBtn = document.getElementById('btn-pwa-install');
+        const mobileInstallBtn = document.getElementById('btn-pwa-install-mobile');
+
+        function isRunningStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone === true ||
+                   document.referrer.includes('android-app://');
+        }
+
+        function isIosSafari() {
+            const ua = window.navigator.userAgent;
+            const isIos = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+            return isIos && isSafari;
+        }
+
+        function showInstallUI() {
+            if (isRunningStandalone()) return;
+            if (desktopInstallBtn) {
+                desktopInstallBtn.classList.remove('d-none');
+                desktopInstallBtn.classList.add('d-inline-flex');
+            }
+            if (mobileInstallBtn) {
+                mobileInstallBtn.classList.remove('d-none');
+                mobileInstallBtn.classList.add('d-flex');
+            }
+        }
+
+        function hideInstallUI() {
+            if (desktopInstallBtn) {
+                desktopInstallBtn.classList.remove('d-inline-flex');
+                desktopInstallBtn.classList.add('d-none');
+            }
+            if (mobileInstallBtn) {
+                mobileInstallBtn.classList.remove('d-flex');
+                mobileInstallBtn.classList.add('d-none');
+            }
+        }
+
+        // Capture standard beforeinstallprompt (Windows, Mac, Linux, Android)
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallUI();
+            document.dispatchEvent(new CustomEvent('nexus:pwa-prompt-ready'));
+        });
+
+        async function handleInstallClick() {
+            if (deferredPrompt) {
+                try {
+                    deferredPrompt.prompt();
+                    const choiceResult = await deferredPrompt.userChoice;
+                    if (choiceResult && choiceResult.outcome === 'accepted') {
+                        console.log('[PWA] User accepted installation prompt');
+                        document.dispatchEvent(new CustomEvent('nexus:pwa-installed'));
+                    }
+                } catch (err) {
+                    console.warn('[PWA] Installation prompt error:', err);
+                }
+                deferredPrompt = null;
+                hideInstallUI();
+            } else if (isIosSafari()) {
+                const modalEl = document.getElementById('pwaIosInstallModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            } else {
+                const modalEl = document.getElementById('pwaGenericInstallModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            }
+        }
+
+        // Expose globally for other templates (e.g. post-login dashboard prompt)
+        window.triggerNexusPwaInstall = handleInstallClick;
+        window.isNexusRunningStandalone = isRunningStandalone;
+        window.getNexusDeferredPrompt = function() { return deferredPrompt; };
+
+        if (desktopInstallBtn) {
+            desktopInstallBtn.addEventListener('click', handleInstallClick);
+        }
+        if (mobileInstallBtn) {
+            mobileInstallBtn.addEventListener('click', handleInstallClick);
+        }
+
+        // On iOS Safari, reveal mobile install button which opens the instruction modal on tap
+        if (isIosSafari() && !isRunningStandalone()) {
+            if (mobileInstallBtn) {
+                mobileInstallBtn.classList.remove('d-none');
+                mobileInstallBtn.classList.add('d-flex');
+            }
+        }
+
+        window.addEventListener('appinstalled', function() {
+            console.log('[PWA] Campus Nexus installed successfully');
+            deferredPrompt = null;
+            hideInstallUI();
+            document.dispatchEvent(new CustomEvent('nexus:pwa-installed'));
+        });
+    })();
+    </script>
+
+
+    <!-- Global Appearance & UI Settings Modal (Accessible across Android, Mobile, Tablet & Desktop) -->
+    <div class="modal fade" id="uiSettingsModal" tabindex="-1" aria-labelledby="uiSettingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content glass border-secondary shadow-lg">
+                <div class="modal-header border-bottom border-secondary border-opacity-25 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: rgba(8, 183, 79, 0.2); color: var(--green, #08B74F);">
+                            <i class="bi bi-palette2"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-white mb-0" id="uiSettingsModalLabel">Appearance &amp; UI Settings</h5>
+                            <span class="text-secondary small">Customize themes, accent colours, and visuals</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <!-- Theme & Zen Mode Quick Controls -->
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded mb-4" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div>
+                            <strong class="text-white d-block small">Display Theme</strong>
+                            <span class="text-secondary small">Toggle between dark obsidian and light mode</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-dark-custom d-flex align-items-center gap-1" onclick="window.toggleForegroundScatter()" title="Reveal floating zen clock">
+                                <i class="bi bi-clock-history text-info"></i> <span class="d-none d-sm-inline">Zen Clock</span>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-dark-custom d-flex align-items-center gap-1" onclick="window.toggleNexusTheme()">
+                                <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i> <span>Theme</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Curated Accent Palettes -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label small text-secondary fw-semibold text-uppercase mb-0">Curated Accent Palettes</label>
+                            <span class="badge bg-success-subtle green-accent px-2 py-0.5 rounded-pill small" id="activeModalAccentBadge">Active: Emerald</span>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('emerald')" title="Emerald">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #08B74F;"></span>
+                                    <span class="small mt-1 text-light">Emerald</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('cyan')" title="Cyan">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #00D2FF;"></span>
+                                    <span class="small mt-1 text-light">Cyan</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('indigo')" title="Indigo">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #818CF8;"></span>
+                                    <span class="small mt-1 text-light">Indigo</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('amber')" title="Amber">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #F59E0B;"></span>
+                                    <span class="small mt-1 text-light">Amber</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('rose')" title="Rose">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #FB7185;"></span>
+                                    <span class="small mt-1 text-light">Rose</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('purple')" title="Purple">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #A855F7;"></span>
+                                    <span class="small mt-1 text-light">Purple</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('teal')" title="Teal">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #14B8A6;"></span>
+                                    <span class="small mt-1 text-light">Teal</span>
+                                </button>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="button" class="btn btn-dark-custom p-2 w-100 d-flex flex-column align-items-center rounded-3 modal-accent-btn" onclick="setAccentFromModal('orange')" title="Orange">
+                                    <span class="rounded-circle d-inline-block shadow-sm" style="width: 22px; height: 22px; background: #FF6B2B;"></span>
+                                    <span class="small mt-1 text-light">Orange</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Hex Accent Color Picker -->
+                        <div class="p-2.5 rounded bg-black bg-opacity-40 border border-secondary mt-2">
+                            <div class="d-flex align-items-center justify-content-between gap-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" id="modal-fx-hex-picker" class="form-control form-control-color border-0 p-0" style="width: 32px; height: 32px; cursor: pointer;"
+                                           onchange="setCustomHexFromModal(this.value)">
+                                    <div>
+                                        <div class="small fw-semibold text-white">Custom Brand Hex</div>
+                                        <div class="text-secondary font-monospace" style="font-size: 0.75rem;" id="modal-fx-hex-display">#08B74F</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="text" id="modal-fx-hex-input" class="form-control form-control-sm font-monospace bg-dark border-secondary text-light text-center"
+                                           style="width: 95px;" placeholder="#08B74F" maxlength="7"
+                                           onchange="setCustomHexFromModal(this.value)">
+                                    <button type="button" class="btn btn-sm btn-green" onclick="setCustomHexFromModal(document.getElementById('modal-fx-hex-input').value)">
+                                        Apply
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watermark Canvas & Visual Controls -->
+                    <div class="border-top border-secondary border-opacity-25 pt-3 mb-3">
+                        <label class="form-label small text-secondary fw-semibold text-uppercase mb-2">Watermark &amp; Background Visuals</label>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary mb-1">Watermark Mode</label>
+                            <select id="modal-fx-watermark-mode" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="window.setNexusWatermarkMode(this.value)">
+                                <option value="both">Gears &amp; Clockwork (Default)</option>
+                                <option value="gears">Corner &amp; Edge Gears Only</option>
+                                <option value="clock">Center Clockwork Only</option>
+                                <option value="off">Off / Hidden</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small text-secondary mb-1">
+                                <span>Watermark Transparency</span>
+                                <span id="modal-fx-opacity-val" class="fw-bold green-accent">22%</span>
+                            </div>
+                            <input type="range" class="form-range" id="modal-fx-opacity-slider" min="0" max="60" value="22"
+                                   oninput="window.setNexusWatermarkOpacity(this.value); document.getElementById('modal-fx-opacity-val').textContent = this.value + '%';">
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small text-secondary mb-1">Gear Complexity</label>
+                                <select id="modal-fx-gear-complexity" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="window.setNexusGearComplexity(this.value)">
+                                    <option value="high">Complex (All)</option>
+                                    <option value="med">Medium</option>
+                                    <option value="low">Minimal</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-secondary mb-1">Gear Spread</label>
+                                <select id="modal-fx-gear-spread" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="window.setNexusGearSpread(this.value)">
+                                    <option value="constellation">Constellation</option>
+                                    <option value="subtle">Subtle</option>
+                                    <option value="off">Off</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary border-opacity-25 py-2">
+                    <button type="button" class="btn btn-green w-100 fw-semibold" data-bs-dismiss="modal">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function setAccentFromModal(accent) {
+        if (window.setNexusAccent) window.setNexusAccent(accent);
+        syncAccentUIElements(accent);
+    }
+
+    function setCustomHexFromModal(hex) {
+        if (window.setNexusCustomHex) window.setNexusCustomHex(hex);
+        syncAccentUIElements('custom', hex);
+    }
+
+    function syncAccentUIElements(accent, customHex) {
+        const acc = accent || localStorage.getItem('nexus_accent') || 'emerald';
+        const hex = customHex || localStorage.getItem('nexus_custom_hex') || '#08B74F';
+
+        const badge = document.getElementById('activeModalAccentBadge');
+        if (badge) badge.textContent = 'Active: ' + (acc === 'custom' ? hex : (acc.charAt(0).toUpperCase() + acc.slice(1)));
+
+        const drawerDot = document.getElementById('mobileDrawerAccentDot');
+        if (drawerDot) drawerDot.style.background = (acc === 'custom' ? hex : 'var(--green, #08B74F)');
+
+        const drawerName = document.getElementById('mobileDrawerAccentName');
+        if (drawerName) drawerName.textContent = (acc === 'custom' ? hex : (acc.charAt(0).toUpperCase() + acc.slice(1)));
+
+        const hexPicker = document.getElementById('modal-fx-hex-picker');
+        if (hexPicker && hex) hexPicker.value = hex;
+        const hexInput = document.getElementById('modal-fx-hex-input');
+        if (hexInput && hex) hexInput.value = hex;
+        const hexDisplay = document.getElementById('modal-fx-hex-display');
+        if (hexDisplay && hex) hexDisplay.textContent = hex;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        syncAccentUIElements();
+
+        // Mark standalone downloaded app on client if in standalone mode
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                             window.navigator.standalone === true ||
+                             document.referrer.includes('android-app://') ||
+                             window.location.search.includes('source=pwa');
+        if (isStandalone) {
+            document.cookie = "nexus_standalone_app=1; path=/; max-age=31536000; SameSite=Lax";
+            localStorage.setItem('nexus_standalone_app', '1');
+        }
+
+        const wmMode = localStorage.getItem('nexus_watermark_mode') || 'both';
+        const wmSelect = document.getElementById('modal-fx-watermark-mode');
+        if (wmSelect) wmSelect.value = wmMode;
+
+        const opacity = localStorage.getItem('nexus_watermark_opacity') || '22';
+        const opSlider = document.getElementById('modal-fx-opacity-slider');
+        const opVal = document.getElementById('modal-fx-opacity-val');
+        if (opSlider) opSlider.value = opacity;
+        if (opVal) opVal.textContent = opacity + '%';
+
+        const complexity = localStorage.getItem('nexus_gear_complexity') || 'high';
+        const compSelect = document.getElementById('modal-fx-gear-complexity');
+        if (compSelect) compSelect.value = complexity;
+
+        const spread = localStorage.getItem('nexus_gear_spread') || 'constellation';
+        const spreadSelect = document.getElementById('modal-fx-gear-spread');
+        if (spreadSelect) spreadSelect.value = spread;
+    });
+    </script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

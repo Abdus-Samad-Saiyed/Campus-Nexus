@@ -25,13 +25,15 @@ from django.contrib.sessions.models import Session
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.db import connection, transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from accounts.models import (
     AccountApplication,
+    Announcement,
+    AnnouncementReceipt,
     AuditEvent,
     PhysicalVerificationRequest,
     PlatformFeedback,
@@ -855,3 +857,169 @@ def health_check(request: HttpRequest) -> HttpResponse:
 
     # Otherwise return raw JSON (API callers, monitoring, load-balancers, tests)
     return JsonResponse(payload, status=status_code)
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 & 8: Administrative Announcements & Proclamations Management
+# ---------------------------------------------------------------------------
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+def admin_announcements_view(request: HttpRequest) -> HttpResponse:
+    """List all platform announcements with targeting metadata, active state, and receipt stats."""
+    announcements_qs = (
+        Announcement.objects
+        .annotate(receipt_count=Count('receipts'))
+        .order_by('-created_at')
+    )
+
+    priority_filter = request.GET.get('priority')
+    if priority_filter in dict(Announcement.PRIORITY_CHOICES):
+        announcements_qs = announcements_qs.filter(priority=priority_filter)
+
+    status_filter = request.GET.get('status')
+    if status_filter == 'active':
+        announcements_qs = announcements_qs.filter(is_active=True)
+    elif status_filter == 'inactive':
+        announcements_qs = announcements_qs.filter(is_active=False)
+
+    return render(request, 'nexus/operations_announcements.html', {
+        'announcements': announcements_qs,
+        'priority_filter': priority_filter or '',
+        'status_filter': status_filter or '',
+        'priority_choices': Announcement.PRIORITY_CHOICES,
+        'target_type_choices': Announcement.TARGET_TYPE_CHOICES,
+    })
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+def admin_create_announcement(request: HttpRequest) -> HttpResponse:
+    """Create a new platform announcement with universal, preset, filtered, or individual targeting."""
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        priority = request.POST.get('priority', 'INFO').strip()
+        target_type = request.POST.get('target_type', 'ALL').strip()
+        target_set = request.POST.get('target_set', '').strip() or None
+        target_branches = request.POST.get('target_branches', '').strip()
+        target_years = request.POST.get('target_years', '').strip()
+        target_degrees = request.POST.get('target_degrees', '').strip()
+        target_gender = request.POST.get('target_gender', '').strip()
+        target_users_raw = request.POST.get('target_users', '').strip()
+        action_url = request.POST.get('action_url', '').strip()
+        action_label = request.POST.get('action_label', '').strip()
+        expires_at_raw = request.POST.get('expires_at', '').strip()
+
+        if not title:
+            messages.error(request, 'Announcement title cannot be empty.')
+            return redirect('admin_create_announcement')
+
+        if not content:
+            messages.error(request, 'Announcement content cannot be empty.')
+            return redirect('admin_create_announcement')
+
+        if priority not in dict(Announcement.PRIORITY_CHOICES):
+            priority = 'INFO'
+
+        if target_type not in dict(Announcement.TARGET_TYPE_CHOICES):
+            target_type = 'ALL'
+
+        expires_at = None
+        if expires_at_raw:
+            try:
+                dt = datetime.datetime.fromisoformat(expires_at_raw)
+                expires_at = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+            except Exception:
+                expires_at = None
+
+        announcement = Announcement.objects.create(
+            title=title,
+            content=content,
+            priority=priority,
+            target_type=target_type,
+            target_set=target_set if target_type == 'SET' else None,
+            target_branches=target_branches if target_type == 'FILTERED' else '',
+            target_years=target_years if target_type == 'FILTERED' else '',
+            target_degrees=target_degrees if target_type == 'FILTERED' else '',
+            target_gender=target_gender if target_type == 'FILTERED' else '',
+            action_url=action_url,
+            action_label=action_label,
+            created_by=request.user,
+            expires_at=expires_at,
+            is_active=True,
+        )
+
+        if target_type == 'INDIVIDUAL' and target_users_raw:
+            import re
+            tokens = [t.strip().upper() for t in re.split(r'[\s,]+', target_users_raw) if t.strip()]
+            matched_users = User.objects.filter(
+                Q(enrollment_number__in=tokens) | Q(id__in=[t for t in tokens if t.isdigit()])
+            )
+            announcement.target_users.set(matched_users)
+
+        log_audit_event(
+            event_type='ANNOUNCEMENT_CREATED',
+            actor_enrollment=request.user.enrollment_number,
+            description=f"Admin created announcement #{announcement.id}: '{announcement.title}' (Priority: {announcement.priority}, Target: {announcement.target_type})",
+            target_id=str(announcement.id),
+        )
+
+        messages.success(request, f"Announcement '{announcement.title}' issued successfully.")
+        return redirect('admin_announcements')
+
+    # GET: Metadata choices
+    existing_branches = list(User.objects.exclude(branch='').values_list('branch', flat=True).distinct()[:15])
+    existing_years = list(User.objects.exclude(joining_year__isnull=True).values_list('joining_year', flat=True).distinct().order_by('-joining_year')[:10])
+    existing_degrees = list(User.objects.exclude(degree='').values_list('degree', flat=True).distinct()[:10])
+
+    default_branches = ['CSE', 'ECE', 'MECH', 'CIVIL', 'ELEC', 'IT', 'CHEM']
+    default_years = [2021, 2022, 2023, 2024, 2025, 2026]
+    default_degrees = ['B.Tech', 'M.Tech', 'Ph.D', 'MBA', 'M.Sc']
+
+    branches = sorted(list(set(existing_branches + default_branches)))
+    years = sorted(list(set([str(y) for y in existing_years] + [str(y) for y in default_years])), reverse=True)
+    degrees = sorted(list(set(existing_degrees + default_degrees)))
+
+    return render(request, 'nexus/operations_announcement_create.html', {
+        'priority_choices': Announcement.PRIORITY_CHOICES,
+        'target_type_choices': Announcement.TARGET_TYPE_CHOICES,
+        'target_set_choices': Announcement.TARGET_SET_CHOICES,
+        'available_branches': branches,
+        'available_years': years,
+        'available_degrees': degrees,
+    })
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+@require_POST
+def admin_toggle_announcement(request: HttpRequest, announcement_id: int) -> HttpResponse:
+    """Toggle announcement active/inactive status."""
+    announcement = get_object_or_404(Announcement, id=announcement_id)
+    announcement.is_active = not announcement.is_active
+    announcement.save(update_fields=['is_active'])
+
+    state_str = 'activated' if announcement.is_active else 'deactivated'
+    messages.info(request, f'Announcement #{announcement.id} has been {state_str}.')
+    return redirect('admin_announcements')
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+@require_POST
+def admin_delete_announcement(request: HttpRequest, announcement_id: int) -> HttpResponse:
+    """Delete an announcement and log audit trail."""
+    announcement = get_object_or_404(Announcement, id=announcement_id)
+    title = announcement.title
+    announcement.delete()
+
+    log_audit_event(
+        event_type='ANNOUNCEMENT_DELETED',
+        actor_enrollment=request.user.enrollment_number,
+        description=f"Admin deleted announcement #{announcement_id}: '{title}'",
+        target_id=str(announcement_id),
+    )
+
+    messages.warning(request, f"Announcement #{announcement_id} ('{title}') was permanently deleted.")
+    return redirect('admin_announcements')

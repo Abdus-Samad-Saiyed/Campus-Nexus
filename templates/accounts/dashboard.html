@@ -39,6 +39,70 @@
         </div>
     </div>
 
+    <!-- First-Login Proclaiming Banner Across Screen -->
+    {% if proclaiming_announcement %}
+        <div id="firstLoginAnnouncementBanner" class="position-relative mb-4 rounded-4 overflow-hidden shadow-lg animate__animated animate__fadeInDown"
+             style="background: {% if proclaiming_announcement.priority == 'CRITICAL' %}radial-gradient(ellipse at top left, rgba(239, 68, 68, 0.28), rgba(15, 23, 42, 0.96)){% elif proclaiming_announcement.priority == 'WARNING' %}radial-gradient(ellipse at top left, rgba(245, 158, 11, 0.25), rgba(15, 23, 42, 0.96)){% elif proclaiming_announcement.priority == 'SUCCESS' %}radial-gradient(ellipse at top left, rgba(8, 183, 79, 0.25), rgba(15, 23, 42, 0.96)){% else %}radial-gradient(ellipse at top left, rgba(14, 165, 233, 0.25), rgba(15, 23, 42, 0.96)){% endif %};
+                    border: 2px solid {% if proclaiming_announcement.priority == 'CRITICAL' %}#ef4444{% elif proclaiming_announcement.priority == 'WARNING' %}#f59e0b{% elif proclaiming_announcement.priority == 'SUCCESS' %}var(--green,#08B74F){% else %}#0ea5e9{% endif %};
+                    box-shadow: 0 0 35px {% if proclaiming_announcement.priority == 'CRITICAL' %}rgba(239, 68, 68, 0.4){% elif proclaiming_announcement.priority == 'WARNING' %}rgba(245, 158, 11, 0.35){% elif proclaiming_announcement.priority == 'SUCCESS' %}rgba(8, 183, 79, 0.35){% else %}rgba(14, 165, 233, 0.35){% endif %};">
+            
+            <div class="p-4 p-md-5">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-3 border-bottom border-white border-opacity-10">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge {% if proclaiming_announcement.priority == 'CRITICAL' %}bg-danger text-white{% elif proclaiming_announcement.priority == 'WARNING' %}bg-warning text-dark{% elif proclaiming_announcement.priority == 'SUCCESS' %}bg-success text-white{% else %}bg-info text-dark{% endif %} px-3 py-1 rounded-pill fw-bold text-uppercase" style="letter-spacing: 0.08em; font-size: 0.78rem;">
+                            {% if proclaiming_announcement.priority == 'CRITICAL' %}
+                                <i class="bi bi-shield-fill-exclamation me-1"></i> URGENT OFFICIAL PROCLAMATION
+                            {% elif proclaiming_announcement.priority == 'WARNING' %}
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> PRIORITY ANNOUNCEMENT
+                            {% elif proclaiming_announcement.priority == 'SUCCESS' %}
+                                <i class="bi bi-check-circle-fill me-1"></i> OFFICIAL UPDATE
+                            {% else %}
+                                <i class="bi bi-megaphone-fill me-1"></i> CAMPUS NOTICE
+                            {% endif %}
+                        </span>
+                        <span class="text-white-50 small">
+                            Issued by {{ proclaiming_announcement.created_by.enrollment_number|default:"Administration" }} &middot; {{ proclaiming_announcement.created_at|date:"M d, Y" }}
+                        </span>
+                    </div>
+
+                    <div class="d-none d-md-block">
+                        <span class="badge bg-black bg-opacity-40 text-light border border-white border-opacity-25 px-2.5 py-1 rounded-pill small">
+                            <i class="bi bi-pin-angle-fill me-1 text-warning"></i> Proclaimed on your first login
+                        </span>
+                    </div>
+                </div>
+
+                <div class="row align-items-center g-4">
+                    <div class="col-lg-9">
+                        <h3 class="fw-bold text-white mb-2" style="letter-spacing: -0.02em;">
+                            {{ proclaiming_announcement.title }}
+                        </h3>
+                        <div class="text-light opacity-90 fs-6 mb-0" style="white-space: pre-line; line-height: 1.65;">
+                            {{ proclaiming_announcement.content }}
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 d-flex flex-column gap-2 justify-content-center align-items-stretch">
+                        {% if proclaiming_announcement.action_url %}
+                            <a href="{{ proclaiming_announcement.action_url }}" class="btn btn-outline-light py-2 fw-semibold text-center" target="_blank">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> {{ proclaiming_announcement.action_label|default:"View Details" }}
+                            </a>
+                        {% endif %}
+
+                        <form action="{% url 'acknowledge_announcement' proclaiming_announcement.id %}" method="POST" class="m-0" id="formAckAnnouncement-{{ proclaiming_announcement.id }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button type="button" class="btn {% if proclaiming_announcement.priority == 'CRITICAL' %}btn-danger{% elif proclaiming_announcement.priority == 'WARNING' %}btn-warning text-dark{% else %}btn-green{% endif %} w-100 py-2.5 fw-bold shadow-sm"
+                                    onclick="acknowledgeAnnouncement({{ proclaiming_announcement.id }}, this)">
+                                <i class="bi bi-check-lg me-1"></i> Acknowledge
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Desktop & Mobile Notifications Activation Banner (Shown when not yet enabled) -->
     <div id="notif-permission-banner" class="glass p-3 mb-4 border-success-subtle d-none" style="background: rgba(8, 183, 79, 0.08); border-left: 4px solid var(--green,#08B74F);">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -62,6 +126,79 @@
         </div>
     </div>
 
+    <!-- Post-Login PWA Install Hero Prompt (Visible in browser on desktop & mobile, hidden in standalone app or if dismissed) -->
+    <div id="postLoginPwaPrompt" class="position-relative mb-4 rounded-4 overflow-hidden shadow-lg"
+         style="display: none; background: linear-gradient(135deg, rgba(8, 183, 79, 0.14) 0%, rgba(15, 23, 42, 0.94) 100%);
+                border: 1.5px solid var(--green, #08B74F);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 24px var(--green-glow, rgba(8, 183, 79, 0.22));">
+        
+        <!-- Dismiss Cross Button -->
+        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" 
+                onclick="dismissPostLoginPwaPrompt()" aria-label="Dismiss install prompt" 
+                style="z-index: 5; opacity: 0.65; transition: opacity 0.2s;"></button>
+
+        <div class="p-3 p-md-4">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width: 52px; height: 52px; background: var(--green, #08B74F); color: #050B08; font-size: 1.45rem; box-shadow: 0 4px 14px var(--green-glow, rgba(8, 183, 79, 0.4));">
+                        <i id="pwaPromptDeviceIcon" class="bi bi-phone-fill"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                            <span class="badge rounded-pill fw-bold" 
+                                  style="background: rgba(8, 183, 79, 0.2); color: var(--green, #08B74F); border: 1px solid var(--green, #08B74F); font-size: 0.72rem; letter-spacing: 0.04em;">
+                                <i class="bi bi-stars me-1"></i> RECOMMENDED APP EXPERIENCE
+                            </span>
+                            <span class="badge bg-black bg-opacity-40 text-light border border-secondary border-opacity-50 rounded-pill" style="font-size: 0.7rem;">
+                                <i class="bi bi-shield-lock-fill text-warning me-1"></i> 2-Week Passkey Sessions
+                            </span>
+                            {% if just_signed_in %}
+                            <span class="badge bg-success bg-opacity-75 text-white rounded-pill animate__animated animate__fadeIn" style="font-size: 0.7rem;">
+                                <i class="bi bi-check-circle-fill me-1"></i> Just Signed In
+                            </span>
+                            {% endif %}
+                        </div>
+                        <h4 class="fw-bold text-white mb-1" id="pwaPromptHeading" style="letter-spacing: -0.01em;">
+                            Install Campus Nexus on your <span id="pwaPromptDeviceName">Device</span>
+                        </h4>
+                        <p class="text-secondary small mb-2" style="line-height: 1.5; max-width: 680px;">
+                            Keep your account securely signed in for <strong>2 weeks</strong> with one-touch biometric passkey (fingerprint / Face ID / Windows Hello). Enjoy fullscreen native speed, offline safety coordination, and instant sound notifications.
+                        </p>
+                        
+                        <!-- Feature highlights chips -->
+                        <div class="d-flex flex-wrap gap-2 pt-1">
+                            <span class="badge bg-black bg-opacity-30 border border-secondary border-opacity-25 text-light px-2.5 py-1 rounded-pill small">
+                                <i class="bi bi-fingerprint green-accent me-1"></i> 1-Touch Biometrics
+                            </span>
+                            <span class="badge bg-black bg-opacity-30 border border-secondary border-opacity-25 text-light px-2.5 py-1 rounded-pill small">
+                                <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Fullscreen Speed
+                            </span>
+                            <span class="badge bg-black bg-opacity-30 border border-secondary border-opacity-25 text-light px-2.5 py-1 rounded-pill small">
+                                <i class="bi bi-bell-fill text-info me-1"></i> Push Alerts
+                            </span>
+                            <span class="badge bg-black bg-opacity-30 border border-secondary border-opacity-25 text-light px-2.5 py-1 rounded-pill small">
+                                <i class="bi bi-wifi-off text-danger me-1"></i> Offline Mode
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-row flex-lg-column gap-2 justify-content-center align-items-stretch flex-shrink-0 pt-2 pt-lg-0">
+                    <button type="button" class="btn btn-green px-4 py-2 fw-bold d-inline-flex align-items-center justify-content-center gap-2 shadow" 
+                            id="btnPwaPromptInstall" onclick="triggerPwaInstallFromPrompt()">
+                        <i class="bi bi-download"></i>
+                        <span id="btnPwaPromptInstallText">Install App</span>
+                    </button>
+                    <button type="button" class="btn btn-dark-custom px-3 py-2 text-secondary small d-inline-flex align-items-center justify-content-center" 
+                            id="btnPwaPromptDismiss" onclick="dismissPostLoginPwaPrompt()">
+                        <i class="bi bi-clock me-1"></i> Remind Later
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% if is_guest_demo %}
     <!-- Guest Demo Callout Box -->
     <div class="glass p-4 mb-4 border-info glass-glow" style="background: rgba(14, 165, 233, 0.08); border: 1.5px solid rgba(14, 165, 233, 0.4);">
@@ -80,6 +217,63 @@
             </div>
         </div>
     </div>
+    {% endif %}
+
+    <!-- Priority Campus Announcements Feed -->
+    {% if active_announcements %}
+        <div class="glass p-4 mb-4 border-primary-subtle position-relative" style="background: rgba(15, 23, 42, 0.65); border: 1.5px solid rgba(14, 165, 233, 0.35); box-shadow: 0 0 24px rgba(14, 165, 233, 0.08);">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+                        <i class="bi bi-megaphone-fill"></i>
+                    </span>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-white">Priority Campus Announcements</h5>
+                        <span class="text-secondary small">Broadcast notices targeted to your academic profile & status</span>
+                    </div>
+                </div>
+                <span class="badge bg-dark border border-secondary text-secondary rounded-pill px-2.5 py-1 small">
+                    {{ active_announcements|length }} Active Notice{{ active_announcements|length|pluralize }}
+                </span>
+            </div>
+
+            <div class="row g-3">
+                {% for ann in active_announcements %}
+                    <div class="col-12">
+                        <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary"
+                             style="border-left: 4px solid {% if ann.priority == 'CRITICAL' %}#ef4444{% elif ann.priority == 'WARNING' %}#f59e0b{% elif ann.priority == 'SUCCESS' %}var(--green,#08B74F){% else %}#0ea5e9{% endif %} !important;">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-2">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <h6 class="fw-bold text-white mb-0">{{ ann.title }}</h6>
+                                    <span class="badge {% if ann.priority == 'CRITICAL' %}bg-danger{% elif ann.priority == 'WARNING' %}bg-warning text-dark{% elif ann.priority == 'SUCCESS' %}bg-success{% else %}bg-info text-dark{% endif %} px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                                        {{ ann.get_priority_display }}
+                                    </span>
+                                    {% if ann.id not in seen_announcement_ids %}
+                                        <span class="badge bg-danger rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+                                            NEW
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <span class="text-secondary small">
+                                    {{ ann.created_at|date:"M d, Y H:i" }}
+                                </span>
+                            </div>
+                            <div class="text-light small mb-2" style="white-space: pre-line; line-height: 1.55;">
+                                {{ ann.content }}
+                            </div>
+                            {% if ann.action_url %}
+                                <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                                    <a href="{{ ann.action_url }}" class="btn btn-sm btn-dark-custom" target="_blank">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> {{ ann.action_label|default:"View Details" }}
+                                    </a>
+                                    <span class="text-secondary small">{{ ann.action_url }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     {% endif %}
 
     <!-- Incoming Friend Requests Prominent Alert Card -->
@@ -600,4 +794,155 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function acknowledgeAnnouncement(announcementId, btnElem) {
+    if (!announcementId) return;
+    if (btnElem) {
+        btnElem.disabled = true;
+        btnElem.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Acknowledging...';
+    }
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    fetch('/announcements/' + announcementId + '/acknowledge/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        },
+        body: 'csrfmiddlewaretoken=' + encodeURIComponent(csrfToken)
+    })
+    .then(res => res.json())
+    .then(data => {
+        const banner = document.getElementById('firstLoginAnnouncementBanner');
+        if (banner) {
+            banner.style.transition = 'opacity 0.4s ease, transform 0.4s ease, max-height 0.4s ease';
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(-15px)';
+            setTimeout(() => {
+                banner.remove();
+            }, 400);
+        }
+    })
+    .catch(err => {
+        console.error('Acknowledgment request error, submitting form fallback:', err);
+        const form = document.getElementById('formAckAnnouncement-' + announcementId);
+        if (form) form.submit();
+    });
+}
+
+// Post-Login PWA Install Prompt Logic
+(function initPostLoginPwaPrompt() {
+    const promptEl = document.getElementById('postLoginPwaPrompt');
+    if (!promptEl) return;
+
+    // Detect if running inside standalone PWA
+    function isRunningStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+               window.navigator.standalone === true ||
+               document.referrer.includes('android-app://') ||
+               (typeof window.isNexusRunningStandalone === 'function' && window.isNexusRunningStandalone());
+    }
+
+    if (isRunningStandalone()) {
+        promptEl.style.display = 'none';
+        return;
+    }
+
+    // Dynamic device recognition
+    const ua = navigator.userAgent || '';
+    const deviceIconEl = document.getElementById('pwaPromptDeviceIcon');
+    const deviceNameEl = document.getElementById('pwaPromptDeviceName');
+    const installBtnText = document.getElementById('btnPwaPromptInstallText');
+
+    let deviceName = 'Device';
+    let deviceIcon = 'bi-phone-fill';
+    let btnText = 'Install App';
+
+    if (/android/i.test(ua)) {
+        deviceName = 'Android Device';
+        deviceIcon = 'bi-android2';
+        btnText = 'Install for Android';
+    } else if (/iPad|iPhone|iPod/i.test(ua)) {
+        deviceName = 'iPhone / iPad';
+        deviceIcon = 'bi-apple';
+        btnText = 'Install for iOS';
+    } else if (/Macintosh|Mac OS X/i.test(ua)) {
+        deviceName = 'Mac';
+        deviceIcon = 'bi-apple';
+        btnText = 'Install on Mac';
+    } else if (/Windows/i.test(ua)) {
+        deviceName = 'Windows PC';
+        deviceIcon = 'bi-windows';
+        btnText = 'Install on Windows';
+    } else if (/Linux/i.test(ua)) {
+        deviceName = 'Linux PC';
+        deviceIcon = 'bi-display';
+        btnText = 'Install on Linux';
+    }
+
+    if (deviceIconEl) deviceIconEl.className = 'bi ' + deviceIcon;
+    if (deviceNameEl) deviceNameEl.textContent = deviceName;
+    if (installBtnText) installBtnText.textContent = btnText;
+
+    // Check dismissal state
+    const dismissedUntil = localStorage.getItem('nexus_pwa_dashboard_prompt_dismissed_until');
+    const justSignedIn = {{ just_signed_in|yesno:"true,false" }};
+    const now = Date.now();
+
+    if (dismissedUntil && now < parseInt(dismissedUntil, 10) && !justSignedIn) {
+        promptEl.style.display = 'none';
+        return;
+    }
+
+    // Reveal prompt
+    promptEl.style.display = 'block';
+    promptEl.classList.add('animate__animated', 'animate__fadeIn');
+
+    if (justSignedIn) {
+        promptEl.style.boxShadow = '0 0 35px var(--green-glow, rgba(8, 183, 79, 0.45)), 0 8px 32px rgba(0,0,0,0.4)';
+    }
+
+    window.addEventListener('appinstalled', function() {
+        dismissPostLoginPwaPrompt(true);
+    });
+    document.addEventListener('nexus:pwa-installed', function() {
+        dismissPostLoginPwaPrompt(true);
+    });
+})();
+
+function triggerPwaInstallFromPrompt() {
+    if (typeof window.triggerNexusPwaInstall === 'function') {
+        window.triggerNexusPwaInstall();
+    } else {
+        const modalEl = document.getElementById('pwaGenericInstallModal');
+        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    }
+}
+
+function dismissPostLoginPwaPrompt(permanently) {
+    const promptEl = document.getElementById('postLoginPwaPrompt');
+    const duration = permanently ? (365 * 24 * 60 * 60 * 1000) : (7 * 24 * 60 * 60 * 1000);
+    try {
+        localStorage.setItem('nexus_pwa_dashboard_prompt_dismissed_until', (Date.now() + duration).toString());
+    } catch (e) {}
+
+    if (promptEl) {
+        promptEl.style.transition = 'opacity 0.35s ease, transform 0.35s ease, max-height 0.4s ease';
+        promptEl.style.opacity = '0';
+        promptEl.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            promptEl.style.display = 'none';
+        }, 360);
+    }
+}
+</script>
 {% endblock %}

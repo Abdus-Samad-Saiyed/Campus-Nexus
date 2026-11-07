@@ -197,3 +197,9 @@ def feedback_view(request: HttpRequest) -> HttpResponse:
 def contact_view(request: HttpRequest) -> HttpResponse:
     """Contact Us Page: Student engineering contact directory and online communications desk."""
     return render(request, "nexus/contact.html")
+
+
+def offline_view(request: HttpRequest) -> HttpResponse:
+    """Offline fallback page for Progressive Web App when network disconnects."""
+    return render(request, "offline.html")
+

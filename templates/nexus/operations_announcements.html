@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Platform Announcements & Proclamations — Campus Nexus Operations{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb & Navigation -->
+    <div class="d-flex align-items-center gap-2 mb-3 small text-secondary">
+        <a href="{% url 'dashboard' %}" class="text-secondary text-decoration-none">Dashboard</a>
+        <span>&rsaquo;</span>
+        <a href="{% url 'operational_dashboard' %}" class="text-secondary text-decoration-none">Operations</a>
+        <span>&rsaquo;</span>
+        <span class="text-white fw-semibold">Announcements</span>
+    </div>
+
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="badge bg-primary-subtle text-info border border-info-subtle px-3 py-1 rounded-pill small fw-semibold mb-2">
+                <i class="bi bi-megaphone-fill me-1"></i> Dashboard Priority Communications
+            </span>
+            <h2 class="fw-bold mb-1">Platform <span class="green-accent">Announcements</span></h2>
+            <p class="text-secondary small mb-0">
+                Broadcast priority messages with configurable targeting across student and staff dashboards with first-login proclamation banners.
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'operational_dashboard' %}" class="btn btn-dark-custom">
+                <i class="bi bi-arrow-left me-1"></i> Operations
+            </a>
+            <a href="{% url 'admin_create_announcement' %}" class="btn btn-green">
+                <i class="bi bi-plus-circle-fill me-1"></i> Issue Announcement
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Statistics Bar -->
+    <div class="glass p-3 mb-4">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="text-secondary small fw-semibold me-1">Filter by Status:</span>
+                <a href="{% url 'admin_announcements' %}" class="btn btn-sm {% if not status_filter and not priority_filter %}btn-green{% else %}btn-dark-custom{% endif %}">
+                    All ({{ announcements.count }})
+                </a>
+                <a href="{% url 'admin_announcements' %}?status=active" class="btn btn-sm {% if status_filter == 'active' %}btn-green{% else %}btn-dark-custom{% endif %}">
+                    Active
+                </a>
+                <a href="{% url 'admin_announcements' %}?status=inactive" class="btn btn-sm {% if status_filter == 'inactive' %}btn-green{% else %}btn-dark-custom{% endif %}">
+                    Inactive
+                </a>
+
+                <div class="vr mx-2 text-secondary d-none d-md-block" style="height: 24px;"></div>
+
+                <span class="text-secondary small fw-semibold me-1">Priority:</span>
+                {% for p_val, p_lbl in priority_choices %}
+                    <a href="{% url 'admin_announcements' %}?priority={{ p_val }}" class="btn btn-sm {% if priority_filter == p_val %}btn-green{% else %}btn-dark-custom{% endif %}">
+                        {{ p_val }}
+                    </a>
+                {% endfor %}
+            </div>
+
+            <div class="text-secondary small">
+                <i class="bi bi-broadcast me-1 text-success"></i> Auto-proclaimed on first user login
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcements Feed / Table -->
+    {% if announcements %}
+        <div class="row g-3">
+            {% for ann in announcements %}
+                <div class="col-12">
+                    <div class="glass p-4 position-relative {% if not ann.is_active %}opacity-75{% endif %} {% if ann.priority == 'CRITICAL' %}border-danger-subtle{% elif ann.priority == 'WARNING' %}border-warning-subtle{% elif ann.priority == 'SUCCESS' %}border-success-subtle{% else %}border-info-subtle{% endif %}"
+                         style="border-left: 5px solid {% if ann.priority == 'CRITICAL' %}#ef4444{% elif ann.priority == 'WARNING' %}#f59e0b{% elif ann.priority == 'SUCCESS' %}var(--green,#08B74F){% else %}#0ea5e9{% endif %};">
+                        
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width: 44px; height: 44px; background: {% if ann.priority == 'CRITICAL' %}rgba(239, 68, 68, 0.18){% elif ann.priority == 'WARNING' %}rgba(245, 158, 11, 0.18){% elif ann.priority == 'SUCCESS' %}rgba(8, 183, 79, 0.18){% else %}rgba(14, 165, 233, 0.18){% endif %};
+                                            color: {% if ann.priority == 'CRITICAL' %}#ef4444{% elif ann.priority == 'WARNING' %}#f59e0b{% elif ann.priority == 'SUCCESS' %}var(--green,#08B74F){% else %}#0ea5e9{% endif %};">
+                                    {% if ann.priority == 'CRITICAL' %}
+                                        <i class="bi bi-shield-fill-exclamation fs-4"></i>
+                                    {% elif ann.priority == 'WARNING' %}
+                                        <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                                    {% elif ann.priority == 'SUCCESS' %}
+                                        <i class="bi bi-check-circle-fill fs-4"></i>
+                                    {% else %}
+                                        <i class="bi bi-info-circle-fill fs-4"></i>
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                        <h5 class="fw-bold text-white mb-0">{{ ann.title }}</h5>
+                                        <span class="badge {% if ann.priority == 'CRITICAL' %}bg-danger{% elif ann.priority == 'WARNING' %}bg-warning text-dark{% elif ann.priority == 'SUCCESS' %}bg-success{% else %}bg-info text-dark{% endif %} px-2 py-0.5 rounded-pill small">
+                                            {{ ann.get_priority_display }}
+                                        </span>
+                                        {% if ann.is_active %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">Active Broadcast</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary rounded-pill small">Paused / Inactive</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-secondary small">
+                                        Issued by <span class="text-white">{{ ann.created_by.enrollment_number|default:"System Administrator" }}</span> &middot; {{ ann.created_at|date:"M d, Y H:i" }}
+                                        {% if ann.expires_at %}
+                                            &middot; <span class="text-warning"><i class="bi bi-clock-history me-1"></i>Expires {{ ann.expires_at|date:"M d, Y H:i" }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Operations Actions -->
+                            <div class="d-flex align-items-center gap-2">
+                                <form action="{% url 'admin_toggle_announcement' ann.id %}" method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if ann.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                                        {% if ann.is_active %}
+                                            <i class="bi bi-pause-circle me-1"></i> Deactivate
+                                        {% else %}
+                                            <i class="bi bi-play-circle me-1"></i> Activate
+                                        {% endif %}
+                                    </button>
+                                </form>
+
+                                <form action="{% url 'admin_delete_announcement' ann.id %}" method="POST" class="m-0" onsubmit="return confirm('Permanently delete announcement \'{{ ann.title|escapejs }}\'? This will remove it from all user dashboards.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash3 me-1"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Content Body -->
+                        <div class="text-light mb-3" style="white-space: pre-line; line-height: 1.6;">
+                            {{ ann.content }}
+                        </div>
+
+                        {% if ann.action_url %}
+                            <div class="mb-3">
+                                <a href="{{ ann.action_url }}" class="btn btn-sm btn-outline-light" target="_blank">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> {{ ann.action_label|default:"View Action Link" }}
+                                </a>
+                                <span class="text-secondary small ms-2">{{ ann.action_url }}</span>
+                            </div>
+                        {% endif %}
+
+                        <hr class="border-secondary opacity-25 my-3">
+
+                        <!-- Targeting & Delivery Stats Meta Footer -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 text-secondary small">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="fw-semibold text-white"><i class="bi bi-bullseye me-1 text-primary"></i> Audience Target:</span>
+                                {% if ann.target_type == 'ALL' %}
+                                    <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1">
+                                        <i class="bi bi-globe me-1"></i> Universal &mdash; All Platform Users
+                                    </span>
+                                {% elif ann.target_type == 'SET' %}
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 px-2 py-1">
+                                        <i class="bi bi-people-fill me-1"></i> Preset: {{ ann.get_target_set_display }}
+                                    </span>
+                                {% elif ann.target_type == 'FILTERED' %}
+                                    <span class="badge bg-purple bg-opacity-25 text-white border border-secondary px-2 py-1" style="background: rgba(147, 51, 234, 0.25);">
+                                        <i class="bi bi-funnel-fill me-1"></i> Filtered Audience
+                                    </span>
+                                    {% if ann.target_branches %}
+                                        <span class="badge bg-dark border border-secondary text-light">Branches: {{ ann.target_branches }}</span>
+                                    {% endif %}
+                                    {% if ann.target_years %}
+                                        <span class="badge bg-dark border border-secondary text-light">Batches: {{ ann.target_years }}</span>
+                                    {% endif %}
+                                    {% if ann.target_degrees %}
+                                        <span class="badge bg-dark border border-secondary text-light">Degrees: {{ ann.target_degrees }}</span>
+                                    {% endif %}
+                                    {% if ann.target_gender %}
+                                        <span class="badge bg-dark border border-secondary text-light">Gender: {{ ann.target_gender }}</span>
+                                    {% endif %}
+                                {% elif ann.target_type == 'INDIVIDUAL' %}
+                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-2 py-1">
+                                        <i class="bi bi-person-check-fill me-1"></i> Individual Users ({{ ann.target_users.count }} target{{ ann.target_users.count|pluralize }})
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="d-flex align-items-center gap-3">
+                                <div>
+                                    <i class="bi bi-check2-all text-success me-1"></i>
+                                    <strong class="text-white">{{ ann.receipt_count }}</strong> user{{ ann.receipt_count|pluralize }} acknowledged
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="glass p-5 text-center">
+            <div class="feature-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.6rem; background: rgba(8, 183, 79, 0.15); color: var(--green,#08B74F);">
+                <i class="bi bi-megaphone"></i>
+            </div>
+            <h4 class="fw-bold mb-2 text-white">No Platform Announcements Found</h4>
+            <p class="text-secondary mb-4 mx-auto" style="max-width: 480px;">
+                Keep the campus community informed with prioritized notices targeted to specific cohorts, academic batches, or the entire student body.
+            </p>
+            <a href="{% url 'admin_create_announcement' %}" class="btn btn-green">
+                <i class="bi bi-plus-circle-fill me-1"></i> Issue First Announcement
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

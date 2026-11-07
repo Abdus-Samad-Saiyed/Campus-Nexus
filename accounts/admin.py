@@ -6,6 +6,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
     AccountApplication,
+    Announcement,
+    AnnouncementReceipt,
     AuditEvent,
     Contributor,
     DailyTrafficMetric,
@@ -269,3 +271,23 @@ class PlatformRuntimeStateAdmin(admin.ModelAdmin):
     list_display = ['key', 'value_text', 'value_int', 'timestamp', 'updated_at']
     ordering = ['key']
     readonly_fields = ['key', 'value_text', 'value_int', 'timestamp', 'updated_at']
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ['title', 'priority', 'target_type', 'is_active', 'created_by', 'created_at', 'expires_at']
+    list_filter = ['priority', 'target_type', 'is_active', 'created_at']
+    search_fields = ['title', 'content', 'target_branches', 'target_years']
+    ordering = ['-created_at']
+    filter_horizontal = ['target_users']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(AnnouncementReceipt)
+class AnnouncementReceiptAdmin(admin.ModelAdmin):
+    list_display = ['announcement', 'user', 'seen_at', 'dismissed']
+    list_filter = ['dismissed', 'seen_at']
+    search_fields = ['user__enrollment_number', 'announcement__title']
+    ordering = ['-seen_at']
+    readonly_fields = ['seen_at']
+

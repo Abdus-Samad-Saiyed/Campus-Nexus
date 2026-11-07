@@ -1,11 +1,102 @@
-// Campus Nexus - Service Worker for Desktop and Mobile Notifications
+// Campus Nexus - Progressive Web App Service Worker
+// Provides Network-First navigation with offline fallback, asset caching, and Web Push notifications
+
+const CACHE_NAME = 'campus-nexus-v1';
+const PRECACHE_URLS = [
+    '/offline/',
+    '/static/img/pwa/icon-192x192.png',
+    '/static/img/pwa/icon-512x512.png',
+    '/manifest.json'
+];
 
 self.addEventListener('install', function(event) {
-    self.skipWaiting();
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(function(cache) {
+            return cache.addAll(PRECACHE_URLS).catch(function(err) {
+                console.warn('[SW] Pre-cache warning:', err);
+            });
+        }).then(function() {
+            return self.skipWaiting();
+        })
+    );
 });
 
 self.addEventListener('activate', function(event) {
-    event.waitUntil(self.clients.claim());
+    event.waitUntil(
+        caches.keys().then(function(cacheNames) {
+            return Promise.all(
+                cacheNames.map(function(cacheName) {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(function() {
+            return self.clients.claim();
+        })
+    );
+});
+
+self.addEventListener('fetch', function(event) {
+    const request = event.request;
+    if (request.method !== 'GET') {
+        return;
+    }
+
+    const url = new URL(request.url);
+
+    // Bypass WebSockets and cross-origin analytics/CDN calls from strict caching
+    if (url.protocol.startsWith('ws')) {
+        return;
+    }
+
+    // 1. Navigation requests (HTML page loads): Network-First with Offline Fallback
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request).catch(function() {
+                return caches.match('/offline/').then(function(offlineResponse) {
+                    return offlineResponse || new Response(
+                        '<h1>Campus Nexus is Offline</h1><p>Please check your internet connection.</p>',
+                        { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+                    );
+                });
+            })
+        );
+        return;
+    }
+
+    // 2. Static application assets and manifest: Cache-First with Network Fallback & dynamic caching
+    if (url.origin === self.location.origin && (url.pathname.startsWith('/static/') || url.pathname === '/manifest.json')) {
+        event.respondWith(
+            caches.match(request).then(function(cachedResponse) {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(request).then(function(networkResponse) {
+                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                        return networkResponse;
+                    }
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(function(cache) {
+                        cache.put(request, responseClone);
+                    });
+                    return networkResponse;
+                }).catch(function() {
+                    return cachedResponse;
+                });
+            })
+        );
+        return;
+    }
+
+    // 3. All other local GET requests: Network-First
+    if (url.origin === self.location.origin) {
+        event.respondWith(
+            fetch(request).catch(function() {
+                return caches.match(request);
+            })
+        );
+    }
 });
 
 self.addEventListener('push', function(event) {
@@ -15,8 +106,8 @@ self.addEventListener('push', function(event) {
         const title = payload.title || 'Campus Nexus';
         const options = {
             body: payload.body || payload.content || '',
-            icon: payload.icon || '/static/img/nexus-icon.png',
-            badge: '/static/img/nexus-icon.png',
+            icon: payload.icon || '/static/img/pwa/icon-192x192.png',
+            badge: '/static/img/pwa/icon-192x192.png',
             vibrate: [200, 100, 200],
             tag: payload.tag || 'nexus-notification',
             renotify: true,
@@ -46,7 +137,6 @@ self.addEventListener('notificationclick', function(event) {
             }
 
             // 2. If any window from our origin is open, bring it to focus and navigate it straight to the target URL!
-            // Prefer the focused tab, or the first available window client
             let targetClient = null;
             for (let i = 0; i < clientList.length; i++) {
                 const client = clientList[i];
