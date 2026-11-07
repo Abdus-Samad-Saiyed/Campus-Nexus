@@ -11,17 +11,42 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-env = environ.Env()
+env = environ.Env(
+    DJANGO_SECRET_KEY=(str, 'insecure-dev-key-change-me'),
+    DJANGO_DEBUG=(bool, False),
+    DJANGO_ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1', 'testserver']),
+    DATABASE_URL=(str, 'postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_nexus'),
+    GUEST_DEMO_DATABASE_URL=(str, 'postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_guest_demo'),
+    REDIS_URL=(str, 'redis://127.0.0.1:6379/0?protocol=2&socket_timeout=15&socket_connect_timeout=5'),
+    EMAIL_BACKEND=(str, 'django.core.mail.backends.smtp.EmailBackend'),
+    EMAIL_HOST=(str, 'smtp.gmail.com'),
+    EMAIL_PORT=(int, 587),
+    EMAIL_USE_TLS=(bool, True),
+    EMAIL_HOST_USER=(str, 'noreply.campus.nexus@gmail.com'),
+    EMAIL_HOST_PASSWORD=(str, ''),
+    EMAIL_TIMEOUT=(int, 10),
+    DEFAULT_FROM_EMAIL=(str, 'Campus Nexus <noreply.campus.nexus@gmail.com>'),
+    DJANGO_SESSION_ENGINE=(str, 'django.contrib.sessions.backends.cached_db'),
+    SESSION_IDLE_TIMEOUT=(int, 1800),
+    SESSION_COOKIE_AGE=(int, 86400),
+    DJANGO_TRUST_X_FORWARDED_FOR=(bool, False),
+    DJANGO_TRUSTED_PROXY_IPS=(list, ['127.0.0.1']),
+    WEBAUTHN_RP_ID=(str, 'localhost'),
+    WEBAUTHN_RP_NAME=(str, 'Campus Nexus'),
+    WEBAUTHN_ALLOWED_ORIGINS=(list, ['http://localhost:8000', 'http://127.0.0.1:8000', 'http://testserver']),
+    CORS_ALLOW_ALL_ORIGINS=(bool, False),
+    CORS_ALLOWED_ORIGINS=(list, []),
+)
 environ.Env.read_env(BASE_DIR / '.env')
 
 
 # --- Core --------------------------------------------------------------------
 
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='insecure-dev-key-change-me')
+SECRET_KEY = env.str('DJANGO_SECRET_KEY')
 
-DEBUG = env.bool('DJANGO_DEBUG', default=False)
+DEBUG = env.bool('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'testserver'])
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
 
 
 # --- Apps --------------------------------------------------------------------
@@ -114,14 +139,8 @@ GUEST_DEMO_DB_PATH = BASE_DIR / 'guest_demo.sqlite3'
 
 # --- Database ----------------------------------------------------------------
 
-_DEFAULT_DB_URL = env(
-    'DATABASE_URL',
-    default='postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_nexus'
-)
-_GUEST_DEMO_DB_URL = env(
-    'GUEST_DEMO_DATABASE_URL',
-    default='postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_guest_demo'
-)
+_DEFAULT_DB_URL = env.str('DATABASE_URL')
+_GUEST_DEMO_DB_URL = env.str('GUEST_DEMO_DATABASE_URL')
 
 DATABASES = {
     'default': env.db_url_config(_DEFAULT_DB_URL),
@@ -136,7 +155,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [env('REDIS_URL', default='redis://127.0.0.1:6379/0?protocol=2&socket_timeout=15&socket_connect_timeout=5')],
+            'hosts': [env.str('REDIS_URL')],
         },
     },
 }
@@ -195,14 +214,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # --- Email -------------------------------------------------------------------
 
-EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = env.int('EMAIL_PORT', default=587)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='noreply.campus.nexus@gmail.com')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=10)
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Campus Nexus <noreply.campus.nexus@gmail.com>')
+EMAIL_BACKEND = env.str('EMAIL_BACKEND')
+EMAIL_HOST = env.str('EMAIL_HOST')
+EMAIL_PORT = env.int('EMAIL_PORT')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
+EMAIL_HOST_USER = env.str('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env.str('EMAIL_HOST_PASSWORD')
+EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT')
+DEFAULT_FROM_EMAIL = env.str('DEFAULT_FROM_EMAIL')
 
 
 # --- Sessions & Inactivity Expiration -----------------------------------------
@@ -217,13 +236,13 @@ CACHES = {
 
 # Cached DB Session Engine: In-memory cache reads cut database queries by ~30-40%
 # across authenticated endpoints while maintaining persistent write-through to DB.
-SESSION_ENGINE = env('DJANGO_SESSION_ENGINE', default='django.contrib.sessions.backends.cached_db')
+SESSION_ENGINE = env.str('DJANGO_SESSION_ENGINE')
 
 # Inactivity timeout in seconds (default: 1800s = 30 minutes of idle time)
-SESSION_IDLE_TIMEOUT = env.int('SESSION_IDLE_TIMEOUT', default=1800)
+SESSION_IDLE_TIMEOUT = env.int('SESSION_IDLE_TIMEOUT')
 
 # Absolute maximum session lifetime in seconds (default: 86400s = 24 hours)
-SESSION_COOKIE_AGE = env.int('SESSION_COOKIE_AGE', default=86400)
+SESSION_COOKIE_AGE = env.int('SESSION_COOKIE_AGE')
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
@@ -239,25 +258,22 @@ MESSAGE_TAGS = {
 
 # --- Proxy & IP Resolution ---------------------------------------------------
 
-TRUST_X_FORWARDED_FOR = env.bool('DJANGO_TRUST_X_FORWARDED_FOR', default=False)
-TRUSTED_PROXY_IPS = env.list('DJANGO_TRUSTED_PROXY_IPS', default=['127.0.0.1'])
+TRUST_X_FORWARDED_FOR = env.bool('DJANGO_TRUST_X_FORWARDED_FOR')
+TRUSTED_PROXY_IPS = env.list('DJANGO_TRUSTED_PROXY_IPS')
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # --- WebAuthn / Passkeys -----------------------------------------------------
 
-WEBAUTHN_RP_ID = env('WEBAUTHN_RP_ID', default='localhost')
-WEBAUTHN_RP_NAME = env('WEBAUTHN_RP_NAME', default='Campus Nexus')
-WEBAUTHN_ALLOWED_ORIGINS = env.list(
-    'WEBAUTHN_ALLOWED_ORIGINS',
-    default=['http://localhost:8000', 'http://127.0.0.1:8000', 'http://testserver']
-)
+WEBAUTHN_RP_ID = env.str('WEBAUTHN_RP_ID')
+WEBAUTHN_RP_NAME = env.str('WEBAUTHN_RP_NAME')
+WEBAUTHN_ALLOWED_ORIGINS = env.list('WEBAUTHN_ALLOWED_ORIGINS')
 
 
 # --- CORS (Cross-Origin Resource Sharing for React Native & Mobile APIs) ------
 
-CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS')
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
