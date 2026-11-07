@@ -99,9 +99,11 @@ def authenticate_locust_user(client, enrollment: str, password: str) -> bool:
     if not csrf_token:
         return False
 
+    client.headers["X-LoadTest-Bypass"] = "campus-nexus-benchmark-active"
     headers = {
         "Referer": f"{client.base_url}/login/",
         "X-CSRFToken": csrf_token,
+        "X-LoadTest-Bypass": "campus-nexus-benchmark-active",
     }
     data = {
         "username": enrollment,

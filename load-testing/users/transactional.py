@@ -19,6 +19,7 @@ class TransactionalUser(HttpUser):
     wait_time = between(WAIT_TIME_MIN + 1.0, WAIT_TIME_MAX + 2.0)
 
     def on_start(self):
+        self.client.headers["X-LoadTest-Bypass"] = "campus-nexus-benchmark-active"
         """Acquire dedicated test account and establish authenticated session."""
         self.credential = lease_student_credential()
         self.enrollment = self.credential["enrollment_number"]

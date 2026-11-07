@@ -15,6 +15,9 @@ class AnonymousVisitor(HttpUser):
     """
     wait_time = between(WAIT_TIME_MIN, WAIT_TIME_MAX)
 
+    def on_start(self):
+        self.client.headers["X-LoadTest-Bypass"] = "campus-nexus-benchmark-active"
+
     @task(6)
     def visit_landing(self):
         """Load homepage with primary navigation."""

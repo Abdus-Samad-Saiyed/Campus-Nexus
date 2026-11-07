@@ -23,6 +23,7 @@ import django
 django.setup()
 
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 from django.db import connection, transaction
 from django.utils import timezone
 from accounts.models import User
@@ -59,6 +60,8 @@ def setup_loadtest_fixtures(count: int = TEST_USERS_COUNT, password: str = TEST_
     if "temp_early_access" in settings.DATABASES and Path(settings.DATABASES["temp_early_access"]["NAME"]).exists():
         target_dbs.append("temp_early_access")
 
+    hashed_password = make_password(password)
+
     for db_alias in target_dbs:
         print(f"[SETUP] Populating test accounts into database alias: '{db_alias}'...")
         with transaction.atomic(using=db_alias):
@@ -76,10 +79,11 @@ def setup_loadtest_fixtures(count: int = TEST_USERS_COUNT, password: str = TEST_
                         "verified": True,
                         "is_active": True,
                         "two_factor_enabled": False,
+                        "password": hashed_password,
                     }
                 )
                 user.username = enrollment
-                user.set_password(password)
+                user.password = hashed_password
                 user.verified = True
                 user.two_factor_enabled = False
                 user.save(using=db_alias)
@@ -106,10 +110,11 @@ def setup_loadtest_fixtures(count: int = TEST_USERS_COUNT, password: str = TEST_
                     "is_staff": True,
                     "is_superuser": True,
                     "two_factor_enabled": False,
+                    "password": hashed_password,
                 }
             )
             admin_user.username = admin_enrollment
-            admin_user.set_password(password)
+            admin_user.password = hashed_password
             admin_user.is_staff = True
             admin_user.is_superuser = True
             admin_user.verified = True

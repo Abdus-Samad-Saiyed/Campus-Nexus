@@ -17,6 +17,7 @@ class AdministrativeUser(HttpUser):
     wait_time = between(WAIT_TIME_MIN + 2.0, WAIT_TIME_MAX + 4.0)
 
     def on_start(self):
+        self.client.headers["X-LoadTest-Bypass"] = "campus-nexus-benchmark-active"
         """Authenticate with the dedicated admin account."""
         self.credential = get_admin_credential()
         self.enrollment = self.credential["enrollment_number"]

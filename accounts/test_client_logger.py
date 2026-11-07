@@ -14,6 +14,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
 
 from accounts.client_logger import (
+    _CLIENT_REGISTRY,
+    _CONNECTION_IDENTITY_CACHE,
+    _REGISTRY_LOCK,
+    _SESSION_IDENTITY_CACHE,
+    _WEBSOCKET_REGISTRY,
     register_client_identity,
     ClientLoggingASGIWrapper,
     pop_client_request,
@@ -167,6 +172,11 @@ class RunserverCommandLogActionTests(TestCase):
 
     def setUp(self):
         self.cmd = Command()
+        with _REGISTRY_LOCK:
+            _CLIENT_REGISTRY.clear()
+            _CONNECTION_IDENTITY_CACHE.clear()
+            _SESSION_IDENTITY_CACHE.clear()
+            _WEBSOCKET_REGISTRY.clear()
 
     def test_log_action_unauthenticated_format_with_timestamp(self):
         """Unauthenticated request logs with server receival timestamp prefix and N.A. user."""
@@ -179,7 +189,7 @@ class RunserverCommandLogActionTests(TestCase):
         }
         with self.assertLogs("django.channels.server", level="INFO") as cm:
             self.cmd.log_action("http", "complete", details)
-            logged = cm.output[0]
+            logged = cm.output[-1]
             # Match timestamp prefix: [DD/Mon/YYYY HH:MM:SS]
             self.assertRegex(logged, r"\[\d{2}/[A-Za-z]{3}/\d{4} \d{2}:\d{2}:\d{2}\] HTTP GET / 200 \[0.00, 127.0.0.1:23986, N.A., N.A.\]")
 
@@ -201,7 +211,7 @@ class RunserverCommandLogActionTests(TestCase):
         }
         with self.assertLogs("django.channels.server", level="INFO") as cm:
             self.cmd.log_action("http", "complete", details)
-            logged = cm.output[0]
+            logged = cm.output[-1]
             self.assertRegex(logged, r"\[\d{2}/[A-Za-z]{3}/\d{4} \d{2}:\d{2}:\d{2}\] HTTP POST /profile/2024BCSE065/ 302 \[0.02, 127.0.0.1:37548, 2024BCSE065, Abdus Samad Saiyed\]")
 
     def test_log_action_bad_request_warning(self):
@@ -222,7 +232,7 @@ class RunserverCommandLogActionTests(TestCase):
         }
         with self.assertLogs("django.channels.server", level="WARNING") as cm:
             self.cmd.log_action("http", "complete", details)
-            logged = cm.output[0]
+            logged = cm.output[-1]
             self.assertIn("HTTP POST /auth/passkey/register/verify/ 400 [0.01, 127.0.0.1:37548, 2024BCSE065, Abdus Samad Saiyed]", logged)
 
     def test_websocket_log_action(self):
@@ -240,7 +250,7 @@ class RunserverCommandLogActionTests(TestCase):
         }
         with self.assertLogs("django.channels.server", level="INFO") as cm:
             self.cmd.log_action("websocket", "connected", details)
-            logged = cm.output[0]
+            logged = cm.output[-1]
             self.assertRegex(logged, r"\[\d{2}/[A-Za-z]{3}/\d{4} \d{2}:\d{2}:\d{2}\] WebSocket CONNECT /ws/ride/1/ \[127.0.0.1:44444, 2024BCSE065, Abdus Samad Saiyed\]")
 
     def test_log_action_in_production_debug_false(self):
@@ -262,7 +272,7 @@ class RunserverCommandLogActionTests(TestCase):
             }
             with self.assertLogs("django.channels.server", level="INFO") as cm:
                 self.cmd.log_action("http", "complete", details)
-                logged = cm.output[0]
+                logged = cm.output[-1]
                 self.assertIn("HTTP GET /media/profiles/f0294f7153af4070a8ba234777339724.jpg 200 [0.01, 14.139.61.131:19440, 2024BCSE065, Abdus Samad Saiyed]", logged)
 
     def test_guest_demo_user_logs_as_na(self):

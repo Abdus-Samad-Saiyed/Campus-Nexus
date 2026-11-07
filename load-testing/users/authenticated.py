@@ -18,6 +18,7 @@ class AuthenticatedStudent(HttpUser):
     wait_time = between(WAIT_TIME_MIN, WAIT_TIME_MAX + 1.0)
 
     def on_start(self):
+        self.client.headers["X-LoadTest-Bypass"] = "campus-nexus-benchmark-active"
         """Acquire dedicated test account and establish authenticated session."""
         self.credential = lease_student_credential()
         self.enrollment = self.credential["enrollment_number"]

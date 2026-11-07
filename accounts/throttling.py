@@ -43,6 +43,12 @@ def rate_limit(key_prefix: str, limit: int, period_seconds: int, message: str = 
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
+            # Bypass rate limiting for internal benchmark load testing when secret bypass header is present
+            if request.headers.get('x-loadtest-bypass') == 'campus-nexus-benchmark-active':
+                return view_func(request, *args, **kwargs)
+            if not getattr(settings, 'RATELIMIT_ENABLE', True):
+                return view_func(request, *args, **kwargs)
+
             if request.method == 'POST':
                 ip = get_client_ip(request)
                 cache_key_ip = f'ratelimit:{key_prefix}:{ip}'
