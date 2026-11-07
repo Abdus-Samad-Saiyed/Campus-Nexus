@@ -1,5 +1,5 @@
 # ==============================================================================
-# Campus Nexus — Unified Server Orchestration & Launch Control
+# Campus Nexus - Unified Server Orchestration & Launch Control
 # ==============================================================================
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
@@ -15,7 +15,7 @@ if (-not (Test-Path $PythonExe)) {
 function Show-Header {
     Clear-Host
     Write-Host "================================================================================" -ForegroundColor Cyan
-    Write-Host "                    CAMPUS NEXUS — SERVER ORCHESTRATION" -ForegroundColor Yellow -NoNewline
+    Write-Host "                    CAMPUS NEXUS - SERVER ORCHESTRATION" -ForegroundColor Yellow -NoNewline
     Write-Host " (v2.0)" -ForegroundColor Green
     Write-Host "================================================================================" -ForegroundColor Cyan
     
