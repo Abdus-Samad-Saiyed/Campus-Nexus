@@ -1181,7 +1181,11 @@ def apply_account(request):
                             except Exception as exc:
                                 logger.warning("Application confirmation email failed: %s", exc)
 
-                    threading.Thread(target=_post_submission_bg, daemon=True).start()
+                    from accounts.utils import is_test_environment
+                    if is_test_environment():
+                        _post_submission_bg()
+                    else:
+                        threading.Thread(target=_post_submission_bg, daemon=True).start()
 
                     # Clean guest session if applicable and log user in immediately
                     if in_guest_demo and hasattr(request, 'session'):

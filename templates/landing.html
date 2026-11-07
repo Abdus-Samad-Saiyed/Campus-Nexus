@@ -25,24 +25,9 @@
             <p class="hero-subtitle mb-4">
                 Campus Nexus is the centralized digital ecosystem connecting students across hostels, departments, and services. Launch <strong>COORDINATE</strong> for cab shares today, with additional campus modules coming soon.
             </p>
-            <div class="d-flex gap-3 flex-wrap">
-                {% if early_launch_mode %}
-                <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark px-4 py-2 fs-6 fw-bold">
-                    <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Early Access
-                </a>
-                <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-green px-4 py-2 fs-6">
-                    <i class="bi bi-shield-check me-1"></i> Apply for Permanent ID
-                </a>
-                {% else %}
-                <a href="{% url 'apply_account' %}" class="btn btn-green px-4 py-2 fs-6">
-                    <i class="bi bi-send-fill me-1"></i> Apply for Verification
-                </a>
-                {% endif %}
+            <div class="d-flex gap-3 flex-wrap align-items-center">
                 <a href="{% url 'login' %}" class="btn btn-dark-custom px-4 py-2 fs-6">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Student Sign In
-                </a>
-                <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info px-4 py-2 fs-6 fw-semibold">
-                    <i class="bi bi-incognito me-1"></i> Explore Guest Demo
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Student Sign In <span class="text-secondary small fw-normal ms-1">(Already have an account)</span>
                 </a>
                 <a href="#catalogue" class="btn btn-outline-green px-4 py-2 fs-6">
                     <i class="bi bi-grid-fill me-1"></i> Explore Services
@@ -137,6 +122,12 @@
                             <p class="text-secondary small mb-0">Sign in once to access COORDINATE and upcoming campus utilities.</p>
                         </div>
                     </div>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <a href="{% url 'apply_account' %}" class="btn btn-green fw-bold py-2">
+                        <i class="bi bi-send-fill me-1"></i> Apply for Verification
+                    </a>
                 </div>
                 {% endif %}
             </div>
