@@ -35,6 +35,8 @@ class MultiWorkerCluster:
         worker_base_port: int = 8001,
         early_launch: bool = False,
         settings_module: str = "campus.settings.dev",
+        database_url: Optional[str] = None,
+        redis_url: Optional[str] = None,
     ):
         self.num_workers = num_workers
         self.bind_host = bind_host
@@ -42,6 +44,8 @@ class MultiWorkerCluster:
         self.worker_base_port = worker_base_port
         self.early_launch = early_launch
         self.settings_module = settings_module
+        self.database_url = database_url
+        self.redis_url = redis_url
 
         self.worker_ports: List[int] = [
             self.worker_base_port + i for i in range(self.num_workers)
@@ -56,17 +60,31 @@ class MultiWorkerCluster:
         """Verify Redis is active; auto-launch local redis-server if available."""
         import socket
         import shutil
+        import urllib.parse
         from pathlib import Path
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.15)
+        r_url = self.redis_url or os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
         try:
-            s.connect(('127.0.0.1', 6379))
+            parsed = urllib.parse.urlparse(r_url)
+            redis_host = parsed.hostname or "127.0.0.1"
+            redis_port = parsed.port or 6379
+        except Exception:
+            redis_host = "127.0.0.1"
+            redis_port = 6379
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.2)
+        try:
+            s.connect((redis_host, redis_port))
             s.close()
-            print("[MultiWorkerCluster] Redis channel broker active on 127.0.0.1:6379 (WebSockets synchronized across all workers).")
+            print(f"[MultiWorkerCluster] Redis channel broker active on {redis_host}:{redis_port} (WebSockets synchronized across all workers).")
             return
         except Exception:
             pass
+
+        if redis_host not in ("127.0.0.1", "localhost"):
+            print(f"[MultiWorkerCluster] Warning: Remote Redis broker at {redis_host}:{redis_port} not reachable.")
+            return
 
         # Locate local redis-server binary
         redis_bin = shutil.which("redis-server") or shutil.which("redis-server.exe")
@@ -78,24 +96,28 @@ class MultiWorkerCluster:
 
         if redis_bin and Path(redis_bin).exists():
             try:
-                print(f"[MultiWorkerCluster] Auto-launching local Redis broker ({redis_bin})...")
+                print(f"[MultiWorkerCluster] Auto-launching local Redis broker ({redis_bin}) on port {redis_port}...")
                 creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
                 self.redis_proc = subprocess.Popen(
-                    [redis_bin, "--port", "6379", "--daemonize", "no", "--save", "", "--appendonly", "no"],
+                    [redis_bin, "--port", str(redis_port), "--daemonize", "no", "--save", "", "--appendonly", "no"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     creationflags=creationflags,
                 )
                 time.sleep(0.5)
-                print("[MultiWorkerCluster] Redis broker started successfully on 127.0.0.1:6379.")
+                print(f"[MultiWorkerCluster] Redis broker started successfully on {redis_host}:{redis_port}.")
             except Exception as e:
                 print(f"[MultiWorkerCluster] Warning: Could not auto-launch Redis: {e}")
         else:
-            print("[MultiWorkerCluster] Warning: Redis is not running on 127.0.0.1:6379. WebSockets will fallback to in-memory mode.")
+            print(f"[MultiWorkerCluster] Warning: Redis is not running on {redis_host}:{redis_port}. WebSockets will fallback to in-memory mode.")
 
     def _get_worker_env(self) -> Dict[str, str]:
         env = os.environ.copy()
         env["DJANGO_SETTINGS_MODULE"] = self.settings_module
+        if self.redis_url:
+            env["REDIS_URL"] = self.redis_url
+        if self.database_url:
+            env["DATABASE_URL"] = self.database_url
         env.setdefault(
             "REDIS_URL",
             "redis://127.0.0.1:6379/0?protocol=2&socket_timeout=15&socket_connect_timeout=5",
@@ -379,8 +401,44 @@ def main():
         default="campus.settings.dev",
         help="Django settings module (default: campus.settings.dev)",
     )
+    parser.add_argument(
+        "--database-url",
+        type=str,
+        default=None,
+        help="Custom Database connection URL (e.g. postgres://user:pass@host:5432/db)",
+    )
+    parser.add_argument(
+        "--redis-url",
+        type=str,
+        default=None,
+        help="Custom Redis broker connection URL (e.g. redis://host:6379/0)",
+    )
+    parser.add_argument("--pg-host", type=str, default=None, help="PostgreSQL host")
+    parser.add_argument("--pg-port", type=int, default=None, help="PostgreSQL port")
+    parser.add_argument("--pg-db", type=str, default=None, help="PostgreSQL database name")
+    parser.add_argument("--pg-user", type=str, default=None, help="PostgreSQL user")
+    parser.add_argument("--pg-password", type=str, default=None, help="PostgreSQL password")
+    parser.add_argument("--redis-host", type=str, default=None, help="Redis host")
+    parser.add_argument("--redis-port", type=int, default=None, help="Redis port")
+    parser.add_argument("--redis-db", type=int, default=None, help="Redis db index")
 
     args = parser.parse_args()
+
+    db_url = args.database_url
+    if not db_url and (args.pg_host or args.pg_port or args.pg_db):
+        host = args.pg_host or "127.0.0.1"
+        port = args.pg_port or 5432
+        db = args.pg_db or "campus_nexus"
+        user = args.pg_user or "campus_admin"
+        password = args.pg_password or "CampusPass123!"
+        db_url = f"postgres://{user}:{password}@{host}:{port}/{db}"
+
+    r_url = args.redis_url
+    if not r_url and (args.redis_host or args.redis_port or args.redis_db is not None):
+        r_host = args.redis_host or "127.0.0.1"
+        r_port = args.redis_port or 6379
+        r_db = args.redis_db if args.redis_db is not None else 0
+        r_url = f"redis://{r_host}:{r_port}/{r_db}?protocol=2&socket_timeout=15&socket_connect_timeout=5"
 
     cluster = MultiWorkerCluster(
         num_workers=args.workers,
@@ -389,6 +447,8 @@ def main():
         worker_base_port=args.base_port,
         early_launch=args.early_launch,
         settings_module=args.settings,
+        database_url=db_url,
+        redis_url=r_url,
     )
 
     def handle_signal(sig, frame):

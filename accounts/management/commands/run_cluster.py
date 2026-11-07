@@ -60,6 +60,20 @@ class Command(BaseCommand):
             dest="early_launch",
             help="Enable Early Launch Mode across all workers",
         )
+        parser.add_argument(
+            "--database-url",
+            type=str,
+            default=None,
+            dest="database_url",
+            help="Custom Database connection URL",
+        )
+        parser.add_argument(
+            "--redis-url",
+            type=str,
+            default=None,
+            dest="redis_url",
+            help="Custom Redis broker connection URL",
+        )
 
     def handle(self, *args, **options):
         # Import MultiWorkerCluster from scripts
@@ -75,6 +89,8 @@ class Command(BaseCommand):
             worker_base_port=options["base_port"],
             early_launch=early_launch,
             settings_module=settings_mod,
+            database_url=options.get("database_url"),
+            redis_url=options.get("redis_url"),
         )
 
         def handle_signal(sig, frame):

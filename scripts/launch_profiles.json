@@ -1,0 +1,73 @@
+{
+  "active_profile": "production",
+  "profiles": {
+    "production": {
+      "name": "Production Multi-Worker Cluster (Recommended)",
+      "daphne_host": "0.0.0.0",
+      "daphne_port": 8000,
+      "daphne_workers": 8,
+      "worker_base_port": 8001,
+      "pg_host": "127.0.0.1",
+      "pg_port": 5432,
+      "pg_db": "campus_nexus",
+      "pg_user": "campus_admin",
+      "pg_password": "CampusPass123!",
+      "redis_host": "127.0.0.1",
+      "redis_port": 6379,
+      "redis_db": 0,
+      "debug": false,
+      "early_launch": false
+    },
+    "turbo": {
+      "name": "Turbo High-Concurrency (16 Workers)",
+      "daphne_host": "0.0.0.0",
+      "daphne_port": 8000,
+      "daphne_workers": 16,
+      "worker_base_port": 8001,
+      "pg_host": "127.0.0.1",
+      "pg_port": 5432,
+      "pg_db": "campus_nexus",
+      "pg_user": "campus_admin",
+      "pg_password": "CampusPass123!",
+      "redis_host": "127.0.0.1",
+      "redis_port": 6379,
+      "redis_db": 0,
+      "debug": false,
+      "early_launch": false
+    },
+    "development": {
+      "name": "Single-Worker Local Dev (Debug=True)",
+      "daphne_host": "127.0.0.1",
+      "daphne_port": 8000,
+      "daphne_workers": 1,
+      "worker_base_port": 8001,
+      "pg_host": "127.0.0.1",
+      "pg_port": 5432,
+      "pg_db": "campus_nexus",
+      "pg_user": "campus_admin",
+      "pg_password": "CampusPass123!",
+      "redis_host": "127.0.0.1",
+      "redis_port": 6379,
+      "redis_db": 0,
+      "debug": true,
+      "early_launch": false
+    },
+    "staging_custom": {
+      "name": "Custom Port Isolation (Port 8080 / PG 5433 / Redis 6380)",
+      "daphne_host": "0.0.0.0",
+      "daphne_port": 8080,
+      "daphne_workers": 4,
+      "worker_base_port": 8081,
+      "pg_host": "127.0.0.1",
+      "pg_port": 5433,
+      "pg_db": "campus_nexus",
+      "pg_user": "campus_admin",
+      "pg_password": "CampusPass123!",
+      "redis_host": "127.0.0.1",
+      "redis_port": 6380,
+      "redis_db": 1,
+      "debug": false,
+      "early_launch": false
+    }
+  }
+}

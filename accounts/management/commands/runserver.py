@@ -61,9 +61,28 @@ class Command(DaphneRunserverCommand):
             default=1,
             help='Number of concurrent Daphne ASGI worker processes (set > 1 to launch multi-worker cluster)',
         )
+        parser.add_argument(
+            '--database-url',
+            type=str,
+            default=None,
+            dest='database_url',
+            help='Custom Database connection URL',
+        )
+        parser.add_argument(
+            '--redis-url',
+            type=str,
+            default=None,
+            dest='redis_url',
+            help='Custom Redis broker connection URL',
+        )
 
     def handle(self, *args, **options):
         workers = options.get('workers', 1)
+        if options.get('database_url'):
+            os.environ['DATABASE_URL'] = options['database_url']
+        if options.get('redis_url'):
+            os.environ['REDIS_URL'] = options['redis_url']
+
         if workers and workers > 1:
             addrport = options.get('addrport') or ''
             addr_val = options.get('addr') or '0.0.0.0'
@@ -84,6 +103,8 @@ class Command(DaphneRunserverCommand):
                 base_port=int(port_val) + 1,
                 bind=str(addr_val),
                 early_launch=options.get('early_launch', False),
+                database_url=options.get('database_url'),
+                redis_url=options.get('redis_url'),
             )
             return
 
