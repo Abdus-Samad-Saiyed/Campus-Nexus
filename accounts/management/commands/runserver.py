@@ -75,6 +75,7 @@ class Command(DaphneRunserverCommand):
                 'run_cluster',
                 workers=workers,
                 port=int(port_val),
+                base_port=int(port_val) + 1,
                 bind=str(addr_val),
                 early_launch=options.get('early_launch', False),
             )
