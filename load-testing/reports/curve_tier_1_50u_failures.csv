@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,/coordinate/[id]/join/ [POST],HTTPError('500 Server Error: Internal Server Error for url: /coordinate/[id]/join/ [POST]'),5,2026-11-07T00:35:50Z,2026-11-07T00:36:05Z

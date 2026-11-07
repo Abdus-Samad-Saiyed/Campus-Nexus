@@ -189,7 +189,7 @@ def generate_curve_markdown_report(results: list, stopping_reason: str, target_u
 
 **Generated:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}  
 **Target Environment:** `{target_url}`  
-**Architecture:** Single-Worker ASGI Daphne server, Django 6.0, SQLite WAL, Python 3.14  
+**Architecture:** Multi-Worker ASGI Daphne Cluster (8 Workers) with Redis Channel Broker, Django 6.0, SQLite WAL, Python 3.14  
 **Hardware Baseline:** Intel Core 7 240H (10 Cores / 16 Threads), 16GB DDR5 RAM, NVMe SSD, NVIDIA RTX 5050 (8GB VRAM)  
 **Safety Protocol:** 100% Bitwise Database Isolation (Restored post-test, 0 permanent records touched)
 
@@ -288,16 +288,14 @@ def run_scaled_curve(target_url: str = "http://127.0.0.1:8000"):
 
     # Tier schedule: [users, spawn_rate, duration_seconds]
     TIERS = [
-        {"users": 10,  "spawn_rate": 5,  "duration": 30},
-        {"users": 30,  "spawn_rate": 10, "duration": 30},
-        {"users": 60,  "spawn_rate": 15, "duration": 30},
-        {"users": 100, "spawn_rate": 20, "duration": 35},
-        {"users": 150, "spawn_rate": 25, "duration": 35},
-        {"users": 200, "spawn_rate": 30, "duration": 35},
-        {"users": 260, "spawn_rate": 35, "duration": 35},
-        {"users": 320, "spawn_rate": 40, "duration": 40},
-        {"users": 380, "spawn_rate": 45, "duration": 40},
-        {"users": 450, "spawn_rate": 50, "duration": 40},
+        {"users": 50,   "spawn_rate": 15, "duration": 30},
+        {"users": 120,  "spawn_rate": 25, "duration": 30},
+        {"users": 250,  "spawn_rate": 40, "duration": 35},
+        {"users": 400,  "spawn_rate": 50, "duration": 35},
+        {"users": 600,  "spawn_rate": 60, "duration": 35},
+        {"users": 850,  "spawn_rate": 75, "duration": 40},
+        {"users": 1100, "spawn_rate": 90, "duration": 40},
+        {"users": 1400, "spawn_rate": 100, "duration": 40},
     ]
 
     # Determine maximum accounts needed

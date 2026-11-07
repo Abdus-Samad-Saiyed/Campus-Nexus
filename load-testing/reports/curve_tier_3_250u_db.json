@@ -1,0 +1,335 @@
+[
+  {
+    "timestamp": "2026-11-07T06:06:55.375384",
+    "elapsed_sec": 1.0,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 155.02,
+    "count_query_ms": 0.25,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:06:56.375794",
+    "elapsed_sec": 2.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.06,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:06:57.376632",
+    "elapsed_sec": 3.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.08,
+    "count_query_ms": 0.13,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:06:58.377551",
+    "elapsed_sec": 4.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.12,
+    "count_query_ms": 0.11,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:06:59.378353",
+    "elapsed_sec": 5.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.09,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:00.379943",
+    "elapsed_sec": 6.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.07,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:01.380243",
+    "elapsed_sec": 7.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.08,
+    "count_query_ms": 0.06,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:02.381019",
+    "elapsed_sec": 8.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.09,
+    "count_query_ms": 0.1,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:03.381747",
+    "elapsed_sec": 9.19,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.07,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:04.382125",
+    "elapsed_sec": 10.2,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:05.399254",
+    "elapsed_sec": 11.21,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.09,
+    "count_query_ms": 0.16,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:06.399946",
+    "elapsed_sec": 12.21,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.09,
+    "count_query_ms": 0.1,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:07.400782",
+    "elapsed_sec": 13.21,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.07,
+    "count_query_ms": 0.06,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:08.401424",
+    "elapsed_sec": 14.21,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.06,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:09.402273",
+    "elapsed_sec": 15.22,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.07,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:10.491892",
+    "elapsed_sec": 16.24,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.11,
+    "count_query_ms": 38.87,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:11.492638",
+    "elapsed_sec": 17.31,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.1,
+    "count_query_ms": 0.11,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:12.493094",
+    "elapsed_sec": 18.31,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.08,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:13.493970",
+    "elapsed_sec": 19.31,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.1,
+    "count_query_ms": 0.11,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:14.494430",
+    "elapsed_sec": 20.31,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:15.532874",
+    "elapsed_sec": 21.33,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.1,
+    "count_query_ms": 0.12,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:16.533557",
+    "elapsed_sec": 22.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.05,
+    "count_query_ms": 0.05,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:17.534040",
+    "elapsed_sec": 23.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:18.534784",
+    "elapsed_sec": 24.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.06,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:19.535665",
+    "elapsed_sec": 25.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.05,
+    "count_query_ms": 0.04,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:20.536447",
+    "elapsed_sec": 26.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.08,
+    "count_query_ms": 0.07,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:21.537180",
+    "elapsed_sec": 27.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.11,
+    "count_query_ms": 0.11,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:22.537847",
+    "elapsed_sec": 28.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.24,
+    "count_query_ms": 0.15,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:23.538751",
+    "elapsed_sec": 29.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.09,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:24.539449",
+    "elapsed_sec": 30.35,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.08,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:25.609953",
+    "elapsed_sec": 31.38,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.23,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:26.610445",
+    "elapsed_sec": 32.42,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.13,
+    "count_query_ms": 0.12,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:27.611150",
+    "elapsed_sec": 33.42,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.07,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:28.611517",
+    "elapsed_sec": 34.42,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.07,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:29.611972",
+    "elapsed_sec": 35.43,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.07,
+    "count_query_ms": 0.08,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:30.698007",
+    "elapsed_sec": 36.43,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 45.47,
+    "count_query_ms": 0.19,
+    "lock_contention_error": 0
+  },
+  {
+    "timestamp": "2026-11-07T06:07:31.698949",
+    "elapsed_sec": 37.51,
+    "db_size_kb": 1152.0,
+    "wal_size_kb": 0.0,
+    "select1_ms": 0.09,
+    "count_query_ms": 0.09,
+    "lock_contention_error": 0
+  }
+]
