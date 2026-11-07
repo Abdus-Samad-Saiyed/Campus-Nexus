@@ -329,6 +329,25 @@ class Phase8ProductionReadinessTests(TestCase):
         self.assertIn("timestamp", data)
         self.assertIn("version", data)
 
+    def test_health_check_html_rendering(self):
+        """GET /health/?format=html renders the dashboard HTML view."""
+        response = self.client.get(reverse('health_check') + '?format=html')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/html', response['Content-Type'])
+        self.assertContains(response, 'System Health')
+        self.assertContains(response, 'ALL SYSTEMS OPERATIONAL')
+
+    def test_health_check_database_failure_returns_503(self):
+        """Simulated database connection failure triggers 503 Service Unavailable."""
+        from unittest.mock import patch
+        with patch('django.db.connection.cursor', side_effect=Exception("Database connection timeout")):
+            response = self.client.get(reverse('health_check'), HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 503)
+            data = response.json()
+            self.assertEqual(data.get('status'), 'unhealthy')
+            self.assertEqual(data.get('database'), 'disconnected')
+            self.assertIn('error', data)
+
     def test_production_settings_validation(self):
         """Verify production configuration settings and proxy headers."""
         import importlib

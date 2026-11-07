@@ -61,6 +61,18 @@ class Stage6AuditTrailImmutabilityTests(TestCase):
         self.assertFalse(audit_admin.has_change_permission(request, self.event))
         self.assertFalse(audit_admin.has_delete_permission(request, self.event))
 
+    def test_audit_event_bulk_queryset_immutability(self):
+        """Bulk updates and deletes on AuditEvent querysets are strictly blocked."""
+        with self.assertRaises(PermissionError):
+            AuditEvent.objects.filter(id=self.event.id).update(description="Bulk tampered")
+
+        with self.assertRaises(PermissionError):
+            AuditEvent.objects.filter(id=self.event.id).delete()
+
+        # Verify record remains unchanged in database
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.description, 'Test login event')
+
 
 class Stage6PrivacyAndMediaTests(TestCase):
     """Test profile photo visibility rules and media upload validation."""

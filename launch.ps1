@@ -79,7 +79,7 @@ function Main-Menu {
         Write-Host "Deep Database Parity & Integrity Check (SQLite vs PostgreSQL)" -ForegroundColor Cyan
 
         Write-Host "  [8] " -NoNewline -ForegroundColor Cyan
-        Write-Host "Run Full Test Suite (374 Tests - 100% Green Validation)" -ForegroundColor Green
+        Write-Host "Run Full Test Suite (100% Green Validation)" -ForegroundColor Green
 
         Write-Host "  [9] " -NoNewline -ForegroundColor Cyan
         Write-Host "Run Locust Load Testing Suite (Capacity Curve Benchmarks)" -ForegroundColor White
@@ -154,7 +154,7 @@ function Main-Menu {
                 $null = Read-Host
             }
             "8" {
-                Write-Host "`n[TEST] Running full 374-test regression suite on PostgreSQL..." -ForegroundColor Green
+                Write-Host "`n[TEST] Running full regression test suite on PostgreSQL..." -ForegroundColor Green
                 & $PythonExe manage.py test --settings=campus.settings.test
                 Write-Host "`nTest suite run completed. Press Enter to return to menu..." -ForegroundColor Cyan
                 $null = Read-Host

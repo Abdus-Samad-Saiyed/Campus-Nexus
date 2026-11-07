@@ -27,7 +27,8 @@ class SetupDBCliTest(TestCase):
             "--last-name", "CLI",
             "--password", "SecretStudentPass1!",
         ]
-        main(argv=argv)
+        with patch('sys.stdout', new_callable=io.StringIO):
+            main(argv=argv)
 
         user = User.objects.get(enrollment_number=enrollment)
         self.assertEqual(user.first_name, "TestStudent")
@@ -50,7 +51,8 @@ class SetupDBCliTest(TestCase):
             "--admin",
             "--password", "SuperAdminPass123!",
         ]
-        main(argv=argv)
+        with patch('sys.stdout', new_callable=io.StringIO):
+            main(argv=argv)
 
         user = User.objects.get(enrollment_number=enrollment)
         self.assertEqual(user.first_name, "AdminUser")

@@ -133,3 +133,159 @@ class StateMachineTransitionTests(TestCase):
         transition_participant_state(self.ride, self.student, ParticipantStatus.WAITLISTED)
         with self.assertRaises(ValidationError):
             transition_participant_state(self.ride, self.student, ParticipantStatus.LEFT)
+
+
+import threading
+import unittest
+from django.db import connection, transaction
+from django.test import TransactionTestCase
+
+from coordinate.policies import can_view_ride_contact, can_view_ride_identity
+from coordinate.services import user_has_active_ride
+from campus.api.serializers import serialize_ride_detail
+
+
+class AuthorizationRegressionTests(TestCase):
+    def setUp(self):
+        self.host = User.objects.create_user(
+            username='host_auth',
+            enrollment_number='2024BCSE201',
+            gender='M',
+            phone_number='9876543220',
+            password='password123',
+            verified=True,
+        )
+        self.student = User.objects.create_user(
+            username='student_auth',
+            enrollment_number='2024BCSE202',
+            gender='M',
+            phone_number='9876543221',
+            password='password123',
+            verified=True,
+        )
+        self.ride = RideRequest.objects.create(
+            creator=self.host,
+            route='NIT_TO_AIRPORT',
+            visibility='MIXED',
+            departure_time=timezone.now() + timedelta(days=2),
+            total_spots=3,
+        )
+        transition_participant_state(self.ride, self.host, ParticipantStatus.CONFIRMED)
+
+    def test_non_confirmed_statuses_isolated_from_authorization_and_capacity(self):
+        non_confirmed_statuses = [
+            ParticipantStatus.PENDING,
+            ParticipantStatus.WAITLISTED,
+            ParticipantStatus.LEFT,
+            ParticipantStatus.KICKED,
+            ParticipantStatus.DECLINED,
+            ParticipantStatus.CANCELLED,
+        ]
+
+        for status in non_confirmed_statuses:
+            with self.subTest(status=status):
+                # Setup participant in target non-confirmed status
+                rp, _ = RideParticipant.all_rows.update_or_create(
+                    ride=self.ride,
+                    user=self.student,
+                    defaults={
+                        'status': status,
+                        'disclose_ride_identity': True,
+                        'share_contact_details': True,
+                    }
+                )
+
+                # 1. ConfirmedManager isolation: RideParticipant.objects.filter(...) misses them
+                self.assertFalse(
+                    RideParticipant.objects.filter(ride=self.ride, user=self.student).exists(),
+                    f"Status {status} leaked into default RideParticipant.objects queryset!"
+                )
+
+                # 2. Capacity isolation: spots_remaining and is_full only count confirmed
+                self.assertEqual(self.ride.participant_count(), 1, f"Status {status} incremented participant count!")
+                self.assertEqual(self.ride.spots_remaining(), 2)
+                self.assertFalse(self.ride.is_full())
+
+                # 3. Active ride isolation: user_has_active_ride evaluates to False
+                self.assertFalse(
+                    user_has_active_ride(self.student),
+                    f"Status {status} wrongly blocked student from creating/joining other rides!"
+                )
+
+                # 4. API serialization isolation: serialize_ride_detail excludes them
+                detail = serialize_ride_detail(self.ride, request_user=self.host)
+                passenger_enrollments = [p['enrollment_number'] for p in detail['participants'] if not p.get('is_creator')]
+                self.assertNotIn(
+                    self.student.enrollment_number,
+                    passenger_enrollments,
+                    f"Status {status} student leaked into serialized passenger roster!"
+                )
+
+                # 5. Contact privacy isolation: non-confirmed passengers never reveal contacts
+                self.assertFalse(
+                    can_view_ride_contact(self.host, self.ride, self.student),
+                    f"Host was able to view private contact details of student with status {status}!"
+                )
+
+
+class ConcurrencyLockingTests(TransactionTestCase):
+    """
+    Validates atomic row-locking under concurrent threads during seat claims.
+    Multi-threaded row locking is designed for PostgreSQL row-level locks and
+    is skipped on SQLite which employs file/table-level locks.
+    """
+    def setUp(self):
+        self.host = User.objects.create_user(
+            username='c_host', enrollment_number='2024BCSE401', gender='M', phone_number='9876543401', password='pass'
+        )
+        self.student1 = User.objects.create_user(
+            username='c_s1', enrollment_number='2024BCSE402', gender='M', phone_number='9876543402', password='pass'
+        )
+        self.student2 = User.objects.create_user(
+            username='c_s2', enrollment_number='2024BCSE403', gender='M', phone_number='9876543403', password='pass'
+        )
+        self.ride = RideRequest.objects.create(
+            creator=self.host,
+            route='NIT_TO_AIRPORT',
+            visibility='MIXED',
+            departure_time=timezone.now() + timedelta(days=2),
+            total_spots=2,  # 1 host spot + 1 remaining passenger spot
+        )
+        transition_participant_state(self.ride, self.host, ParticipantStatus.CONFIRMED)
+
+    @unittest.skipIf(connection.vendor == 'sqlite', "Multi-threaded row concurrency tests require PostgreSQL (skipped on SQLite)")
+    def test_concurrent_claim_final_spot(self):
+        """
+        Two simultaneous approvals/transitions for the last remaining seat.
+        Under row locking, exactly one becomes CONFIRMED, and total confirmed count never exceeds total_spots.
+        """
+        results = []
+
+        def claim_seat(user):
+            connection.close()
+            try:
+                with transaction.atomic():
+                    r = RideRequest.objects.select_for_update().get(id=self.ride.id)
+                    if r.spots_remaining() > 0:
+                        transition_participant_state(r, user, ParticipantStatus.CONFIRMED)
+                        results.append((user.enrollment_number, True))
+                    else:
+                        results.append((user.enrollment_number, False))
+            except Exception as e:
+                results.append((user.enrollment_number, False, str(e)))
+            finally:
+                connection.close()
+
+        t1 = threading.Thread(target=claim_seat, args=(self.student1,))
+        t2 = threading.Thread(target=claim_seat, args=(self.student2,))
+
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        success_count = sum(1 for r in results if r[1] is True)
+        self.assertEqual(success_count, 1, f"Expected exactly 1 seat claim to succeed, got results: {results}")
+
+        confirmed_count = RideParticipant.objects.filter(ride=self.ride, status=ParticipantStatus.CONFIRMED).count()
+        self.assertEqual(confirmed_count, 2)  # Host (1) + 1 winner = 2 (total_spots)

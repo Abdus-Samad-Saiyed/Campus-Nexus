@@ -277,3 +277,37 @@ class Stage5DirectChatWebSocketTests(TransactionTestCase):
         self.assertEqual(sent_payloads[0]['content'], 'Hey, are you taking the ride?')
         self.assertEqual(sent_payloads[0]['sender'], self.user2.enrollment_number)
 
+    def test_multi_tab_presence_connection_counting(self):
+        """Presence broadcasts occur only on first connection open (count=1) and final disconnect (count=0)."""
+        consumer = FriendChatConsumer()
+
+        # Tab 1 connects
+        c1 = asyncio.run(consumer._incr_user_connection(self.user1.id))
+        self.assertEqual(c1, 1)
+
+        # Tab 2 connects from same user
+        c2 = asyncio.run(consumer._incr_user_connection(self.user1.id))
+        self.assertEqual(c2, 2)
+
+        # Tab 1 disconnects -> 1 tab remains active
+        d1 = asyncio.run(consumer._decr_user_connection(self.user1.id))
+        self.assertEqual(d1, 1)
+
+        # Tab 2 disconnects -> 0 tabs remain
+        d2 = asyncio.run(consumer._decr_user_connection(self.user1.id))
+        self.assertEqual(d2, 0)
+
+    def test_dynamic_friendship_check(self):
+        """Friendship verification reflects real-time relationship status."""
+        consumer = FriendChatConsumer()
+        consumer.user = self.user1
+        consumer.friend = self.user2
+
+        # Initially friends
+        self.assertTrue(asyncio.run(consumer._are_friends()))
+
+        # Remove friendship
+        Friendship.objects.filter(user1=self.user1, user2=self.user2).delete()
+        Friendship.objects.filter(user1=self.user2, user2=self.user1).delete()
+        self.assertFalse(asyncio.run(consumer._are_friends()))
+

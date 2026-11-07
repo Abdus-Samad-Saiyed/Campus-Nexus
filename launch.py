@@ -43,7 +43,7 @@ def main():
         print("  [5] Single-Worker PostgreSQL Dev Server (Port 9000)")
         print("  [6] Bind & Verify Infrastructure (PostgreSQL 18.6 & Redis Daemons)")
         print("  [7] Deep Database Parity & Integrity Check (SQLite vs PostgreSQL)")
-        print("  [8] Run Comprehensive Test Suite (374 Tests - 100% Green)")
+        print("  [8] Run Comprehensive Test Suite (100% Green Validation)")
         print("  [9] Run Comprehensive Port Probing Matrix (50 E2E Probes)")
         print("  [0] Exit\n")
         
@@ -118,7 +118,7 @@ def main():
             except (EOFError, KeyboardInterrupt):
                 break
         elif choice == "8":
-            print("\n[TEST] Running full 374-test regression suite on PostgreSQL...")
+            print("\n[TEST] Running full regression test suite on PostgreSQL...")
             subprocess.run([PYTHON_EXE, manage_py, "test", "--settings=campus.settings.test"])
             try:
                 input("\nPress Enter to return to menu...")
