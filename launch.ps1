@@ -56,7 +56,7 @@ function Main-Menu {
         Write-Host "`nPlease select a launch configuration:`n" -ForegroundColor White
 
         Write-Host "  [1] " -NoNewline -ForegroundColor Cyan
-        Write-Host "Multi-Worker PostgreSQL Cluster (Port 9000, 8 Workers) " -ForegroundColor Yellow -NoNewline
+        Write-Host "Multi-Worker PostgreSQL Cluster (Port 8000, 8 Workers) " -ForegroundColor Yellow -NoNewline
         Write-Host "[RECOMMENDED / PRODUCTION]" -ForegroundColor Green
 
         Write-Host "  [2] " -NoNewline -ForegroundColor Cyan
@@ -64,13 +64,13 @@ function Main-Menu {
         Write-Host "(--early-launch)" -ForegroundColor Magenta
 
         Write-Host "  [3] " -NoNewline -ForegroundColor Cyan
-        Write-Host "Single-Worker PostgreSQL Dev Server (Port 9000)" -ForegroundColor White
-
-        Write-Host "  [4] " -NoNewline -ForegroundColor Cyan
         Write-Host "Single-Worker PostgreSQL Dev Server (Port 8000)" -ForegroundColor White
 
+        Write-Host "  [4] " -NoNewline -ForegroundColor Cyan
+        Write-Host "Comparative SQLite Multi-Worker Cluster (Port 9000, 8 Workers)" -ForegroundColor DarkGray
+
         Write-Host "  [5] " -NoNewline -ForegroundColor Cyan
-        Write-Host "Comparative SQLite Cluster (Port 8000, 8 Workers)" -ForegroundColor DarkGray
+        Write-Host "Single-Worker PostgreSQL Dev Server (Port 9000)" -ForegroundColor DarkGray
 
         Write-Host "  [6] " -NoNewline -ForegroundColor Cyan
         Write-Host "Bind & Verify Infrastructure (PostgreSQL 18.6 & Redis Daemons)" -ForegroundColor Cyan
@@ -92,37 +92,37 @@ function Main-Menu {
         switch ($choice) {
             "1" {
                 Ensure-Infrastructure
-                Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster on 0.0.0.0:9000 (8 Workers)..." -ForegroundColor Green
+                Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster on 0.0.0.0:8000 (8 Workers)..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
-                & $PythonExe manage.py runserver 0.0.0.0:9000 -w 8
+                & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8
                 break
             }
             "2" {
                 Ensure-Infrastructure
-                Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:9000..." -ForegroundColor Green
+                Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
-                & $PythonExe manage.py runserver 0.0.0.0:9000 -w 8 --early-launch
+                & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8 --early-launch
                 break
             }
             "3" {
                 Ensure-Infrastructure
-                Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:9000..." -ForegroundColor Green
+                Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "True"
-                & $PythonExe manage.py runserver 0.0.0.0:9000
+                & $PythonExe manage.py runserver 0.0.0.0:8000
                 break
             }
             "4" {
-                Ensure-Infrastructure
-                Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 127.0.0.1:8000..." -ForegroundColor Green
-                $env:DJANGO_DEBUG = "True"
-                & $PythonExe manage.py runserver 127.0.0.1:8000
+                Write-Host "`n[LAUNCH] Starting Comparative SQLite Multi-Worker Cluster on 0.0.0.0:9000 (8 Workers)..." -ForegroundColor Yellow
+                $env:DATABASE_URL = "sqlite:///$ScriptDir/db.sqlite3"
+                $env:DJANGO_DEBUG = "False"
+                & $PythonExe manage.py runserver 0.0.0.0:9000 -w 8
                 break
             }
             "5" {
-                Write-Host "`n[LAUNCH] Starting Standby SQLite Multi-Worker Cluster on 0.0.0.0:8000 (8 Workers)..." -ForegroundColor Yellow
-                $env:DATABASE_URL = "sqlite:///$ScriptDir/db.sqlite3"
-                $env:DJANGO_DEBUG = "False"
-                & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8
+                Ensure-Infrastructure
+                Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:9000..." -ForegroundColor Green
+                $env:DJANGO_DEBUG = "True"
+                & $PythonExe manage.py runserver 0.0.0.0:9000
                 break
             }
             "6" {
@@ -172,4 +172,3 @@ function Main-Menu {
 }
 
 Main-Menu
-

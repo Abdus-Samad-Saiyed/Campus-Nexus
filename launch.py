@@ -1,5 +1,5 @@
 """
-Campus Nexus — Interactive Python Server Orchestration Launcher
+Campus Nexus - Interactive Python Server Orchestration Launcher
 Cross-platform interactive launcher with menu options for multi-worker clusters,
 early-launch mode, service binding, and test automation.
 """
@@ -19,7 +19,7 @@ def clear_screen():
 def show_banner():
     clear_screen()
     print("=" * 80)
-    print("                    CAMPUS NEXUS — SERVER ORCHESTRATION (v2.0)")
+    print("                    CAMPUS NEXUS - SERVER ORCHESTRATION (v2.0)")
     print("=" * 80)
     print(f"  Working Directory: {PROJECT_ROOT}")
     print(f"  Python Runtime:    {PYTHON_EXE}")
@@ -36,11 +36,11 @@ def main():
     while True:
         show_banner()
         print("\nPlease select a launch configuration:\n")
-        print("  [1] Multi-Worker PostgreSQL Cluster (Port 9000, 8 Workers) [RECOMMENDED / PROD]")
+        print("  [1] Multi-Worker PostgreSQL Cluster (Port 8000, 8 Workers) [RECOMMENDED / PROD]")
         print("  [2] Multi-Worker PostgreSQL Cluster with Early-Launch Mode (--early-launch)")
-        print("  [3] Single-Worker PostgreSQL Dev Server (Port 9000)")
-        print("  [4] Single-Worker PostgreSQL Dev Server (Port 8000)")
-        print("  [5] Standby / Comparative SQLite Cluster (Port 8000, 8 Workers)")
+        print("  [3] Single-Worker PostgreSQL Dev Server (Port 8000)")
+        print("  [4] Comparative SQLite Multi-Worker Cluster (Port 9000, 8 Workers)")
+        print("  [5] Single-Worker PostgreSQL Dev Server (Port 9000)")
         print("  [6] Bind & Verify Infrastructure (PostgreSQL 18.6 & Redis Daemons)")
         print("  [7] Deep Database Parity & Integrity Check (SQLite vs PostgreSQL)")
         print("  [8] Run Comprehensive Test Suite (374 Tests - 100% Green)")
@@ -58,33 +58,33 @@ def main():
         
         if choice == "1":
             ensure_services()
-            print("\n[LAUNCH] Starting 8-Worker PostgreSQL Daphne Cluster on 0.0.0.0:9000...")
+            print("\n[LAUNCH] Starting 8-Worker PostgreSQL Daphne Cluster on 0.0.0.0:8000...")
             env["DJANGO_DEBUG"] = "False"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000", "-w", "8"], env=env)
+            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8"], env=env)
             break
         elif choice == "2":
             ensure_services()
-            print("\n[LAUNCH] Starting 8-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:9000...")
+            print("\n[LAUNCH] Starting 8-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:8000...")
             env["DJANGO_DEBUG"] = "False"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000", "-w", "8", "--early-launch"], env=env)
+            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8", "--early-launch"], env=env)
             break
         elif choice == "3":
+            ensure_services()
+            print("\n[LAUNCH] Starting Single-Worker PostgreSQL Dev Server on 0.0.0.0:8000...")
+            env["DJANGO_DEBUG"] = "True"
+            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000"], env=env)
+            break
+        elif choice == "4":
+            print("\n[LAUNCH] Starting Comparative SQLite Multi-Worker Cluster on 0.0.0.0:9000 (8 Workers)...")
+            env["DATABASE_URL"] = f"sqlite:///{os.path.join(PROJECT_ROOT, 'db.sqlite3')}"
+            env["DJANGO_DEBUG"] = "False"
+            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000", "-w", "8"], env=env)
+            break
+        elif choice == "5":
             ensure_services()
             print("\n[LAUNCH] Starting Single-Worker PostgreSQL Dev Server on 0.0.0.0:9000...")
             env["DJANGO_DEBUG"] = "True"
             subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000"], env=env)
-            break
-        elif choice == "4":
-            ensure_services()
-            print("\n[LAUNCH] Starting Single-Worker PostgreSQL Dev Server on 127.0.0.1:8000...")
-            env["DJANGO_DEBUG"] = "True"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "127.0.0.1:8000"], env=env)
-            break
-        elif choice == "5":
-            print("\n[LAUNCH] Starting Standby SQLite Multi-Worker Cluster on 0.0.0.0:8000 (8 Workers)...")
-            env["DATABASE_URL"] = f"sqlite:///{os.path.join(PROJECT_ROOT, 'db.sqlite3')}"
-            env["DJANGO_DEBUG"] = "False"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8"], env=env)
             break
         elif choice == "6":
             ensure_services()
