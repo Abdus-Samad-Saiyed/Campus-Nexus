@@ -50,6 +50,48 @@ class MultiWorkerCluster:
         self.round_robin_counter = 0
         self.shutdown_event = asyncio.Event()
         self.server: Optional[asyncio.Server] = None
+        self.redis_proc: Optional[subprocess.Popen] = None
+
+    def _ensure_redis(self):
+        """Verify Redis is active; auto-launch local redis-server if available."""
+        import socket
+        import shutil
+        from pathlib import Path
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.15)
+        try:
+            s.connect(('127.0.0.1', 6379))
+            s.close()
+            print("[MultiWorkerCluster] Redis channel broker active on 127.0.0.1:6379 (WebSockets synchronized across all workers).")
+            return
+        except Exception:
+            pass
+
+        # Locate local redis-server binary
+        redis_bin = shutil.which("redis-server") or shutil.which("redis-server.exe")
+        if not redis_bin:
+            winget_dir = Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Packages"
+            matches = list(winget_dir.glob("**/redis-server.exe"))
+            if matches:
+                redis_bin = str(matches[0])
+
+        if redis_bin and Path(redis_bin).exists():
+            try:
+                print(f"[MultiWorkerCluster] Auto-launching local Redis broker ({redis_bin})...")
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+                self.redis_proc = subprocess.Popen(
+                    [redis_bin, "--port", "6379", "--daemonize", "no", "--save", "", "--appendonly", "no"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=creationflags,
+                )
+                time.sleep(0.5)
+                print("[MultiWorkerCluster] Redis broker started successfully on 127.0.0.1:6379.")
+            except Exception as e:
+                print(f"[MultiWorkerCluster] Warning: Could not auto-launch Redis: {e}")
+        else:
+            print("[MultiWorkerCluster] Warning: Redis is not running on 127.0.0.1:6379. WebSockets will fallback to in-memory mode.")
 
     def _get_worker_env(self) -> Dict[str, str]:
         env = os.environ.copy()
@@ -181,6 +223,13 @@ class MultiWorkerCluster:
             except Exception:
                 pass
         self.workers.clear()
+        if self.redis_proc is not None:
+            try:
+                if self.redis_proc.poll() is None:
+                    self.redis_proc.terminate()
+            except Exception:
+                pass
+            self.redis_proc = None
         print("[MultiWorkerCluster] All worker processes terminated.")
 
     async def run(self):
@@ -213,6 +262,9 @@ class MultiWorkerCluster:
                 )
             except Exception as e:
                 print(f"[MultiWorkerCluster] Pre-migration notice: {e}")
+
+        # Ensure Redis is running for multi-worker WebSockets
+        self._ensure_redis()
 
         # Start Daphne workers
         for port in self.worker_ports:

@@ -27,9 +27,32 @@ except ImportError:
 if not SECRET_KEY or SECRET_KEY == 'insecure-dev-key-change-me':
     SECRET_KEY = 'insecure-dev-only-secret-key-for-local-testing'
 
-# Use in-memory channel layer for dev when Redis isn't running.
-# Set REDIS_URL in .env or secrets_local.py to use Redis locally.
-if not os.environ.get('REDIS_URL'):
+# Redis Channel Layer for multi-worker WebSockets and real-time messaging
+# If Redis is running on localhost:6379 or specified via REDIS_URL, activate RedisChannelLayer.
+# Otherwise, safely fallback to InMemoryChannelLayer for standalone dev.
+_redis_url = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
+_use_redis = False
+
+try:
+    import socket
+    _s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    _s.settimeout(0.1)
+    _s.connect(('127.0.0.1', 6379))
+    _s.close()
+    _use_redis = True
+except Exception:
+    _use_redis = bool(os.environ.get('REDIS_URL'))
+
+if _use_redis:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [_redis_url],
+            },
+        },
+    }
+else:
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels.layers.InMemoryChannelLayer',
