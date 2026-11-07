@@ -557,11 +557,11 @@ class ConsoleColorCodingTests(TestCase):
             self.cmd.log_action("http", "complete", details)
             self.assertIn(ConsoleColors.GREEN, cm.output[-1])
 
-    def test_unregistered_users_colored_white(self):
-        """Unregistered anonymous users on user pages are colored White."""
-        self.assertEqual(get_request_color(status=200, path="/", user_type="unregistered"), ConsoleColors.WHITE)
+    def test_unregistered_users_colored_magenta(self):
+        """Unregistered anonymous users on user pages are colored Magenta (no plain white lines)."""
+        self.assertEqual(get_request_color(status=200, path="/", user_type="unregistered"), ConsoleColors.MAGENTA)
 
         details = {"method": "GET", "path": "/", "status": 200, "client": "127.0.0.1:5004"}
         with self.assertLogs("django.channels.server", level="INFO") as cm:
             self.cmd.log_action("http", "complete", details)
-            self.assertIn(ConsoleColors.WHITE, cm.output[-1])
+            self.assertIn(ConsoleColors.MAGENTA, cm.output[-1])

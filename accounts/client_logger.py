@@ -36,7 +36,8 @@ class ConsoleColors:
     YELLOW = "\033[93m"    # Fastrack students (unverified)
     BLUE = "\033[94m"      # Guests (guest demo)
     CYAN = "\033[96m"      # Asset requests rather than user requests
-    WHITE = "\033[97m"     # Unregistered users
+    MAGENTA = "\033[95m"   # Unregistered / anonymous public requests
+    WHITE = "\033[97m"     # Plain white fallback
     BOLD = "\033[1m"
 
 
@@ -129,7 +130,7 @@ def get_request_color(
         return ConsoleColors.GREEN
 
     # 6. Unregistered users (unauthenticated / anonymous)
-    return ConsoleColors.WHITE
+    return ConsoleColors.MAGENTA
 
 
 # ------------------------------------------------------------------------------

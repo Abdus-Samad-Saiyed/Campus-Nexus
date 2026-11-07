@@ -16,6 +16,21 @@ PYTHON_EXE = sys.executable
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def wait_for_keypress(prompt="Press any key to return to menu..."):
+    print(f"\n{prompt}", end="", flush=True)
+    if sys.platform == "win32":
+        try:
+            import msvcrt
+            msvcrt.getch()
+            print()
+            return
+        except Exception:
+            pass
+    try:
+        input()
+    except Exception:
+        pass
+
 def show_banner():
     clear_screen()
     print("=" * 80)
@@ -61,22 +76,16 @@ def main():
                 res = subprocess.run(cmd_args, env=env_map)
                 if res.returncode != 0:
                     print(f"\n[ERROR] Server process terminated with exit code {res.returncode}.")
-                    input("Press Enter to return to menu...")
+                    wait_for_keypress()
                 else:
                     print("\n[INFO] Server stopped.")
-                    input("Press Enter to return to menu...")
+                    wait_for_keypress()
             except (KeyboardInterrupt, EOFError):
                 print("\n[INFO] Interrupted by user.")
-                try:
-                    input("Press Enter to return to menu...")
-                except Exception:
-                    pass
+                wait_for_keypress()
             except Exception as exc:
                 print(f"\n[FATAL ERROR] An unexpected error occurred: {exc}")
-                try:
-                    input("Press Enter to return to menu...")
-                except Exception:
-                    pass
+                wait_for_keypress()
 
         if choice == "1":
             ensure_services()
@@ -106,7 +115,7 @@ def main():
         elif choice == "6":
             ensure_services()
             try:
-                input("\nInfrastructure check completed. Press Enter to return to menu...")
+                wait_for_keypress("Infrastructure check completed. Press any key to return to menu...")
             except (EOFError, KeyboardInterrupt):
                 break
         elif choice == "7":
@@ -114,21 +123,21 @@ def main():
             subprocess.run([PYTHON_EXE, os.path.join(PROJECT_ROOT, "scripts", "deep_check_parity.py")])
             subprocess.run([PYTHON_EXE, os.path.join(PROJECT_ROOT, "scripts", "verify_db_parity.py")])
             try:
-                input("\nPress Enter to return to menu...")
+                wait_for_keypress()
             except (EOFError, KeyboardInterrupt):
                 break
         elif choice == "8":
             print("\n[TEST] Running full regression test suite on PostgreSQL...")
             subprocess.run([PYTHON_EXE, manage_py, "test", "--settings=campus.settings.test"])
             try:
-                input("\nPress Enter to return to menu...")
+                wait_for_keypress()
             except (EOFError, KeyboardInterrupt):
                 break
         elif choice == "9":
             print("\n[TEST] Running comprehensive 50-probe E2E validation matrix...")
             subprocess.run([PYTHON_EXE, os.path.join(PROJECT_ROOT, "scripts", "test_postgres_comprehensive.py")])
             try:
-                input("\nPress Enter to return to menu...")
+                wait_for_keypress()
             except (EOFError, KeyboardInterrupt):
                 break
         elif choice == "0":

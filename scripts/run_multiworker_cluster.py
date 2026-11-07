@@ -139,7 +139,7 @@ class MultiWorkerCluster:
             cmd,
             env=self._get_worker_env(),
             stdout=sys.stdout,
-            stderr=sys.stderr,
+            stderr=subprocess.DEVNULL,
             creationflags=creationflags,
         )
         self.workers[port] = proc
@@ -160,8 +160,8 @@ class MultiWorkerCluster:
             pass
         finally:
             try:
-                writer.close()
-                await writer.wait_closed()
+                if not writer.is_closing():
+                    writer.close()
             except Exception:
                 pass
 
@@ -170,7 +170,11 @@ class MultiWorkerCluster:
     ):
         """Proxy incoming TCP connection (HTTP/WebSocket) to next Daphne worker in round-robin."""
         if not self.worker_ports:
-            client_writer.close()
+            try:
+                client_writer.close()
+                await client_writer.wait_closed()
+            except Exception:
+                pass
             return
 
         worker_port = self.worker_ports[self.round_robin_counter % len(self.worker_ports)]
@@ -192,13 +196,33 @@ class MultiWorkerCluster:
                 except Exception:
                     continue
             if not connected:
-                client_writer.close()
+                try:
+                    client_writer.close()
+                    await client_writer.wait_closed()
+                except Exception:
+                    pass
                 return
 
         # Bi-directional stream forwarding
         t1 = asyncio.create_task(self._forward_stream(client_reader, worker_writer))
         t2 = asyncio.create_task(self._forward_stream(worker_reader, client_writer))
-        await asyncio.gather(t1, t2, return_exceptions=True)
+
+        # When either direction finishes (EOF, disconnect), cancel the other immediately
+        done, pending = await asyncio.wait([t1, t2], return_when=asyncio.FIRST_COMPLETED)
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
+
+        for w in (client_writer, worker_writer):
+            try:
+                if not w.is_closing():
+                    w.close()
+                await w.wait_closed()
+            except Exception:
+                pass
 
     async def _monitor_workers(self):
         """Continuously check that worker processes remain healthy; auto-restart if a worker terminates."""

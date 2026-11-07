@@ -96,16 +96,16 @@ function Main-Menu {
                 $exitCode = $LASTEXITCODE
                 if ($exitCode -ne 0) {
                     Write-Host "`n[ERROR] Server process terminated with exit code $exitCode." -ForegroundColor Red
-                    Write-Host "Press Enter to return to menu..." -ForegroundColor Cyan
-                    $null = Read-Host
+                    Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                    try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
                 } else {
-                    Write-Host "`n[INFO] Server stopped. Press Enter to return to menu..." -ForegroundColor Cyan
-                    $null = Read-Host
+                    Write-Host "`n[INFO] Server stopped. Press any key to return to menu..." -ForegroundColor Cyan
+                    try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
                 }
             } catch {
                 Write-Host "`n[FATAL ERROR] An error occurred: $_" -ForegroundColor Red
-                Write-Host "Press Enter to return to menu..." -ForegroundColor Cyan
-                $null = Read-Host
+                Write-Host "Press any key to return to menu..." -ForegroundColor Cyan
+                try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
             }
         }
 
@@ -114,50 +114,45 @@ function Main-Menu {
                 Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster on 0.0.0.0:8000 (8 Workers)..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
                 Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8 }
-                break
             }
             "2" {
                 Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
                 Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8 --early-launch }
-                break
             }
             "3" {
                 Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "True"
                 Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 }
-                break
             }
             "4" {
                 Write-Host "`n[LAUNCH] Starting Comparative SQLite Multi-Worker Cluster on 0.0.0.0:9000 (8 Workers)..." -ForegroundColor Yellow
                 $env:DATABASE_URL = "sqlite:///$ScriptDir/db.sqlite3"
                 $env:DJANGO_DEBUG = "False"
                 Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:9000 -w 8 }
-                break
             }
             "5" {
                 Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:9000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "True"
                 Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:9000 }
-                break
             }
             "6" {
                 Ensure-Infrastructure
-                Write-Host "`nInfrastructure check completed. Press Enter to return to menu..." -ForegroundColor Cyan
-                $null = Read-Host
+                Write-Host "`nInfrastructure check completed. Press any key to return to menu..." -ForegroundColor Cyan
+                try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
             }
             "7" {
                 Write-Host "`n[AUDIT] Running deep row-level parity verification..." -ForegroundColor Cyan
                 & $PythonExe "scripts\deep_check_parity.py"
                 & $PythonExe "scripts\verify_db_parity.py"
-                Write-Host "`nPress Enter to return to menu..." -ForegroundColor Cyan
-                $null = Read-Host
+                Write-Host "`nPress any key to return to menu..." -ForegroundColor Cyan
+                try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
             }
             "8" {
                 Write-Host "`n[TEST] Running full regression test suite on PostgreSQL..." -ForegroundColor Green
                 & $PythonExe manage.py test --settings=campus.settings.test
-                Write-Host "`nTest suite run completed. Press Enter to return to menu..." -ForegroundColor Cyan
-                $null = Read-Host
+                Write-Host "`nTest suite run completed. Press any key to return to menu..." -ForegroundColor Cyan
+                try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
             }
             "9" {
                 Write-Host "`n[LOAD TESTING] Available Locust Scenarios:" -ForegroundColor Yellow
@@ -172,8 +167,8 @@ function Main-Menu {
                 } elseif ($ltChoice -eq "3") {
                     & $PythonExe "load-testing\scripts\run_scaled_curve.py"
                 }
-                Write-Host "`nPress Enter to return to menu..." -ForegroundColor Cyan
-                $null = Read-Host
+                Write-Host "`nPress any key to return to menu..." -ForegroundColor Cyan
+                try { $null = [System.Console]::ReadKey($true) } catch { $null = Read-Host }
             }
             "0" {
                 Write-Host "`nExiting Campus Nexus Launcher. Goodbye!" -ForegroundColor Yellow
