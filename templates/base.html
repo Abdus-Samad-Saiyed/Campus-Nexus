@@ -555,7 +555,7 @@
                     {% endif %}
                     {% if user.is_authenticated %}
                     <!-- System Push & Device Notifications Toggle Button -->
-                    <button class="btn btn-icon-nav position-relative" id="btn-device-notifs" type="button" onclick="window.requestNexusNotificationPermission()" title="Enable Desktop & Phone Notifications" aria-label="Desktop and Phone Notifications">
+                    <button class="btn btn-icon-nav position-relative" id="btn-device-notifs" type="button" onclick="window.requestNexusNotificationPermission(this)" title="Enable Desktop & Phone Notifications" aria-label="Desktop and Phone Notifications">
                         <i class="bi bi-bell-fill text-secondary" id="icon-device-notifs"></i>
                     </button>
                     {% endif %}
@@ -1317,41 +1317,189 @@
             }
         }
 
-        // Expose global permission requester
-        window.requestNexusNotificationPermission = function() {
+        // Universal notification controls sync: updates navbar bell, profile button, dashboard banner, etc.
+        function updateAllNotificationControlsUI() {
+            const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+            // 1. Navbar Bell
+            const navIcon = document.getElementById('icon-device-notifs');
+            const navBtn = document.getElementById('btn-device-notifs');
+            if (navIcon && navBtn) {
+                if (perm === 'granted') {
+                    navIcon.className = 'bi bi-bell-fill text-success';
+                    navBtn.title = 'Desktop & Phone Notifications Active (Click to Send Test Alert)';
+                } else if (perm === 'denied') {
+                    navIcon.className = 'bi bi-bell-slash text-danger';
+                    navBtn.title = 'Notifications Blocked in Browser Settings (Click for Help)';
+                } else {
+                    navIcon.className = 'bi bi-bell text-warning';
+                    navBtn.title = 'Click to Enable Desktop & Phone Notifications';
+                }
+            }
+
+            // 2. Profile Page Notification Controls
+            const profBtn = document.getElementById('btn-profile-notifs');
+            const profBadge = document.getElementById('profile-notif-status-badge');
+            const profIcon = document.getElementById('profile-notif-title-icon');
+            const profDesc = document.getElementById('profile-notif-desc');
+
+            if (profBtn) {
+                profBtn.disabled = false;
+                if (perm === 'granted') {
+                    profBtn.className = 'btn btn-sm btn-outline-success ms-2 flex-shrink-0';
+                    profBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Active (Send Test)';
+                    if (profBadge) {
+                        profBadge.className = 'badge bg-success-subtle text-success border border-success-subtle py-0 px-2 small ms-1';
+                        profBadge.textContent = 'Active';
+                    }
+                    if (profIcon) profIcon.className = 'bi bi-bell-fill me-1 text-success';
+                    if (profDesc) profDesc.textContent = 'Active & ready. Instant push alerts will appear on this device for rides, chats, and requests.';
+                } else if (perm === 'denied') {
+                    profBtn.className = 'btn btn-sm btn-outline-danger ms-2 flex-shrink-0';
+                    profBtn.innerHTML = '<i class="bi bi-bell-slash me-1"></i> Blocked in Browser';
+                    if (profBadge) {
+                        profBadge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle py-0 px-2 small ms-1';
+                        profBadge.textContent = 'Blocked';
+                    }
+                    if (profIcon) profIcon.className = 'bi bi-bell-slash me-1 text-danger';
+                    if (profDesc) profDesc.textContent = 'Notifications are blocked in browser site permissions. Click the lock/settings icon next to the address bar to allow.';
+                } else if (perm === 'default') {
+                    profBtn.className = 'btn btn-sm btn-green ms-2 flex-shrink-0';
+                    profBtn.innerHTML = '<i class="bi bi-bell me-1"></i> Enable Notifications';
+                    if (profBadge) {
+                        profBadge.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle py-0 px-2 small ms-1';
+                        profBadge.textContent = 'Disabled';
+                    }
+                    if (profIcon) profIcon.className = 'bi bi-bell me-1 text-warning';
+                    if (profDesc) profDesc.textContent = 'Receive instant sound and vibration alerts for ride status changes, instant chats, and friend requests.';
+                } else {
+                    profBtn.className = 'btn btn-sm btn-secondary ms-2 flex-shrink-0 disabled';
+                    profBtn.innerHTML = '<i class="bi bi-slash-circle me-1"></i> Not Supported';
+                    if (profBadge) {
+                        profBadge.className = 'badge bg-secondary py-0 px-2 small ms-1';
+                        profBadge.textContent = 'Unsupported';
+                    }
+                }
+            }
+
+            // 3. Dashboard Callout Banner
+            const dashBanner = document.getElementById('notif-permission-banner');
+            if (dashBanner) {
+                if (perm === 'default') {
+                    dashBanner.classList.remove('d-none');
+                } else {
+                    dashBanner.classList.add('d-none');
+                }
+            }
+        }
+
+        // Expose global permission requester with immediate visual button feedback
+        window.requestNexusNotificationPermission = function(triggerEl) {
             if (!('Notification' in window)) {
-                alert('Your browser does not support system desktop/mobile notifications.');
+                alert('Your browser environment does not support web push/system notifications.');
                 return;
             }
-            Notification.requestPermission().then(function(perm) {
-                updateNotifBellUI();
+
+            // If already granted, send an instant test notification so the user sees it working!
+            if (Notification.permission === 'granted') {
+                if (triggerEl) {
+                    const originalHtml = triggerEl.innerHTML;
+                    triggerEl.innerHTML = '<i class="bi bi-send-check me-1 text-success"></i> Dispatched!';
+                    setTimeout(function() {
+                        triggerEl.innerHTML = originalHtml;
+                    }, 2000);
+                }
+                showAppNotificationToast({
+                    title: 'Notification Test Dispatched',
+                    content: 'Desktop and mobile system alerts are active and functional on this device.',
+                    category: 'system',
+                    badge: 'Device Test',
+                    badge_class: 'bg-success-subtle text-success border border-success-subtle',
+                    icon: 'bi-bell-fill'
+                });
+                triggerSystemNotification({
+                    type: 'app_notification',
+                    title: 'Campus Nexus Alert',
+                    content: 'Push notifications are active and working on this device!',
+                    url: '/dashboard/',
+                    category: 'system'
+                });
+                updateAllNotificationControlsUI();
+                return;
+            }
+
+            // If denied, browser will not show prompt again; guide user clearly
+            if (Notification.permission === 'denied') {
+                alert(
+                    'Notifications are currently blocked by your browser for ' + window.location.hostname + '.\n\n' +
+                    'To enable them:\n' +
+                    '1. Click the tune / padlock / site settings icon on the left side of your browser address bar.\n' +
+                    '2. Change "Notifications" from "Block" to "Allow".\n' +
+                    '3. Refresh the page.'
+                );
+                updateAllNotificationControlsUI();
+                return;
+            }
+
+            // If default: Provide immediate visual feedback on the clicked button
+            if (triggerEl) {
+                triggerEl.disabled = true;
+                triggerEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Prompting...';
+            }
+
+            function handlePermissionResult(perm) {
+                updateAllNotificationControlsUI();
                 if (perm === 'granted') {
+                    showAppNotificationToast({
+                        title: 'Notifications Activated 🎉',
+                        content: 'Desktop and mobile alerts are now enabled for rides, chats, and requests.',
+                        category: 'system',
+                        badge: 'Active',
+                        badge_class: 'bg-success-subtle text-success border border-success-subtle',
+                        icon: 'bi-check-circle-fill'
+                    });
                     triggerSystemNotification({
                         type: 'app_notification',
-                        title: 'Notifications Activated',
-                        content: 'Desktop and phone notifications are now active for rides and messages.',
+                        title: 'Notifications Enabled 🎉',
+                        content: 'Campus Nexus will now alert you about rides, chats, and friend requests!',
                         url: '/dashboard/',
                         category: 'system'
                     });
+                } else if (perm === 'denied') {
+                    showAppNotificationToast({
+                        title: 'Notifications Blocked',
+                        content: 'Notifications were declined. You can enable them anytime in site settings.',
+                        category: 'warning',
+                        badge: 'Blocked',
+                        badge_class: 'bg-danger-subtle text-danger border border-danger-subtle',
+                        icon: 'bi-bell-slash'
+                    });
                 }
-            });
+            }
+
+            try {
+                // Support both modern Promise API and legacy callback API
+                let handled = false;
+                const onResult = function(perm) {
+                    if (!handled) {
+                        handled = true;
+                        handlePermissionResult(perm);
+                    }
+                };
+                const p = Notification.requestPermission(onResult);
+                if (p && typeof p.then === 'function') {
+                    p.then(onResult).catch(function(e) {
+                        console.warn('requestPermission rejected:', e);
+                        onResult(Notification.permission);
+                    });
+                }
+            } catch (err) {
+                console.warn('Notification permission request threw:', err);
+                handlePermissionResult(Notification.permission);
+            }
         };
 
-        function updateNotifBellUI() {
-            const icon = document.getElementById('icon-device-notifs');
-            const btn = document.getElementById('btn-device-notifs');
-            if (!icon || !('Notification' in window)) return;
-            if (Notification.permission === 'granted') {
-                icon.className = 'bi bi-bell-fill text-success';
-                btn.title = 'Desktop & Phone Notifications Active';
-            } else if (Notification.permission === 'denied') {
-                icon.className = 'bi bi-bell-slash text-danger';
-                btn.title = 'Desktop & Phone Notifications Blocked in Browser Settings';
-            } else {
-                icon.className = 'bi bi-bell text-warning';
-                btn.title = 'Click to Enable Desktop & Phone Notifications';
-            }
-        }
+        window.updateNotifBellUI = updateAllNotificationControlsUI;
 
         // Register Service Worker for background phone/desktop notifications
         if ('serviceWorker' in navigator) {
@@ -1360,6 +1508,7 @@
             });
         }
         updateNotifBellUI();
+        window.addEventListener('focus', updateAllNotificationControlsUI);
 
         connectNotifSocket();
     })();

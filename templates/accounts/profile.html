@@ -334,14 +334,21 @@
                         </label>
                     </div>
 
-                    <div class="p-3 rounded bg-black bg-opacity-25 border border-secondary mb-3 d-flex align-items-center justify-content-between">
-                        <div>
-                            <strong class="d-block small"><i class="bi bi-bell-fill me-1 text-success"></i> Desktop &amp; Phone Notifications</strong>
-                            <span class="text-secondary small">Receive instant push notifications for ride updates, instant messages, and friend requests.</span>
+                    <div class="p-3 rounded bg-black bg-opacity-25 border border-secondary mb-3" id="notif-settings-card">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="flex-grow-1 min-w-0">
+                                <strong class="d-block small">
+                                    <i class="bi bi-bell-fill me-1 text-success" id="profile-notif-title-icon"></i> Desktop &amp; Phone Notifications
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle py-0 px-2 small ms-1" id="profile-notif-status-badge">Checking...</span>
+                                </strong>
+                                <span class="text-secondary small d-block" id="profile-notif-desc">
+                                    Receive instant push notifications for ride updates, instant messages, and friend requests.
+                                </span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-green ms-2 flex-shrink-0" id="btn-profile-notifs" onclick="window.requestNexusNotificationPermission(this)">
+                                <i class="bi bi-bell me-1"></i> Enable
+                            </button>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-success ms-2 flex-shrink-0" onclick="window.requestNexusNotificationPermission()">
-                            <i class="bi bi-bell me-1"></i> Enable
-                        </button>
                     </div>
 
                     <div class="form-check form-switch mb-3">
