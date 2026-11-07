@@ -566,7 +566,7 @@ async function registerWebAuthnPasskey() {
             }
             throw new Error(errData.error || 'Challenge request failed.');
         }
-        const chalData = await chalRes.json();
+        const chalData = await chalRes.json().catch(() => ({}));
 
         const challengeBytes = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
         const userIdBytes = new TextEncoder().encode(chalData.user_id);
@@ -688,7 +688,7 @@ async function registerWebAuthnPasskey() {
             })
         });
 
-        const verifyData = await verifyRes.json();
+        const verifyData = await verifyRes.json().catch(() => ({}));
         if (verifyData.success) {
             statusDiv.className = 'small mt-2 text-success font-monospace';
             statusDiv.textContent = `Passkey active (${keyLabel})! 2-Factor Authentication enabled.`;
@@ -740,7 +740,7 @@ async function verifySecurityOtpInline() {
             },
             body: JSON.stringify({ otp_code: code })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
             const box = document.getElementById('securityVerificationBox');
             if (box) {
@@ -809,7 +809,7 @@ async function requestSecurityOtp() {
             },
             body: JSON.stringify({ phone_number: phoneVal, email: emailVal })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
             feedback.className = 'small mt-1 text-success font-monospace';
             feedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> ' + (data.message || 'Verification code dispatched!') + '</span>';
@@ -925,7 +925,7 @@ async function deletePasskey(pkId) {
             method: 'POST',
             body: formData,
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
             location.reload();
         } else {

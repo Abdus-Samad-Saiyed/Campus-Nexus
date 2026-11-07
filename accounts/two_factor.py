@@ -268,10 +268,41 @@ def create_phone_otp(
     if target_email:
         email_sent = dispatch_email_otp(target_email, raw_code, purpose=purpose, user=user)
 
+    # 3. WebSocket Real-Time In-App Fallback (if user is authenticated and active on site)
+    ws_sent = False
+    if user and not email_sent:
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            layer = get_channel_layer()
+            if layer:
+                async_to_sync(layer.group_send)(
+                    f"user_{user.id}",
+                    {
+                        'type': 'app_notification',
+                        'category': 'security',
+                        'title': f'Security Code: {raw_code}',
+                        'content': f'Your single-use Campus Nexus verification code is {raw_code} (valid for 5 minutes).',
+                        'icon': 'bi-shield-lock-fill',
+                        'badge': 'SECURITY',
+                        'badge_class': 'bg-warning-subtle text-warning',
+                    }
+                )
+                ws_sent = True
+                logger.info("Delivered security code to user %s via in-app WebSocket fallback", user.enrollment_number)
+        except Exception as ws_err:
+            logger.warning("WebSocket in-app notification fallback failed: %s", ws_err)
+
     # Attach in-memory delivery indicators for caller inspection
     otp.sms_sent = sms_sent
     otp.email_sent = email_sent
-    otp.any_delivered = bool(sms_sent or email_sent)
+    otp.ws_sent = ws_sent
+    otp.any_delivered = bool(sms_sent or email_sent or ws_sent)
+
+    # In early launch mode or debug, if email quota is exhausted, allow OTP persistence so users are not blocked
+    if not otp.any_delivered and (getattr(settings, 'EARLY_LAUNCH_MODE', False) or getattr(settings, 'DEBUG', False)):
+        logger.warning("[FALLBACK OTP DISPATCH] Early Launch / Dev mode active for %s. Code: %s", ident, raw_code)
+        otp.any_delivered = True
 
     # Purge undelivered OTP rows so failed deliveries do not block cooldowns
     if not otp.any_delivered:

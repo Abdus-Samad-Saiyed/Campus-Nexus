@@ -504,15 +504,8 @@ def passkey_auth_verify(request):
 @rate_limit(key_prefix='passkey_reg_chal', limit=10, period_seconds=60)
 def passkey_reg_challenge(request):
     """Generate registration challenge for saving a biometric / Windows Hello key. Requires recent reauthentication."""
-    sec_until = request.session.get('security_otp_verified_until')
-    grace_active = False
-    if sec_until:
-        try:
-            from datetime import datetime as dt_cls
-            grace_active = timezone.now() < dt_cls.fromisoformat(sec_until)
-        except Exception:
-            pass
-    if not grace_active and not getattr(request.user, 'is_debug_account', False):
+    from accounts.utils import is_passkey_step_up_active
+    if not is_passkey_step_up_active(request):
         return JsonResponse({
             'success': False,
             'error': 'Recent re-authentication required to register passkeys. Please verify your identity first.',
@@ -573,15 +566,8 @@ def get_device_of_origin_from_ua(user_agent: str) -> str:
 @require_POST
 def passkey_reg_verify(request):
     """Register and store new PasskeyCredential for the authenticated student. Requires recent reauthentication."""
-    sec_until = request.session.get('security_otp_verified_until')
-    grace_active = False
-    if sec_until:
-        try:
-            from datetime import datetime as dt_cls
-            grace_active = timezone.now() < dt_cls.fromisoformat(sec_until)
-        except Exception:
-            pass
-    if not grace_active and not getattr(request.user, 'is_debug_account', False):
+    from accounts.utils import is_passkey_step_up_active
+    if not is_passkey_step_up_active(request):
         return JsonResponse({
             'success': False,
             'error': 'Recent re-authentication required to register passkeys.',
@@ -722,15 +708,8 @@ def verify_security_step_up(request):
 @require_POST
 def passkey_delete(request, credential_id):
     """Delete a registered passkey credential after verifying recent reauthentication."""
-    sec_until = request.session.get('security_otp_verified_until')
-    grace_active = False
-    if sec_until:
-        try:
-            from datetime import datetime as dt_cls
-            grace_active = timezone.now() < dt_cls.fromisoformat(sec_until)
-        except Exception:
-            pass
-    if not grace_active and not getattr(request.user, 'is_debug_account', False):
+    from accounts.utils import is_passkey_step_up_active
+    if not is_passkey_step_up_active(request):
         return JsonResponse({
             'success': False,
             'error': 'Recent re-authentication required to delete passkeys.',
@@ -785,7 +764,7 @@ def send_signup_otp(request):
 
     otp, raw_code = create_phone_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
     if not getattr(otp, 'any_delivered', True):
-        return JsonResponse({'success': False, 'error': 'Unable to deliver verification code via SMS or email. Please check your contact details or try again.'}, status=502)
+        return JsonResponse({'success': False, 'error': 'Unable to deliver verification code via SMS or email. Please check your contact details or try again.'}, status=400)
 
     dest_parts = []
     if getattr(otp, 'email_sent', False) or (email and not getattr(otp, 'sms_sent', False)):
@@ -822,17 +801,19 @@ def send_security_otp(request):
 
     otp, raw_code = create_phone_otp(user=user, phone_number=target_phone, email=target_email, purpose='SECURITY_CHANGE')
     if not getattr(otp, 'any_delivered', True):
-        return JsonResponse({'success': False, 'error': 'Unable to deliver security code to your registered contacts. Please try again later.'}, status=502)
+        return JsonResponse({'success': False, 'error': 'Unable to deliver security code to your registered contacts right now. Please try again later.'}, status=400)
 
     dest_parts = []
-    if getattr(otp, 'email_sent', False) or (target_email and not getattr(otp, 'sms_sent', False)):
+    if getattr(otp, 'ws_sent', False):
+        dest_parts.append("active screen notification")
+    if getattr(otp, 'email_sent', False) or (target_email and not getattr(otp, 'sms_sent', False) and not getattr(otp, 'ws_sent', False)):
         dest_parts.append(f"email ({target_email})")
     if getattr(otp, 'sms_sent', False):
         dest_parts.append(f"mobile ({target_phone[-4:]})")
     dest_str = " and ".join(dest_parts) or "your registered contacts"
     return JsonResponse({
         'success': True,
-        'message': f'Verification code dispatched to {dest_str}. Check your email or SMS.',
+        'message': f'Verification code dispatched to {dest_str}. Check your notifications or inbox.',
     })
 
 
@@ -1348,7 +1329,8 @@ def profile_view(request, enrollment_number):
     grace_active = False
     if grace_str:
         try:
-            grace_dt = timezone.datetime.fromisoformat(grace_str)
+            from datetime import datetime as dt_cls
+            grace_dt = dt_cls.fromisoformat(grace_str)
             if timezone.now() < grace_dt:
                 grace_active = True
         except Exception:

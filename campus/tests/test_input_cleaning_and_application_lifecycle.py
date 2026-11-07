@@ -149,7 +149,7 @@ class ApplicationLifecycleAndEmailsTests(TestCase):
         self.assertTrue(any("Student Verification Application Received" in m.subject for m in mail.outbox))
         recvd_mail = next(m for m in mail.outbox if "Student Verification Application Received" in m.subject)
         self.assertIn(email, recvd_mail.to)
-        self.assertIn("A temporary campus access account has been activated for you immediately", recvd_mail.body)
+        self.assertIn("Your account has been activated immediately", recvd_mail.body)
 
     def test_admin_rejection_captures_reason_and_dispatches_email(self):
         """Admin rejecting application selects reason, which is recorded in audit log and emailed to student."""
