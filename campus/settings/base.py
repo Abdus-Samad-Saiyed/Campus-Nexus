@@ -51,7 +51,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.gzip.GZipMiddleware',
-    'django.middleware.security.SecurityMiddleware',
+    'accounts.middleware.CampusSecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -322,7 +322,23 @@ LOGGING = {
 WHITENOISE_MAX_AGE = env.int("WHITENOISE_MAX_AGE", default=31536000)
 WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True
 
-# Security Headers & HSTS
+# --- Security Headers, HSTS, SSL Redirect & Cookie Hardening -----------------
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True)
 SECURE_HSTS_PRELOAD = env.bool('DJANGO_SECURE_HSTS_PRELOAD', default=True)
+SECURE_SSL_REDIRECT = env.bool('DJANGO_SECURE_SSL_REDIRECT', default=True)
+SECURE_REDIRECT_EXEMPT = [
+    r'^robots\.txt$',
+    r'^llms\.txt$',
+    r'^\.well-known/',
+]
+
+# Cookie Security & Hardening
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=True)
+
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=True)

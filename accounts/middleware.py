@@ -237,3 +237,38 @@ class ClientIdentityLoggingMiddleware:
             return user
         except Exception:
             return None
+
+
+from django.middleware.security import SecurityMiddleware
+
+class CampusSecurityMiddleware(SecurityMiddleware):
+    """Enforce HTTPS redirect and HSTS for public domains while permitting local loopback.
+    Automatically ensures CSRF and session cookies receive HttpOnly, Secure, and SameSite flags,
+    and attaches Content-Security-Policy headers to all responses.
+    """
+    def process_request(self, request):
+        host = request.get_host().split(':')[0].lower()
+        if host in ('localhost', '127.0.0.1', '0.0.0.0', 'testserver') or host.startswith(('192.168.', '10.', '172.')):
+            return None
+        return super().process_request(request)
+
+    def process_response(self, request, response):
+        response = super().process_response(request, response)
+        if 'Content-Security-Policy' not in response:
+            response['Content-Security-Policy'] = (
+                "default-src 'self' https: data: blob:; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+                "img-src 'self' data: blob: https:; "
+                "connect-src 'self' wss: ws: https:; "
+                "frame-ancestors 'none';"
+            )
+        if hasattr(response, 'cookies'):
+            for name, morsel in response.cookies.items():
+                if name.lower() in ('csrftoken', 'sessionid'):
+                    morsel['httponly'] = True
+                    morsel['samesite'] = 'Lax'
+                    if request.is_secure():
+                        morsel['secure'] = True
+        return response
