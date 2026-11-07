@@ -56,36 +56,53 @@ def main():
         manage_py = os.path.join(PROJECT_ROOT, "manage.py")
         env = os.environ.copy()
         
+        def _execute_server_command(cmd_args, env_map):
+            try:
+                res = subprocess.run(cmd_args, env=env_map)
+                if res.returncode != 0:
+                    print(f"\n[ERROR] Server process terminated with exit code {res.returncode}.")
+                    input("Press Enter to return to menu...")
+                else:
+                    print("\n[INFO] Server stopped.")
+                    input("Press Enter to return to menu...")
+            except (KeyboardInterrupt, EOFError):
+                print("\n[INFO] Interrupted by user.")
+                try:
+                    input("Press Enter to return to menu...")
+                except Exception:
+                    pass
+            except Exception as exc:
+                print(f"\n[FATAL ERROR] An unexpected error occurred: {exc}")
+                try:
+                    input("Press Enter to return to menu...")
+                except Exception:
+                    pass
+
         if choice == "1":
             ensure_services()
             print("\n[LAUNCH] Starting 8-Worker PostgreSQL Daphne Cluster on 0.0.0.0:8000...")
             env["DJANGO_DEBUG"] = "False"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8"], env=env)
-            break
+            _execute_server_command([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8"], env)
         elif choice == "2":
             ensure_services()
             print("\n[LAUNCH] Starting 8-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:8000...")
             env["DJANGO_DEBUG"] = "False"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8", "--early-launch"], env=env)
-            break
+            _execute_server_command([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000", "-w", "8", "--early-launch"], env)
         elif choice == "3":
             ensure_services()
             print("\n[LAUNCH] Starting Single-Worker PostgreSQL Dev Server on 0.0.0.0:8000...")
             env["DJANGO_DEBUG"] = "True"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000"], env=env)
-            break
+            _execute_server_command([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:8000"], env)
         elif choice == "4":
             print("\n[LAUNCH] Starting Comparative SQLite Multi-Worker Cluster on 0.0.0.0:9000 (8 Workers)...")
             env["DATABASE_URL"] = f"sqlite:///{os.path.join(PROJECT_ROOT, 'db.sqlite3')}"
             env["DJANGO_DEBUG"] = "False"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000", "-w", "8"], env=env)
-            break
+            _execute_server_command([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000", "-w", "8"], env)
         elif choice == "5":
             ensure_services()
             print("\n[LAUNCH] Starting Single-Worker PostgreSQL Dev Server on 0.0.0.0:9000...")
             env["DJANGO_DEBUG"] = "True"
-            subprocess.run([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000"], env=env)
-            break
+            _execute_server_command([PYTHON_EXE, manage_py, "runserver", "0.0.0.0:9000"], env)
         elif choice == "6":
             ensure_services()
             try:

@@ -89,40 +89,56 @@ function Main-Menu {
 
         $choice = Read-Host "Enter your choice [0-9]"
 
+        function Invoke-CampusServer([scriptblock]$cmdBlock) {
+            try {
+                Ensure-Infrastructure
+                & $cmdBlock
+                $exitCode = $LASTEXITCODE
+                if ($exitCode -ne 0) {
+                    Write-Host "`n[ERROR] Server process terminated with exit code $exitCode." -ForegroundColor Red
+                    Write-Host "Press Enter to return to menu..." -ForegroundColor Cyan
+                    $null = Read-Host
+                } else {
+                    Write-Host "`n[INFO] Server stopped. Press Enter to return to menu..." -ForegroundColor Cyan
+                    $null = Read-Host
+                }
+            } catch {
+                Write-Host "`n[FATAL ERROR] An error occurred: $_" -ForegroundColor Red
+                Write-Host "Press Enter to return to menu..." -ForegroundColor Cyan
+                $null = Read-Host
+            }
+        }
+
         switch ($choice) {
             "1" {
-                Ensure-Infrastructure
                 Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster on 0.0.0.0:8000 (8 Workers)..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
-                & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8
+                Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8 }
                 break
             }
             "2" {
-                Ensure-Infrastructure
                 Write-Host "`n[LAUNCH] Starting Multi-Worker PostgreSQL Daphne Cluster with --early-launch on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
-                & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8 --early-launch
+                Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 -w 8 --early-launch }
                 break
             }
             "3" {
-                Ensure-Infrastructure
                 Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "True"
-                & $PythonExe manage.py runserver 0.0.0.0:8000
+                Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 }
                 break
             }
             "4" {
                 Write-Host "`n[LAUNCH] Starting Comparative SQLite Multi-Worker Cluster on 0.0.0.0:9000 (8 Workers)..." -ForegroundColor Yellow
                 $env:DATABASE_URL = "sqlite:///$ScriptDir/db.sqlite3"
                 $env:DJANGO_DEBUG = "False"
-                & $PythonExe manage.py runserver 0.0.0.0:9000 -w 8
+                Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:9000 -w 8 }
                 break
             }
             "5" {
-                Ensure-Infrastructure
                 Write-Host "`n[LAUNCH] Starting Single-Worker PostgreSQL Server on 0.0.0.0:9000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "True"
-                & $PythonExe manage.py runserver 0.0.0.0:9000
+                Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:9000 }
                 break
             }
             "6" {

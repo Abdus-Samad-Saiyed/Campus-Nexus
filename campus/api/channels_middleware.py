@@ -99,7 +99,26 @@ class WebSocketIdentityLoggerMiddleware(BaseMiddleware):
             name = full_name.strip() or getattr(user, 'display_name', '') or getattr(user, 'username', '') or enrollment
             if not name:
                 name = 'N.A.'
-            register_client_identity(client_key=client_key, enrollment=enrollment, name=name)
+
+            if getattr(user, 'is_guest_demo', False) or getattr(user, 'username', '') == 'GUEST_DEMO':
+                user_type = 'guest'
+            elif getattr(user, 'verified', False) or getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+                user_type = 'verified'
+            else:
+                user_type = 'fastrack'
+
+            register_client_identity(
+                client_key=client_key,
+                enrollment=enrollment,
+                name=name,
+                user_type=user_type,
+            )
+            scope['client_identity'] = {
+                'enrollment': enrollment,
+                'name': name,
+                'user_type': user_type,
+                'real_client': client_key or '127.0.0.1',
+            }
 
         return await super().__call__(scope, receive, send)
 

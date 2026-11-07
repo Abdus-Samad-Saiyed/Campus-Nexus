@@ -154,6 +154,28 @@ _REGISTRY_LOCK = threading.Lock()
 
 # Tracks whether Daphne's custom Command.log_action is active in the current process
 _DAPHNE_ACTION_LOGGER_ACTIVE = False
+_ASGI_LOGGER_ACTIVE = True
+
+
+def set_asgi_logger_active(active: bool = True):
+    global _ASGI_LOGGER_ACTIVE
+    _ASGI_LOGGER_ACTIVE = active
+
+
+def is_asgi_logger_active() -> bool:
+    return _ASGI_LOGGER_ACTIVE
+
+
+def emit_console_log(colored_msg: str, status_code: int = 200):
+    """Write colored log line directly to stdout without duplication."""
+    try:
+        sys.stdout.write(colored_msg + "\n")
+        sys.stdout.flush()
+    except Exception:
+        try:
+            print(colored_msg, flush=True)
+        except Exception:
+            pass
 
 
 def set_action_logger_active(active: bool = True):
@@ -457,115 +479,271 @@ class ClientLoggingASGIWrapper:
         if scope_type in ("http", "websocket"):
             received_at = time.time()
             client = scope.get("client")
-            if client:
-                client_key = f"{client[0]}:{client[1]}"
-                raw_headers = scope.get("headers", [])
-                headers = {}
-                session_key = None
-                token_key = None
+            client_key = f"{client[0]}:{client[1]}" if client else "DEFAULT"
+            raw_headers = scope.get("headers", [])
+            headers = {}
+            session_key = None
+            token_key = None
 
-                for k, v in raw_headers:
-                    k_lower = k.lower()
-                    headers[k_lower] = v
-                    if k_lower == b"cookie":
-                        try:
-                            cookie_str = v.decode("latin1", "replace")
-                            for part in cookie_str.split(";"):
-                                part = part.strip()
-                                if part.startswith("sessionid="):
-                                    session_key = part.split("=", 1)[1].strip()
-                                    break
-                        except Exception:
-                            pass
-                    elif k_lower == b"authorization":
-                        try:
-                            auth_str = v.decode("latin1", "replace")
-                            parts = auth_str.split()
-                            if len(parts) == 2 and parts[0].lower() in ("bearer", "token"):
-                                token_key = parts[1].strip()
-                        except Exception:
-                            pass
-
-                # Check query string for token if not in headers
-                if not session_key and not token_key and scope.get("query_string"):
+            for k, v in raw_headers:
+                k_lower = k.lower()
+                headers[k_lower] = v
+                if k_lower == b"cookie":
                     try:
-                        qs = scope["query_string"].decode("latin1", "replace")
-                        if "token=" in qs:
-                            for param in qs.split("&"):
-                                if param.startswith("token="):
-                                    token_key = param.split("=", 1)[1].strip()
-                                    break
+                        cookie_str = v.decode("latin1", "replace")
+                        for part in cookie_str.split(";"):
+                            part = part.strip()
+                            if part.startswith("sessionid="):
+                                session_key = part.split("=", 1)[1].strip()
+                                break
+                    except Exception:
+                        pass
+                elif k_lower == b"authorization":
+                    try:
+                        auth_str = v.decode("latin1", "replace")
+                        parts = auth_str.split()
+                        if len(parts) == 2 and parts[0].lower() in ("bearer", "token"):
+                            token_key = parts[1].strip()
                     except Exception:
                         pass
 
-                real_ip = None
-                if b"cf-connecting-ip" in headers:
-                    real_ip = headers[b"cf-connecting-ip"].decode("latin1").strip()
-                elif b"x-forwarded-for" in headers:
-                    real_ip = headers[b"x-forwarded-for"].decode("latin1").split(",")[0].strip()
+            # Check query string for token if not in headers
+            if not session_key and not token_key and scope.get("query_string"):
+                try:
+                    qs = scope["query_string"].decode("latin1", "replace")
+                    if "token=" in qs:
+                        for param in qs.split("&"):
+                            if param.startswith("token="):
+                                token_key = param.split("=", 1)[1].strip()
+                                break
+                except Exception:
+                    pass
 
-                real_client = resolve_client_display(client_key, real_ip)
-                user = scope.get("user")
-                enrollment = "N.A."
-                name = "N.A."
-                user_type = "unregistered"
+            real_ip = None
+            if b"cf-connecting-ip" in headers:
+                real_ip = headers[b"cf-connecting-ip"].decode("latin1").strip()
+            elif b"x-forwarded-for" in headers:
+                real_ip = headers[b"x-forwarded-for"].decode("latin1").split(",")[0].strip()
 
-                # 1. Direct user on scope
-                if user and getattr(user, "is_authenticated", False):
-                    enrollment = getattr(user, "enrollment_number", "") or getattr(user, "username", "N.A.") or "N.A."
-                    full_name = user.get_full_name() if hasattr(user, "get_full_name") else ""
-                    name = full_name.strip() or getattr(user, "display_name", "") or getattr(user, "username", "") or enrollment
-                    if not name:
-                        name = "N.A."
+            real_client = resolve_client_display(client_key, real_ip)
+            user = scope.get("user")
+            enrollment = "N.A."
+            name = "N.A."
+            user_type = "unregistered"
 
-                    if getattr(user, "is_guest_demo", False) or getattr(user, "username", "") == "GUEST_DEMO":
-                        user_type = "guest"
-                    elif getattr(user, "verified", False) or getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-                        user_type = "verified"
-                    else:
-                        user_type = "fastrack"
+            # 1. Direct user on scope
+            if user and getattr(user, "is_authenticated", False):
+                enrollment = getattr(user, "enrollment_number", "") or getattr(user, "username", "N.A.") or "N.A."
+                full_name = user.get_full_name() if hasattr(user, "get_full_name") else ""
+                name = full_name.strip() or getattr(user, "display_name", "") or getattr(user, "username", "") or enrollment
+                if not name:
+                    name = "N.A."
 
+                if getattr(user, "is_guest_demo", False) or getattr(user, "username", "") == "GUEST_DEMO":
+                    user_type = "guest"
+                elif getattr(user, "verified", False) or getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+                    user_type = "verified"
+                else:
+                    user_type = "fastrack"
+
+                register_client_identity(
+                    session_key=session_key,
+                    client_key=client_key,
+                    enrollment=enrollment,
+                    name=name,
+                    real_client=real_client,
+                    user_type=user_type,
+                )
+            else:
+                # 2. Check session cache
+                cached = None
+                if session_key or token_key:
+                    with _REGISTRY_LOCK:
+                        cached = _SESSION_IDENTITY_CACHE.get(session_key or token_key)
+                if not cached:
+                    # 3. Check connection cache
+                    with _REGISTRY_LOCK:
+                        cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
+
+                if cached:
+                    enrollment = cached["enrollment"]
+                    name = cached["name"]
+                    user_type = cached.get("user_type", "unregistered")
                     register_client_identity(
-                        session_key=session_key,
                         client_key=client_key,
                         enrollment=enrollment,
                         name=name,
                         real_client=real_client,
                         user_type=user_type,
                     )
-                else:
-                    # 2. Check session cache
-                    cached = None
-                    if session_key or token_key:
-                        with _REGISTRY_LOCK:
-                            cached = _SESSION_IDENTITY_CACHE.get(session_key or token_key)
-                    if not cached:
-                        # 3. Check connection cache
-                        with _REGISTRY_LOCK:
-                            cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
 
-                    if cached:
-                        enrollment = cached["enrollment"]
-                        name = cached["name"]
-                        user_type = cached.get("user_type", "unregistered")
-                        register_client_identity(
+            seed_client_request(
+                client_key,
+                enrollment=enrollment,
+                name=name,
+                real_client=real_client,
+                received_at=received_at,
+                path=scope.get("path"),
+                method=scope.get("method"),
+                scope_type=scope_type,
+                user_type=user_type,
+            )
+
+            auth_token = session_key or token_key
+
+            if scope_type == "http":
+                resp_status = [200]
+
+                async def wrapped_send(message):
+                    m_type = message.get("type")
+                    if m_type == "http.response.start":
+                        resp_status[0] = message.get("status", 200)
+                    await send(message)
+                    if m_type == "http.response.body" and not message.get("more_body", False):
+                        ClientLoggingASGIWrapper._log_http_event(
+                            scope=scope,
                             client_key=client_key,
-                            enrollment=enrollment,
-                            name=name,
                             real_client=real_client,
-                            user_type=user_type,
+                            received_at=received_at,
+                            status_code=resp_status[0],
+                            auth_token=auth_token,
                         )
 
-                seed_client_request(
-                    client_key,
-                    enrollment=enrollment,
-                    name=name,
-                    real_client=real_client,
-                    received_at=received_at,
-                    path=scope.get("path"),
-                    method=scope.get("method"),
-                    scope_type=scope_type,
-                    user_type=user_type,
-                )
+                return await self.inner(scope, receive, wrapped_send)
+
+            elif scope_type == "websocket":
+                path = scope.get("path") or ""
+
+                async def wrapped_send(message):
+                    m_type = message.get("type")
+                    if m_type == "websocket.accept":
+                        ClientLoggingASGIWrapper._log_ws_event(
+                            action_name="CONNECT",
+                            path=path,
+                            client_key=client_key,
+                            real_client=real_client,
+                            status_type="connected",
+                            auth_token=auth_token,
+                            scope=scope,
+                        )
+                    elif m_type == "websocket.close":
+                        ClientLoggingASGIWrapper._log_ws_event(
+                            action_name="REJECTED",
+                            path=path,
+                            client_key=client_key,
+                            real_client=real_client,
+                            status_type="rejected",
+                            auth_token=auth_token,
+                            scope=scope,
+                        )
+                    await send(message)
+
+                async def wrapped_receive():
+                    msg = await receive()
+                    if msg.get("type") == "websocket.disconnect":
+                        ClientLoggingASGIWrapper._log_ws_event(
+                            action_name="DISCONNECT",
+                            path=path,
+                            client_key=client_key,
+                            real_client=real_client,
+                            status_type="disconnected",
+                            auth_token=auth_token,
+                            scope=scope,
+                        )
+                    return msg
+
+                return await self.inner(scope, wrapped_receive, wrapped_send)
 
         return await self.inner(scope, receive, send)
+
+    @staticmethod
+    def _log_http_event(scope, client_key, real_client, received_at, status_code, auth_token=None):
+        if is_action_logger_active():
+            return
+        path = scope.get("path") or "/"
+        method = scope.get("method") or "GET"
+        now = time.time()
+        duration = now - (received_at or now)
+        server_time = datetime.datetime.fromtimestamp(received_at or now).strftime("%d/%b/%Y %H:%M:%S")
+
+        # 1. Prefer direct client identity stamped on scope by middleware
+        scope_ident = scope.get("client_identity") if scope else None
+        if scope_ident:
+            enrollment = scope_ident.get("enrollment", "N.A.") or "N.A."
+            name = scope_ident.get("name", "N.A.") or "N.A."
+            user_type = scope_ident.get("user_type", "unregistered")
+            display_client = scope_ident.get("real_client") or real_client or "127.0.0.1"
+            # Drain matching entry from client queue if present
+            pop_client_request(client_key, path=path)
+        else:
+            meta = pop_client_request(client_key, path=path)
+            enrollment = meta.get("enrollment", "N.A.") or "N.A."
+            name = meta.get("name", "N.A.") or "N.A."
+            user_type = meta.get("user_type", "unregistered")
+            display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+
+        if enrollment == "N.A." and auth_token:
+            with _REGISTRY_LOCK:
+                cached = _SESSION_IDENTITY_CACHE.get(auth_token)
+                if cached:
+                    enrollment = cached["enrollment"]
+                    name = cached["name"]
+                    user_type = cached.get("user_type", "unregistered")
+
+        if enrollment == "N.A." and client_key:
+            with _REGISTRY_LOCK:
+                cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
+                if cached:
+                    enrollment = cached["enrollment"]
+                    name = cached["name"]
+                    user_type = cached.get("user_type", "unregistered")
+
+        display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+        msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {display_client}, {enrollment}, {name}]"
+        color = get_request_color(status=status_code, path=path, user_type=user_type)
+        colored_msg = colorize(msg, color)
+        emit_console_log(colored_msg, status_code)
+
+    @staticmethod
+    def _log_ws_event(action_name, path, client_key, real_client, status_type, auth_token=None, scope=None):
+        if is_action_logger_active():
+            return
+        now = time.time()
+        server_time = datetime.datetime.fromtimestamp(now).strftime("%d/%b/%Y %H:%M:%S")
+
+        scope_ident = scope.get("client_identity") if scope else None
+        if scope_ident:
+            enrollment = scope_ident.get("enrollment", "N.A.") or "N.A."
+            name = scope_ident.get("name", "N.A.") or "N.A."
+            user_type = scope_ident.get("user_type", "unregistered")
+            display_client = scope_ident.get("real_client") or real_client or "127.0.0.1"
+            pop_client_request(client_key, path=path, is_websocket=True, action=status_type)
+        else:
+            meta = pop_client_request(client_key, path=path, is_websocket=True, action=status_type)
+            enrollment = meta.get("enrollment", "N.A.") or "N.A."
+            name = meta.get("name", "N.A.") or "N.A."
+            user_type = meta.get("user_type", "unregistered")
+            display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+
+        if enrollment == "N.A." and auth_token:
+            with _REGISTRY_LOCK:
+                cached = _SESSION_IDENTITY_CACHE.get(auth_token)
+                if cached:
+                    enrollment = cached["enrollment"]
+                    name = cached["name"]
+                    user_type = cached.get("user_type", "unregistered")
+
+        if enrollment == "N.A." and client_key:
+            with _REGISTRY_LOCK:
+                cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
+                if cached:
+                    enrollment = cached["enrollment"]
+                    name = cached["name"]
+                    user_type = cached.get("user_type", "unregistered")
+
+        display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+        msg = f"[{server_time}] WebSocket {action_name} {path} [{display_client}, {enrollment}, {name}]"
+        status = 400 if status_type == "rejected" else 200
+        color = get_request_color(status=status, path=path, user_type=user_type, action=status_type)
+        colored_msg = colorize(msg, color)
+        emit_console_log(colored_msg, status)

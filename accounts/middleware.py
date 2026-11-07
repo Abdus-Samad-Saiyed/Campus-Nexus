@@ -121,12 +121,14 @@ class ClientIdentityLoggingMiddleware:
     def __call__(self, request):
         initial_user = getattr(request, 'user', None)
         received_at = time.time()
+        # Pre-seed user identity before get_response so ASGI wrappers can inspect it immediately
+        self._record_client_identity(request, initial_user, received_at, None)
         response = None
         try:
             response = self.get_response(request)
             return response
         finally:
-            self._record_client_identity(request, initial_user, received_at, response)
+            self._record_client_identity(request, getattr(request, 'user', None), received_at, response)
 
     def _record_client_identity(self, request, initial_user=None, received_at=None, response=None):
         try:
@@ -190,6 +192,7 @@ class ClientIdentityLoggingMiddleware:
                 update_or_record_client_request,
                 resolve_client_display,
                 is_action_logger_active,
+                is_asgi_logger_active,
                 get_request_color,
                 colorize,
             )
@@ -212,9 +215,16 @@ class ClientIdentityLoggingMiddleware:
                 path=request.path_info,
                 user_type=user_type,
             )
+            if scope is not None:
+                scope['client_identity'] = {
+                    'enrollment': enrollment,
+                    'name': name,
+                    'user_type': user_type,
+                    'real_client': real_client,
+                }
 
             # If Daphne's custom Command.log_action is NOT active, log directly as fallback
-            if not is_action_logger_active() and response is not None:
+            if not is_action_logger_active() and not is_asgi_logger_active() and response is not None:
                 import datetime
                 import logging
                 server_time = datetime.datetime.fromtimestamp(received_at or time.time()).strftime("%d/%b/%Y %H:%M:%S")
