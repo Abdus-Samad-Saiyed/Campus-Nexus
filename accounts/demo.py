@@ -67,9 +67,25 @@ def ensure_guest_demo_user(using: str = 'default'):
         return None
 
 
+def _ensure_guest_demo_schema():
+    """Auto-migrate guest_demo database if tables are missing (e.g. on fresh clone)."""
+    from django.db import connections
+    from django.core.management import call_command
+    try:
+        connection = connections['guest_demo']
+        with connection.cursor() as cursor:
+            tables = connection.introspection.table_names(cursor)
+            if 'accounts_user' not in tables or 'coordinate_riderequest' not in tables:
+                call_command('migrate', database='guest_demo', verbosity=0)
+    except Exception:
+        pass
+
+
 def ensure_guest_demo_ready():
     """Prepare guest demo database and prune stale ephemeral demo rides older than 2 hours."""
     from coordinate.models import RideRequest
+
+    _ensure_guest_demo_schema()
 
     # Ensure user exists in default and guest_demo databases
     demo_user = ensure_guest_demo_user('default')
