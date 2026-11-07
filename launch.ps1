@@ -127,21 +127,21 @@ function Main-Menu {
             }
             "6" {
                 Ensure-Infrastructure
-                Write-Host "`nInfrastructure check completed. Press any key to return to menu..." -ForegroundColor Cyan
-                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+                Write-Host "`nInfrastructure check completed. Press Enter to return to menu..." -ForegroundColor Cyan
+                $null = Read-Host
             }
             "7" {
                 Write-Host "`n[AUDIT] Running deep row-level parity verification..." -ForegroundColor Cyan
                 & $PythonExe "scripts\deep_check_parity.py"
                 & $PythonExe "scripts\verify_db_parity.py"
-                Write-Host "`nPress any key to return to menu..." -ForegroundColor Cyan
-                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+                Write-Host "`nPress Enter to return to menu..." -ForegroundColor Cyan
+                $null = Read-Host
             }
             "8" {
                 Write-Host "`n[TEST] Running full 374-test regression suite on PostgreSQL..." -ForegroundColor Green
                 & $PythonExe manage.py test --settings=campus.settings.test
-                Write-Host "`nTest suite run completed. Press any key to return to menu..." -ForegroundColor Cyan
-                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+                Write-Host "`nTest suite run completed. Press Enter to return to menu..." -ForegroundColor Cyan
+                $null = Read-Host
             }
             "9" {
                 Write-Host "`n[LOAD TESTING] Available Locust Scenarios:" -ForegroundColor Yellow
@@ -156,8 +156,8 @@ function Main-Menu {
                 } elseif ($ltChoice -eq "3") {
                     & $PythonExe "load-testing\scripts\run_scaled_curve.py"
                 }
-                Write-Host "`nPress any key to return to menu..." -ForegroundColor Cyan
-                $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+                Write-Host "`nPress Enter to return to menu..." -ForegroundColor Cyan
+                $null = Read-Host
             }
             "0" {
                 Write-Host "`nExiting Campus Nexus Launcher. Goodbye!" -ForegroundColor Yellow
@@ -172,3 +172,4 @@ function Main-Menu {
 }
 
 Main-Menu
+
