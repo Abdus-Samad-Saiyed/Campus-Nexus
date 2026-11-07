@@ -576,7 +576,7 @@ class AuditEvent(models.Model):
         verbose_name_plural = 'Audit Events'
 
     def __str__(self) -> str:
-        return f"[{self.timestamp.strftime('%Y-%m-%d %H:%M')}] {self.event_type}: {self.description}"
+        return f"[{timezone.localtime(self.timestamp).strftime('%Y-%m-%d %H:%M')}] {self.event_type}: {self.description}"
 
     def delete(self, *args, **kwargs):
         raise PermissionError("Audit events are immutable and cannot be deleted.")

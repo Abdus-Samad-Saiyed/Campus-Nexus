@@ -181,7 +181,7 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
         "active_threads": threading.active_count(),
         "db_engine": connection.vendor.upper(),
         "db_latency_ms": db_latency_ms,
-        "server_time": now.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "server_time": timezone.localtime(now).strftime("%Y-%m-%d %H:%M:%S %Z"),
         "debug_mode": settings.DEBUG,
     }
 

@@ -38,7 +38,7 @@ def send_user_notification(
             except Exception:
                 sender_avatar = ''
 
-        now_str = timezone.now().strftime('%H:%M')
+        now_str = timezone.localtime().strftime('%H:%M')
 
         async_to_sync(channel_layer.group_send)(
             f'user_notifications_{user_id}',

@@ -40,6 +40,7 @@ from django.db.models import Count, OuterRef, Q, Subquery
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.template.defaultfilters import date as date_filter
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -1688,7 +1689,7 @@ def direct_chat_view(request, enrollment_number):
                                 'message_id': msg.id,
                                 'sender': request.user.enrollment_number,
                                 'content': msg.content,
-                                'timestamp': msg.created_at.strftime('%b %d, %H:%M'),
+                                'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
                             }
                         )
                         async_to_sync(channel_layer.group_send)(
@@ -1701,7 +1702,7 @@ def direct_chat_view(request, enrollment_number):
                                 'sender_avatar': request.user.profile_photo.url if request.user.profile_photo else '',
                                 'content': msg.content[:120],
                                 'url': f'/messages/{request.user.enrollment_number}/',
-                                'timestamp': msg.created_at.strftime('%H:%M'),
+                                'timestamp': timezone.localtime(msg.created_at).strftime('%H:%M'),
                             }
                         )
                 except Exception:
@@ -1790,14 +1791,14 @@ def report_direct_chat_view(request, enrollment_number):
             f"Reporter: {request.user.enrollment_number} ({request.user.get_full_name() or 'N/A'})",
             f"Reported User: {reported_user.enrollment_number} ({reported_user.get_full_name() or 'N/A'})",
             f"Timeframe: {dict(DirectMessageReport.TIMEFRAME_CHOICES).get(transcript_timeframe, transcript_timeframe)}",
-            f"Captured At: {now.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"Captured At: {timezone.localtime(now).strftime('%Y-%m-%d %H:%M:%S %Z')}",
             f"Message Count: {transcript_count}",
             "==========================================",
             ""
         ]
         for m in messages_list:
             sender_name = m.sender.get_full_name() or m.sender.enrollment_number
-            ts = m.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ts = timezone.localtime(m.created_at).strftime('%Y-%m-%d %H:%M:%S')
             lines.append(f"[{ts}] {sender_name} ({m.sender.enrollment_number}): {m.content}")
 
         transcript_snapshot = "\n".join(lines)

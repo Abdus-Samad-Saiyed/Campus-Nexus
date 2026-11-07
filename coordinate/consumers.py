@@ -10,6 +10,7 @@ import json
 import time
 
 from channels.db import database_sync_to_async
+from django.template.defaultfilters import date as date_filter
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils import timezone
 
@@ -175,7 +176,7 @@ class RideChatConsumer(AsyncWebsocketConsumer):
                 'message_id': message.id,
                 'author': self.user.enrollment_number,
                 'content': message.content,
-                'timestamp': timezone.localtime(message.created_at).strftime('%b %d, %H:%M'),
+                'timestamp': date_filter(timezone.localtime(message.created_at), 'M j, H:i'),
             },
         )
 

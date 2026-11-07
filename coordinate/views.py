@@ -23,6 +23,7 @@ from django.db.models import Case, Count, F, Prefetch, Q, When
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.template.defaultfilters import date as date_filter
 from django.views.decorators.http import require_POST
 
 from asgiref.sync import async_to_sync
@@ -909,7 +910,7 @@ def reschedule_ride(request, ride_id):
     ride.departure_time = new_dep_time
     ride.save(update_fields=['departure_time'])
 
-    formatted_time = new_dep_time.strftime('%b %d, %Y at %I:%M %p')
+    formatted_time = timezone.localtime(new_dep_time).strftime('%b %d, %Y at %I:%M %p')
 
     # Record system message in chat
     RideMessage.objects.create(
@@ -1410,7 +1411,7 @@ def send_message(request, ride_id):
                         'message_id': msg.id,
                         'author': request.user.enrollment_number,
                         'content': msg.content,
-                        'timestamp': timezone.localtime(msg.created_at).strftime('%b %d, %H:%M'),
+                        'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
                     }
                 )
         except Exception:
@@ -1469,7 +1470,7 @@ def report_incident(request, ride_id):
         messages_qs = RideMessage.objects.filter(ride=ride).select_related('author').order_by('created_at')
         lines = []
         for m in messages_qs:
-            lines.append(f"[{m.created_at.strftime('%Y-%m-%d %H:%M:%S')}] {m.author.enrollment_number}: {m.content}")
+            lines.append(f"[{timezone.localtime(m.created_at).strftime('%Y-%m-%d %H:%M:%S')}] {m.author.enrollment_number}: {m.content}")
         chat_transcript = "\n".join(lines) if lines else "(No chat messages in this ride session)"
 
     current_year = timezone.now().year

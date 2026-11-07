@@ -16,6 +16,8 @@ from channels.db import database_sync_to_async
 logger = logging.getLogger(__name__)
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
+from django.utils import timezone
+from django.template.defaultfilters import date as date_filter
 
 
 class FriendChatConsumer(AsyncWebsocketConsumer):
@@ -186,7 +188,7 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                     'message_id': msg.id,
                     'sender': self.user.enrollment_number,
                     'content': msg.content,
-                    'timestamp': msg.created_at.strftime('%b %d, %H:%M'),
+                    'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
                 }
             )
 
@@ -203,7 +205,7 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                     'sender_avatar': avatar_url,
                     'content': msg.content[:120],
                     'url': f'/messages/{self.user.enrollment_number}/',
-                    'timestamp': msg.created_at.strftime('%H:%M'),
+                    'timestamp': timezone.localtime(msg.created_at).strftime('%H:%M'),
                 }
             )
 
