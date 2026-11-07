@@ -934,6 +934,23 @@ def reschedule_ride(request, ride_id):
     except Exception:
         pass
 
+    try:
+        from accounts.notifications import send_user_notification
+        for p in ride.participants.exclude(user=request.user):
+            send_user_notification(
+                user_id=p.user_id,
+                title='Ride Rescheduled',
+                content=f'Departure time for ({ride.route_display}) was updated to {formatted_time} by host.',
+                url=f'/coordinate/{ride.id}/',
+                category='ride_update',
+                sender_user=request.user,
+                badge='Ride Rescheduled',
+                badge_class='bg-info-subtle text-info border border-info-subtle',
+                icon='bi-clock-history',
+            )
+    except Exception:
+        pass
+
     messages.success(request, f'Ride successfully rescheduled to {formatted_time}.')
     return redirect('ride_detail', ride_id=ride_id)
 

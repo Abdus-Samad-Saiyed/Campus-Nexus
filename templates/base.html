@@ -553,6 +553,13 @@
                             {% endif %}
                         </a>
                     {% endif %}
+                    {% if user.is_authenticated %}
+                    <!-- System Push & Device Notifications Toggle Button -->
+                    <button class="btn btn-icon-nav position-relative" id="btn-device-notifs" type="button" onclick="window.requestNexusNotificationPermission()" title="Enable Desktop & Phone Notifications" aria-label="Desktop and Phone Notifications">
+                        <i class="bi bi-bell-fill text-secondary" id="icon-device-notifs"></i>
+                    </button>
+                    {% endif %}
+
                     <!-- Direct Dedicated Theme Toggle Button -->
                     <button class="btn btn-icon-nav theme-toggle-btn" id="theme-toggle-btn" type="button" onclick="window.toggleNexusTheme()" title="Switch Light/Dark Mode" aria-label="Toggle theme">
                         <i class="bi bi-sun-fill text-warning theme-toggle-icon" id="theme-toggle-icon"></i>
@@ -1229,13 +1236,119 @@
                     const data = JSON.parse(e.data);
                     if (data.type === 'chat_notification') {
                         showIncomingMessageToast(data);
+                        triggerSystemNotification(data);
                     } else if (data.type === 'app_notification') {
                         showAppNotificationToast(data);
+                        triggerSystemNotification(data);
                     }
                 } catch (err) {
                     console.error('Error handling notification payload:', err);
                 }
             };
+
+        // Native System Notifications for Desktop and Mobile (Android / iOS PWA)
+        function triggerSystemNotification(data) {
+            if (!('Notification' in window)) return;
+            if (Notification.permission !== 'granted') return;
+
+            let title = 'Campus Nexus';
+            let body = '';
+            let url = data.url || '/dashboard/';
+            let tag = 'nexus-notif';
+            let icon = '/static/favicon.ico';
+
+            if (data.type === 'chat_notification') {
+                title = '💬 Message from ' + (data.sender_name || data.sender);
+                body = data.content || '';
+                url = data.url || ('/messages/' + data.sender + '/');
+                tag = 'chat-' + data.sender;
+                if (data.sender_avatar) icon = data.sender_avatar;
+            } else if (data.type === 'app_notification') {
+                title = data.title || 'Campus Nexus';
+                body = data.content || '';
+                tag = data.category || 'general';
+                if (data.sender_avatar) icon = data.sender_avatar;
+            }
+
+            const options = {
+                body: body,
+                icon: icon,
+                badge: '/static/favicon.ico',
+                vibrate: [200, 100, 200],
+                tag: tag,
+                renotify: true,
+                data: { url: url }
+            };
+
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then(function(reg) {
+                    reg.showNotification(title, options);
+                }).catch(function() {
+                    fallbackNotification(title, options);
+                });
+            } else {
+                fallbackNotification(title, options);
+            }
+        }
+
+        function fallbackNotification(title, options) {
+            try {
+                const n = new Notification(title, options);
+                n.onclick = function() {
+                    window.focus();
+                    if (options.data && options.data.url) {
+                        window.location.href = options.data.url;
+                    }
+                    n.close();
+                };
+            } catch (err) {
+                console.warn('Fallback native notification failed:', err);
+            }
+        }
+
+        // Expose global permission requester
+        window.requestNexusNotificationPermission = function() {
+            if (!('Notification' in window)) {
+                alert('Your browser does not support system desktop/mobile notifications.');
+                return;
+            }
+            Notification.requestPermission().then(function(perm) {
+                updateNotifBellUI();
+                if (perm === 'granted') {
+                    triggerSystemNotification({
+                        type: 'app_notification',
+                        title: 'Notifications Activated',
+                        content: 'Desktop and phone notifications are now active for rides and messages.',
+                        url: '/dashboard/',
+                        category: 'system'
+                    });
+                }
+            });
+        };
+
+        function updateNotifBellUI() {
+            const icon = document.getElementById('icon-device-notifs');
+            const btn = document.getElementById('btn-device-notifs');
+            if (!icon || !('Notification' in window)) return;
+            if (Notification.permission === 'granted') {
+                icon.className = 'bi bi-bell-fill text-success';
+                btn.title = 'Desktop & Phone Notifications Active';
+            } else if (Notification.permission === 'denied') {
+                icon.className = 'bi bi-bell-slash text-danger';
+                btn.title = 'Desktop & Phone Notifications Blocked in Browser Settings';
+            } else {
+                icon.className = 'bi bi-bell text-warning';
+                btn.title = 'Click to Enable Desktop & Phone Notifications';
+            }
+        }
+
+        // Register Service Worker for background phone/desktop notifications
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(function(e) {
+                console.debug('ServiceWorker registration omitted:', e);
+            });
+        }
+        updateNotifBellUI();
 
             notifSocket.onclose = function(e) {
                 if (e.code === 4001 || e.code === 4003) return;

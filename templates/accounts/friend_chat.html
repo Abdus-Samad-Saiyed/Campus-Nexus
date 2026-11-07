@@ -33,7 +33,13 @@
                                 <span class="badge bg-dark border border-secondary text-secondary small">{{ friend.branch }}</span>
                             </div>
                             <div class="small d-flex align-items-center gap-2 mt-1">
-                                <span id="friend-presence-text" class="text-secondary">Offline</span>
+                                <span id="friend-presence-text" class="text-secondary">
+                                    {% if not friend.hide_online_status %}
+                                        {% if friend.is_online_now %}Active now{% elif friend.last_seen %}Last online: {{ friend.last_seen_display }}{% else %}Offline{% endif %}
+                                    {% else %}
+                                        Offline
+                                    {% endif %}
+                                </span>
                                 <span id="typing-indicator" class="text-success fst-italic d-none">
                                     <i class="bi bi-pen me-1"></i> typing…
                                 </span>

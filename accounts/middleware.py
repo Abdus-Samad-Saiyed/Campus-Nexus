@@ -106,6 +106,12 @@ class IdleSessionTimeoutMiddleware:
                     if last_activity is None or (now - float(last_activity)) > 60:
                         request.session['last_activity'] = now
                         request.session.modified = True
+                        try:
+                            from django.utils import timezone
+                            from accounts.models import User
+                            User.objects.filter(id=request.user.id).update(last_seen=timezone.now())
+                        except Exception:
+                            pass
 
         return self.get_response(request)
 
@@ -225,9 +231,10 @@ class ClientIdentityLoggingMiddleware:
 
             # If Daphne's custom Command.log_action is NOT active, log directly as fallback
             if not is_action_logger_active() and not is_asgi_logger_active() and response is not None:
-                import datetime
+                import datetime, zoneinfo
                 import logging
-                server_time = datetime.datetime.fromtimestamp(received_at or time.time()).strftime("%d/%b/%Y %H:%M:%S")
+                ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+                server_time = datetime.datetime.fromtimestamp(received_at or time.time(), tz=ist_tz).strftime("%d/%b/%Y %H:%M:%S")
                 duration = time.time() - (received_at or time.time())
                 status_code = getattr(response, 'status_code', 200)
                 method = request.method

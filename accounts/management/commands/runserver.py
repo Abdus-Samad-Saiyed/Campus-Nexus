@@ -128,7 +128,9 @@ class Command(DaphneRunserverCommand):
             # Determine timestamp at the exact moment the request was received
             time_taken = details.get("time_taken", 0.0) or 0.0
             received_ts = meta.get("received_at") or (time.time() - time_taken)
-            details["server_time"] = datetime.datetime.fromtimestamp(received_ts).strftime("%d/%b/%Y %H:%M:%S")
+            import zoneinfo
+            ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+            details["server_time"] = datetime.datetime.fromtimestamp(received_ts, tz=ist_tz).strftime("%d/%b/%Y %H:%M:%S")
 
             status = details.get("status", 200)
             path = details.get("path", "")
@@ -162,7 +164,9 @@ class Command(DaphneRunserverCommand):
                 details["client"] = "127.0.0.1"
 
             received_ts = meta.get("received_at") or time.time()
-            details["server_time"] = datetime.datetime.fromtimestamp(received_ts).strftime("%d/%b/%Y %H:%M:%S")
+            import zoneinfo
+            ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+            details["server_time"] = datetime.datetime.fromtimestamp(received_ts, tz=ist_tz).strftime("%d/%b/%Y %H:%M:%S")
 
             action_name = {
                 "connected": "CONNECT",

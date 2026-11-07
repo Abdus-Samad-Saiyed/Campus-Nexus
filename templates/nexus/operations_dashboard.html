@@ -1,7 +1,94 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Operational Dashboard — Campus Nexus Operations{% endblock %}
+{% block title %}Operational Dashboard — Campus Nexus Operations
+<!-- Live Operations WebSocket Real-time Feed -->
+<script>
+(function() {
+    const proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const opsSocketUrl = proto + window.location.host + '/ws/operations/';
+    let opsSocket = null;
+    let reconnectDelay = 2000;
+
+    function connectOpsSocket() {
+        opsSocket = new WebSocket(opsSocketUrl);
+
+        opsSocket.onopen = function() {
+            reconnectDelay = 2000;
+            const badge = document.getElementById('live-ops-badge');
+            if (badge) {
+                badge.className = 'badge bg-success-subtle text-success border border-success-subtle ms-2 px-2';
+                badge.innerHTML = '<i class="bi bi-broadcast me-1"></i>Live Stream Active';
+            }
+        };
+
+        opsSocket.onmessage = function(e) {
+            try {
+                const msg = JSON.parse(e.data);
+                if (msg.type === 'telemetry_snapshot' || msg.type === 'telemetry_update') {
+                    const d = msg.data;
+                    if (d.db_latency_ms !== undefined) {
+                        const el = document.getElementById('telemetry-latency');
+                        if (el) el.textContent = d.db_latency_ms + ' ms';
+                    }
+                    if (d.server_time) {
+                        const el = document.getElementById('telemetry-server-time');
+                        if (el) el.textContent = d.server_time;
+                    }
+                    if (d.active_threads !== undefined) {
+                        const el = document.getElementById('telemetry-threads');
+                        if (el) el.textContent = d.active_threads;
+                    }
+                    if (d.requests_today !== undefined) {
+                        const el = document.getElementById('telemetry-requests-today');
+                        if (el) el.textContent = d.requests_today;
+                    }
+                } else if (msg.type === 'audit_event') {
+                    const tbody = document.getElementById('live-audit-trail-body');
+                    if (tbody) {
+                        const tr = document.createElement('tr');
+                        tr.style.backgroundColor = 'rgba(8, 183, 79, 0.15)';
+                        tr.style.transition = 'background-color 2.5s ease-out';
+                        tr.innerHTML = `
+                            <td class="text-white-50 nowrap">${msg.timestamp}</td>
+                            <td><span class="badge bg-secondary small">${msg.event_type}</span></td>
+                            <td class="fw-semibold text-success">${msg.actor || 'System'}</td>
+                            <td class="text-secondary text-truncate" style="max-width: 180px;" title="${msg.details}">${msg.details}</td>
+                        `;
+                        tbody.prepend(tr);
+                        setTimeout(function() { tr.style.backgroundColor = 'transparent'; }, 2500);
+                        if (tbody.children.length > 25) {
+                            tbody.lastElementChild.remove();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Ops live socket error:', err);
+            }
+        };
+
+        opsSocket.onclose = function() {
+            const badge = document.getElementById('live-ops-badge');
+            if (badge) {
+                badge.className = 'badge bg-warning-subtle text-warning border border-warning-subtle ms-2 px-2';
+                badge.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Reconnecting...';
+            }
+            setTimeout(connectOpsSocket, reconnectDelay);
+            reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+        };
+    }
+
+    connectOpsSocket();
+
+    setInterval(function() {
+        if (opsSocket && opsSocket.readyState === WebSocket.OPEN) {
+            opsSocket.send(JSON.stringify({ action: 'refresh_telemetry' }));
+        }
+    }, 4000);
+})();
+</script>
+
+{% endblock %}
 
 {% block extra_head %}
 <!-- Chart.js for Administrative Graphical Representations -->
@@ -48,15 +135,16 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 small">
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-success-subtle text-success"><i class="bi bi-hdd-network-fill me-1"></i> System Online</span>
-                <span class="text-white-50">DB Engine: <strong>{{ server_telemetry.db_engine }}</strong></span>
+                <span class="text-white-50">DB Engine: <strong id="telemetry-db-engine">{{ server_telemetry.db_engine }}</strong></span>
                 <span class="text-secondary">&bull;</span>
-                <span class="text-white-50">Latency: <strong class="text-success">{{ server_telemetry.db_latency_ms }} ms</strong></span>
+                <span class="text-white-50">Latency: <strong class="text-success" id="telemetry-latency">{{ server_telemetry.db_latency_ms }} ms</strong></span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-2" id="live-ops-badge"><i class="bi bi-broadcast me-1"></i>Live Stream Active</span>
             </div>
             <div class="d-flex align-items-center gap-3 text-secondary flex-wrap">
-                <span><i class="bi bi-cpu me-1 text-info"></i> {{ server_telemetry.cpu_count }} CPU Cores</span>
-                <span><i class="bi bi-diagram-2 me-1 text-warning"></i> {{ server_telemetry.active_threads }} Active Threads</span>
+                <span><i class="bi bi-cpu me-1 text-info"></i> <span id="telemetry-cpu">{{ server_telemetry.cpu_count }}</span> CPU Cores</span>
+                <span><i class="bi bi-diagram-2 me-1 text-warning"></i> <span id="telemetry-threads">{{ server_telemetry.active_threads }}</span> Active Threads</span>
                 <span><i class="bi bi-terminal me-1 text-secondary"></i> Python {{ server_telemetry.python_version }}</span>
-                <span><i class="bi bi-clock me-1 text-secondary"></i> {{ server_telemetry.server_time }}</span>
+                <span><i class="bi bi-clock me-1 text-secondary"></i> <strong class="text-white-50 font-monospace" id="telemetry-server-time">{{ server_telemetry.server_time }}</strong></span>
             </div>
         </div>
     </div>
@@ -80,7 +168,7 @@
             <div class="col-sm-6 col-lg-3">
                 <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary">
                     <span class="text-secondary small fw-semibold text-uppercase d-block mb-1">Requests Today</span>
-                    <div class="fs-3 fw-bold text-emerald">{{ traffic_telemetry.requests_today }}</div>
+                    <div class="fs-3 fw-bold text-emerald" id="telemetry-requests-today">{{ traffic_telemetry.requests_today }}</div>
                     <span class="text-secondary small">Since midnight local time</span>
                 </div>
             </div>
@@ -638,13 +726,13 @@
                         <table class="table table-dark table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
                             <thead>
                                 <tr class="text-secondary">
-                                    <th>Timestamp</th>
+                                    <th>Timestamp (IST)</th>
                                     <th>Event</th>
                                     <th>Actor</th>
                                     <th>Details</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="live-audit-trail-body">
                                 {% for evt in audit_events %}
                                     <tr>
                                         <td class="text-white-50 nowrap">{{ evt.timestamp|date:"M d H:i" }}</td>

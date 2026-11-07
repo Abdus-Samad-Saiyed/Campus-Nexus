@@ -445,6 +445,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.close(code=1012)
             return
         await self.accept()
+        try:
+            from asgiref.sync import sync_to_async
+            from django.utils import timezone
+            from accounts.models import User
+            await sync_to_async(User.objects.filter(id=self.user.id).update)(last_seen=timezone.now())
+        except Exception:
+            pass
 
     async def disconnect(self, close_code):
         try:

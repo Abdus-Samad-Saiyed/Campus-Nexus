@@ -1,6 +1,146 @@
 {% extends 'base.html' %}
 
-{% block title %}Pending Applications — COORDINATE{% endblock %}
+{% block title %}Pending Applications — COORDINATE
+<!-- Live Applications WebSocket Stream -->
+<script>
+(function() {
+    const proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const appSocketUrl = proto + window.location.host + '/ws/applications/';
+    let appSocket = null;
+    let reconnectDelay = 2000;
+
+    function connectAppSocket() {
+        appSocket = new WebSocket(appSocketUrl);
+        appSocket.onopen = function() {
+            reconnectDelay = 2000;
+            const badge = document.getElementById('live-apps-badge');
+            if (badge) {
+                badge.className = 'badge bg-success-subtle text-success border border-success-subtle ms-2 px-2';
+                badge.innerHTML = '<i class="bi bi-broadcast me-1"></i>Live Stream Active';
+            }
+        };
+        appSocket.onmessage = function(e) {
+            try {
+                const msg = JSON.parse(e.data);
+                if (msg.type === 'application_created') {
+                    insertNewApplicationRow(msg);
+                } else if (msg.type === 'application_status_changed') {
+                    handleApplicationStatusChanged(msg);
+                }
+            } catch (err) {
+                console.error('App live socket error:', err);
+            }
+        };
+        appSocket.onclose = function() {
+            const badge = document.getElementById('live-apps-badge');
+            if (badge) {
+                badge.className = 'badge bg-warning-subtle text-warning border border-warning-subtle ms-2 px-2';
+                badge.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Reconnecting...';
+            }
+            setTimeout(connectAppSocket, reconnectDelay);
+            reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+        };
+    }
+
+    function insertNewApplicationRow(app) {
+        let tbody = document.getElementById('application-table-body');
+        if (!tbody) {
+            window.location.reload();
+            return;
+        }
+        if (document.getElementById('app-row-' + app.id)) return;
+
+        const tr = document.createElement('tr');
+        tr.id = 'app-row-' + app.id;
+        tr.style.backgroundColor = 'rgba(8, 183, 79, 0.2)';
+        tr.style.transition = 'background-color 3s ease';
+
+        const upgradeBadge = app.is_temp_upgrade 
+            ? '<span class="badge bg-warning text-dark small ms-1" title="Active temporary user applying for permanent verified ID"><i class="bi bi-arrow-up-circle-fill me-1"></i>Elevate Temp User</span>' 
+            : '';
+
+        const emailCol = app.email 
+            ? `<a href="mailto:${app.email}" class="small font-monospace text-secondary text-decoration-none" title="Send email to ${app.email}"><i class="bi bi-envelope me-1 text-success"></i>${app.email}</a>`
+            : '<span class="text-muted small">—</span>';
+
+        const csrfToken = getCsrfToken();
+
+        tr.innerHTML = `
+            <td><code>${app.application_number}</code></td>
+            <td><strong>${app.enrollment_number}</strong>${upgradeBadge}</td>
+            <td>${app.full_name}</td>
+            <td>${emailCol}</td>
+            <td>${app.phone_number}</td>
+            <td><span class="badge bg-secondary">${app.gender}</span></td>
+            <td class="text-secondary small">${app.created_at}</td>
+            <td class="text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                    <form method="POST"
+                          action="/applications/${app.id}/approve/"
+                          hx-post="/applications/${app.id}/approve/"
+                          hx-target="#app-row-${app.id}"
+                          hx-swap="outerHTML"
+                          class="d-inline m-0">
+                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                        <button type="submit" class="btn btn-green btn-sm px-3">
+                            <i class="bi bi-check-lg me-1"></i>Approve
+                        </button>
+                    </form>
+                    <button type="button"
+                            class="btn btn-outline-danger btn-sm px-3"
+                            data-bs-toggle="modal"
+                            data-bs-target="#rejectModal"
+                            data-app-id="${app.id}"
+                            data-app-enrollment="${app.enrollment_number}">
+                        <i class="bi bi-x-lg me-1"></i>Reject
+                    </button>
+                </div>
+            </td>
+        `;
+
+        tbody.prepend(tr);
+        setTimeout(function() { tr.style.backgroundColor = 'transparent'; }, 3000);
+
+        const countBadge = document.getElementById('application-count-badge');
+        if (countBadge) {
+            const current = parseInt(countBadge.textContent) || 0;
+            countBadge.textContent = current + 1;
+            countBadge.className = 'badge bg-danger rounded-pill fs-6';
+        }
+
+        if (window.htmx) {
+            window.htmx.process(tr);
+        }
+    }
+
+    function handleApplicationStatusChanged(msg) {
+        const row = document.getElementById('app-row-' + msg.id);
+        if (row) {
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(20px)';
+            row.style.transition = 'all 0.4s ease';
+            setTimeout(function() {
+                row.remove();
+                const countBadge = document.getElementById('application-count-badge');
+                if (countBadge) {
+                    const current = Math.max(0, (parseInt(countBadge.textContent) || 0) - 1);
+                    countBadge.textContent = current;
+                    if (current === 0) countBadge.className = 'badge bg-secondary rounded-pill fs-6';
+                }
+            }, 400);
+        }
+    }
+
+    function getCsrfToken() {
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+        return cookie ? cookie.split('=')[1] : '';
+    }
+
+    connectAppSocket();
+})();
+</script>
+
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -9,10 +149,13 @@
             <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
                 Student Applications
                 {% if applications %}
-                    <span class="badge bg-danger rounded-pill fs-6">{{ applications|length }}</span>
+                    <span class="badge bg-danger rounded-pill fs-6" id="application-count-badge">{{ applications|length }}</span>
                 {% else %}
-                    <span class="badge bg-secondary rounded-pill fs-6">0</span>
+                    <span class="badge bg-secondary rounded-pill fs-6" id="application-count-badge">0</span>
                 {% endif %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-2" id="live-apps-badge" style="font-size: 0.72rem;">
+                    <i class="bi bi-broadcast me-1"></i>Live Stream
+                </span>
             </h2>
             <p class="text-secondary small mb-0">Pending verification and approval for campus access</p>
         </div>

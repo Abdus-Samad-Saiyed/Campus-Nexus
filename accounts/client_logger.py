@@ -664,7 +664,9 @@ class ClientLoggingASGIWrapper:
         method = scope.get("method") or "GET"
         now = time.time()
         duration = now - (received_at or now)
-        server_time = datetime.datetime.fromtimestamp(received_at or now).strftime("%d/%b/%Y %H:%M:%S")
+        import zoneinfo
+        ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        server_time = datetime.datetime.fromtimestamp(received_at or now, tz=ist_tz).strftime("%d/%b/%Y %H:%M:%S")
 
         # 1. Prefer direct client identity stamped on scope by middleware
         scope_ident = scope.get("client_identity") if scope else None
@@ -709,7 +711,9 @@ class ClientLoggingASGIWrapper:
         if is_action_logger_active():
             return
         now = time.time()
-        server_time = datetime.datetime.fromtimestamp(now).strftime("%d/%b/%Y %H:%M:%S")
+        import zoneinfo
+        ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        server_time = datetime.datetime.fromtimestamp(now, tz=ist_tz).strftime("%d/%b/%Y %H:%M:%S")
 
         scope_ident = scope.get("client_identity") if scope else None
         if scope_ident:

@@ -49,6 +49,7 @@ class User(AbstractUser):
     bio = models.TextField(max_length=500, blank=True)
     show_friends_publicly = models.BooleanField(default=True)
     hide_online_status = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True, db_index=True)
     hide_from_search = models.BooleanField(default=False)
     hide_profile_photo = models.BooleanField(default=False)
     show_contact_on_profile = models.BooleanField(default=True)
@@ -66,6 +67,32 @@ class User(AbstractUser):
     @property
     def is_guest_demo(self) -> bool:
         return self.username == 'GUEST_DEMO' or self.enrollment_number == 'GUEST_DEMO'
+
+    @property
+    def is_online_now(self) -> bool:
+        if self.hide_online_status or not self.last_seen:
+            return False
+        from django.utils import timezone
+        return (timezone.now() - self.last_seen).total_seconds() < 180
+
+    @property
+    def last_seen_display(self) -> str:
+        if not self.last_seen:
+            return "Never"
+        import zoneinfo, datetime
+        from django.utils import timezone
+        ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        local_dt = timezone.localtime(self.last_seen, ist_tz)
+        now_local = timezone.localtime(timezone.now(), ist_tz)
+        diff = (now_local - local_dt).total_seconds()
+        if diff < 180:
+            return "Active now"
+        elif local_dt.date() == now_local.date():
+            return f"Today at {local_dt.strftime('%I:%M %p')} IST"
+        elif local_dt.date() == (now_local.date() - datetime.timedelta(days=1)):
+            return f"Yesterday at {local_dt.strftime('%I:%M %p')} IST"
+        else:
+            return local_dt.strftime("%b %d, %Y at %I:%M %p IST")
 
     rides_completed = models.IntegerField(default=0)
     on_time_count = models.IntegerField(default=0)
@@ -699,12 +726,34 @@ def log_audit_event(
 ):
     """Log an operational audit event without collecting sensitive payloads."""
     try:
-        return AuditEvent.objects.create(
+        evt = AuditEvent.objects.create(
             event_type=event_type,
             actor_enrollment=str(actor_enrollment)[:20],
             description=str(description)[:255],
             target_id=str(target_id)[:50],
         )
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            import zoneinfo
+            layer = get_channel_layer()
+            if layer:
+                ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+                ts_str = timezone.localtime(evt.timestamp, ist_tz).strftime("%b %d %H:%M:%S")
+                async_to_sync(layer.group_send)(
+                    "staff_operations",
+                    {
+                        "type": "audit_event_broadcast",
+                        "id": evt.id,
+                        "timestamp": ts_str,
+                        "event_type": evt.event_type,
+                        "actor": evt.actor_enrollment or "SYSTEM",
+                        "details": evt.description,
+                    }
+                )
+        except Exception:
+            pass
+        return evt
     except Exception as e:
         if not fail_silently:
             raise

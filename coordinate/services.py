@@ -472,6 +472,24 @@ def leave_ride_service(ride_id: int, user: User) -> Tuple[bool, str, Dict[str, A
         promoted = promote_waitlist_passenger(ride)
         ride.sync_status()
 
+        # Send user notification to host
+        try:
+            from accounts.notifications import send_user_notification
+            if ride.creator_id != user.id:
+                send_user_notification(
+                    user_id=ride.creator_id,
+                    title='Passenger Left Ride',
+                    content=f'{user.get_full_name() or user.enrollment_number} left your ride ({ride.route_display}).',
+                    url=f'/coordinate/{ride.id}/',
+                    category='ride_update',
+                    sender_user=user,
+                    badge='Passenger Left',
+                    badge_class='bg-warning-subtle text-warning border border-warning-subtle',
+                    icon='bi-person-dash-fill',
+                )
+        except Exception:
+            pass
+
         # WebSocket leave notice
         try:
             channel_layer = get_channel_layer()
@@ -516,6 +534,23 @@ def kick_passenger_service(ride_id: int, host_user: User, passenger_user: User) 
 
         promoted = promote_waitlist_passenger(ride)
         ride.sync_status()
+
+        # Send user notification to kicked passenger
+        try:
+            from accounts.notifications import send_user_notification
+            send_user_notification(
+                user_id=passenger_user.id,
+                title='Removed from Ride',
+                content=f'You were removed from ride ({ride.route_display}) by the host.',
+                url='/coordinate/',
+                category='ride_update',
+                sender_user=host_user,
+                badge='Removed from Ride',
+                badge_class='bg-danger-subtle text-danger border border-danger-subtle',
+                icon='bi-person-dash-fill',
+            )
+        except Exception:
+            pass
 
         # WebSocket kick notice
         try:
@@ -566,6 +601,25 @@ def cancel_ride_service(ride_id: int, host_user: User) -> Tuple[bool, str]:
             share_contact_details=False,
         )
         RideParticipant.all_rows.filter(ride=ride).update(is_revoked=True, revoked_at=now)
+
+        # Send notifications to confirmed passengers
+        try:
+            from accounts.notifications import send_user_notification
+            for p in RideParticipant.objects.filter(ride=ride):
+                if p.user_id != host_user.id:
+                    send_user_notification(
+                        user_id=p.user_id,
+                        title='Ride Cancelled',
+                        content=f'Ride ({ride.route_display}) has been cancelled by host {host_user.enrollment_number}.',
+                        url='/coordinate/',
+                        category='ride_cancelled',
+                        sender_user=host_user,
+                        badge='Ride Cancelled',
+                        badge_class='bg-danger-subtle text-danger border border-danger-subtle',
+                        icon='bi-x-circle-fill',
+                    )
+        except Exception:
+            pass
 
         # Broadcast teardown
         try:

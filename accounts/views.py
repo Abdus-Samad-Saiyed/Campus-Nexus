@@ -1121,6 +1121,31 @@ def apply_account(request):
                             description=f'Application #{application.application_number} submitted; temporary account activated for {enrollment}',
                             target_id=enrollment,
                         )
+                        try:
+                            from channels.layers import get_channel_layer
+                            from asgiref.sync import async_to_sync
+                            import zoneinfo
+                            layer = get_channel_layer()
+                            if layer:
+                                ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+                                ts_str = timezone.localtime(application.created_at, ist_tz).strftime("%b %d, %H:%M")
+                                async_to_sync(layer.group_send)(
+                                    'staff_applications',
+                                    {
+                                        'type': 'application_created',
+                                        'id': application.id,
+                                        'application_number': application.application_number,
+                                        'enrollment_number': application.enrollment_number,
+                                        'full_name': application.full_name,
+                                        'email': application.email or '',
+                                        'phone_number': application.phone_number,
+                                        'gender': application.get_gender_display(),
+                                        'is_temp_upgrade': is_temp_user_upgrade,
+                                        'created_at': ts_str,
+                                    }
+                                )
+                        except Exception:
+                            pass
 
                     # Send application received confirmation email
                     try:
@@ -2084,6 +2109,23 @@ def approve_application(request, application_id):
     except Exception:
         pass
 
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer:
+            async_to_sync(layer.group_send)(
+                'staff_applications',
+                {
+                    'type': 'application_status_changed',
+                    'id': application_id,
+                    'status': 'APPROVED',
+                    'actor': request.user.enrollment_number,
+                }
+            )
+    except Exception:
+        pass
+
     if request.htmx:
         return HttpResponse('')
 
@@ -2163,6 +2205,23 @@ def reject_application(request, application_id):
             recipient_list=[applicant_email] if applicant_email else [],
             fail_silently=True,
         )
+    except Exception:
+        pass
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer:
+            async_to_sync(layer.group_send)(
+                'staff_applications',
+                {
+                    'type': 'application_status_changed',
+                    'id': application_id,
+                    'status': 'REJECTED',
+                    'actor': request.user.enrollment_number,
+                }
+            )
     except Exception:
         pass
 

@@ -174,6 +174,8 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
     except Exception:
         db_latency_ms = -1.0
 
+    import zoneinfo
+    ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
     server_telemetry = {
         "os": f"{platform.system()} {platform.release()}",
         "python_version": platform.python_version(),
@@ -181,7 +183,7 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
         "active_threads": threading.active_count(),
         "db_engine": connection.vendor.upper(),
         "db_latency_ms": db_latency_ms,
-        "server_time": timezone.localtime(now).strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "server_time": timezone.localtime(now, ist_tz).strftime("%Y-%m-%d %H:%M:%S IST"),
         "debug_mode": settings.DEBUG,
     }
 

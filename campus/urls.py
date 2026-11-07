@@ -131,6 +131,17 @@ def favicon_view(request):
     return RedirectView.as_view(url=settings.STATIC_URL + 'favicon.ico', permanent=False)(request)
 
 
+def service_worker_view(request):
+    """Serve root /sw.js with Service-Worker-Allowed: / for full origin scope."""
+    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+    if os.path.exists(sw_path):
+        response = FileResponse(open(sw_path, 'rb'), content_type='application/javascript')
+        response['Service-Worker-Allowed'] = '/'
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        return response
+    raise Http404("Service worker not found")
+
+
 urlpatterns = [
     # Django admin & Operational Dashboard
     path('admin/', admin.site.urls),
@@ -150,6 +161,7 @@ urlpatterns = [
 
     # System Health Check & Root Favicon
     path('favicon.ico', favicon_view, name='favicon'),
+    path('sw.js', service_worker_view, name='service_worker'),
     path('health/', health_check, name='health_check'),
     path('healthz/', health_check, name='healthz'),
 
