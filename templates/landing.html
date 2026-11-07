@@ -54,36 +54,56 @@
             <div class="glass p-4 p-md-5 glass-glow">
                 {% if early_launch_mode %}
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold">
-                        <i class="bi bi-lightning-charge-fill me-1"></i> EARLY LAUNCH ACTIVE
+                    <span class="badge bg-success-subtle green-accent px-3 py-1 rounded-pill fw-bold border border-success-subtle">
+                        <i class="bi bi-mortarboard-fill me-1"></i> NIT Srinagar Campus
                     </span>
-                    <span class="text-white-50 small">Dual Registration Open</span>
+                    <span class="badge bg-info-subtle text-info px-2 py-1 rounded-pill small">
+                        <i class="bi bi-incognito me-1"></i> Guest Demo
+                    </span>
                 </div>
-                <h4 class="fw-bold mb-2">Transit Rush + Official Verification</h4>
+                <h4 class="fw-bold mb-2">Welcome to Campus Nexus</h4>
                 <p class="text-secondary small mb-4">
-                    Fast-Track Early Access enables immediate cab coordination in an isolated temporary database. Official permanent ID applications remain open concurrently for desk verification.
+                    The verified digital ecosystem built exclusively for students at NIT Srinagar.
                 </p>
 
-                <div class="d-flex flex-column gap-3">
+                <div class="d-flex flex-column gap-3 mb-4">
                     <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
+                        <div class="feature-icon flex-shrink-0" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-1">1. Fast-Track Early Access (Untrusted)</h6>
-                            <p class="text-secondary small mb-0">Instant self-declaration for airport & railway cab coordination without waiting.</p>
+                            <h6 class="fw-bold mb-1">1. Fast-Track Account</h6>
+                            <p class="text-secondary small mb-0">If you are a student at NIT Srinagar, create a fast-track account first for immediate cab sharing and ride coordination.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
+                        <div class="feature-icon flex-shrink-0" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-1">2. Permanent Account Applications</h6>
-                            <p class="text-secondary small mb-0">Official student verification queue with physical ID review is active and permanently stored.</p>
+                            <h6 class="fw-bold mb-1">2. Apply for Permanent ID</h6>
+                            <p class="text-secondary small mb-0">Once registered, submit your institute details to receive your permanent student verification badge.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;"><i class="bi bi-database-check"></i></div>
+                        <div class="feature-icon flex-shrink-0" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;"><i class="bi bi-incognito"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-1">3. Seamless Upgrade & Zero Conflict</h6>
-                            <p class="text-secondary small mb-0">Temporary accounts upgrade seamlessly when physical applications are approved.</p>
+                            <h6 class="fw-bold mb-1">Not from NIT Srinagar?</h6>
+                            <p class="text-secondary small mb-0">This platform is exclusive to NIT Srinagar students, but you can demo all platform features using <strong>Guest Mode</strong>.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark fw-bold py-2">
+                        <i class="bi bi-lightning-charge-fill me-1"></i> Fast-Track Student Registration
+                    </a>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-outline-green w-100 py-2 small">
+                                <i class="bi bi-shield-check me-1"></i> Apply for ID
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 py-2 small">
+                                <i class="bi bi-incognito me-1"></i> Try Guest Demo
+                            </a>
                         </div>
                     </div>
                 </div>

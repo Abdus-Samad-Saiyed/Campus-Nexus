@@ -143,8 +143,8 @@ class EarlyLaunchViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.context["form"], EarlyLaunchDeclarationForm)
         self.assertTrue(response.context.get("early_launch_mode"))
-        self.assertContains(response, "TEMPORARY EARLY ACCESS (UNTRUSTED)")
-        self.assertContains(response, "Temporary Student Registration")
+        self.assertContains(response, "FAST-TRACK STUDENT REGISTRATION")
+        self.assertContains(response, "Fast-Track Student Registration")
         self.assertNotContains(response, "Designated Application Approvers")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
@@ -185,7 +185,7 @@ class EarlyLaunchViewTests(TestCase):
         self.assertFalse(response.context.get("early_launch_mode", False))
         self.assertContains(response, "STUDENT REGISTRATION")
         self.assertContains(response, "Apply for Verification")
-        self.assertNotContains(response, "TEMPORARY EARLY ACCESS")
+        self.assertNotContains(response, "FAST-TRACK STUDENT REGISTRATION")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
     def test_apply_view_permanent_tab_in_early_launch_mode(self):
@@ -368,9 +368,9 @@ class EarlyLaunchViewTests(TestCase):
         response = self.client.get(reverse("landing"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Early Launch Mode Active")
-        self.assertContains(response, "Fast-Track Early Access")
+        self.assertContains(response, "Fast-Track")
         self.assertContains(response, "Apply for Permanent ID")
-        self.assertContains(response, "Transit Rush + Official Verification")
+        self.assertContains(response, "Welcome to Campus Nexus")
 
     @override_settings(EARLY_LAUNCH_MODE=False)
     def test_landing_page_renders_standard_banners_and_cta(self):
@@ -391,8 +391,8 @@ class EarlyLaunchViewTests(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse("dashboard"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Untrusted &bull; Early Access")
-        self.assertContains(response, "Temporary Account:")
+        self.assertContains(response, "Fast-Track Access")
+        self.assertContains(response, "Fast-Track Account:")
 
     @override_settings(EARLY_LAUNCH_MODE=True)
     def test_profile_displays_untrusted_badge(self):
@@ -406,7 +406,7 @@ class EarlyLaunchViewTests(TestCase):
         self.client.force_login(user)
         response = self.client.get(reverse("profile", kwargs={"enrollment_number": "2024BCSE907"}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Untrusted &bull; Early Access")
+        self.assertContains(response, "Fast-Track Access")
 
 
 class EarlyLaunchPolicyTests(TestCase):

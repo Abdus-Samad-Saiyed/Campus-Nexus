@@ -1017,9 +1017,9 @@ def apply_account(request):
                     request.session.pop('is_guest_demo', None)
                 from django.contrib.auth import login
                 login(request, user, backend='accounts.backends.EnrollmentBackend')
-                messages.warning(
+                messages.success(
                     request,
-                    "Notice: Your account is self-declared and stored in the temporary transit database (untrusted). Physical verification is pending, but you can coordinate rides immediately."
+                    "Welcome to Campus Nexus! Your fast-track account is active so you can coordinate rides immediately. You can apply for official ID verification whenever you are ready."
                 )
                 return redirect('dashboard')
 
@@ -1187,9 +1187,9 @@ def apply_account(request):
                                         f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
                                         f'Application Reference: #{app_num}\n'
                                         f'Status: Under Review\n\n'
-                                        f'A temporary campus access account has been activated for you immediately. '
+                                        f'Your account has been activated immediately. '
                                         f'You can coordinate rides, browse campus activities, and connect with peers right away '
-                                        f'while your permanent verification is pending review.\n\n'
+                                        f'at https://dev.campus-nexus.online/ while your permanent verification is pending review.\n\n'
                                         f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
                                         f'— The Campus Nexus Team, NIT Srinagar'
                                     ),
@@ -2144,7 +2144,7 @@ def approve_application(request, application_id):
                 f'Your application for permanent student ID verification ({user.enrollment_number}) '
                 f'has been approved by campus administrators.\n\n'
                 f'Your profile has been elevated to permanent, verified status with full student privileges.\n\n'
-                f'You can continue using Campus Nexus at https://campusnexus.nitsri.ac.in/ (or your local environment)\n\n'
+                f'You can continue using Campus Nexus at https://dev.campus-nexus.online/\n\n'
                 f'— The Campus Nexus Team, NIT Srinagar'
             ),
             from_email=None,   # uses DEFAULT_FROM_EMAIL
@@ -2246,7 +2246,7 @@ def reject_application(request, application_id):
                 f'{final_reason}\n'
                 f'------------------------------------------------------------\n\n'
                 f'Next Steps:\n'
-                f'• You may submit a corrected application at https://dev.campus-nexus.online/apply/ or your campus portal.\n'
+                f'• You may submit a corrected application at https://dev.campus-nexus.online/apply/\n'
                 f'• For inquiries or to clarify your credentials, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
                 f'— The Campus Nexus Team, NIT Srinagar'
             ),

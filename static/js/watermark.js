@@ -13,6 +13,14 @@
 */
 (function initClockworkWatermarkAndTheme() {
 'use strict';
+function isMobileDevice() {
+    if (typeof window === 'undefined') return false;
+    return (window.innerWidth <= 768) || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+}
+let isWatermarkLoopRunning = false;
+let watermarkAnimFrameId = null;
+let startWatermarkAnimation = function() {};
+let stopWatermarkAnimation = function() {};
 function calculateClockAngles(date) {
 const hours = date.getHours() % 12;
 const minutes = date.getMinutes();
@@ -47,7 +55,9 @@ gearImpulse += 18;
 function applyWatermarkSettings() {
 const container = document.getElementById('clockwork-watermark');
 if (!container) return;
-const mode = localStorage.getItem('nexus_watermark_mode') || 'both'; // both, gears, clock, off
+const storedMode = localStorage.getItem('nexus_watermark_mode');
+const defaultMode = isMobileDevice() ? 'off' : 'both';
+const mode = storedMode || defaultMode; // On mobile, clock defaults to off for maximum performance
 const opacity = localStorage.getItem('nexus_watermark_opacity') || '0.22';
 const complexity = localStorage.getItem('nexus_gear_complexity') || 'high'; // low, med, high
 const gearSpread = localStorage.getItem('nexus_gear_spread') || 'constellation'; // constellation, subtle, off
@@ -58,8 +68,10 @@ const scatteredLayer = document.getElementById('scattered-gears-layer');
 const midGears = document.querySelectorAll('.gear-edge-l, .gear-edge-r');
 if (mode === 'off') {
 container.style.display = 'none';
+if (typeof stopWatermarkAnimation === 'function') stopWatermarkAnimation();
 } else {
 container.style.display = 'block';
+if (typeof startWatermarkAnimation === 'function') startWatermarkAnimation();
 if (mode === 'gears') {
 if (clockLayer) clockLayer.style.display = 'none';
 if (gearsLayer) gearsLayer.style.display = '';
@@ -410,7 +422,8 @@ window.setNexusAccent = function (accent) {
 applyNexusAccent(accent);
 };
 function initTechnicalCursor() {
-if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) {
+if (isMobileDevice() || !window.matchMedia || !window.matchMedia('(pointer: fine)').matches) {
+document.body.classList.add('nexus-cursor-disabled');
 return;
 }
 const cursorSetting = localStorage.getItem('nexus_cursor') || 'magnetic';
@@ -849,6 +862,7 @@ const reducedMotionQuery = window.matchMedia && window.matchMedia('(prefers-redu
 const prefersReducedMotion = reducedMotionQuery ? reducedMotionQuery.matches : false;
 let cachedGears = Array.from(document.querySelectorAll('.gear-edge'));
 function animateLoop() {
+if (!isWatermarkLoopRunning) return;
 const now = new Date();
 const angles = calculateClockAngles(now);
 applyHandRotations(angles.hourAngle, angles.minuteAngle, angles.secondAngle);
@@ -869,10 +883,29 @@ gear.setAttribute('transform', `rotate(${totalAngle.toFixed(2)} ${cx} ${cy})`);
 gear.style.transform = `rotate(${totalAngle.toFixed(2)}deg)`;
 }
 }
-if (!prefersReducedMotion) {
-requestAnimationFrame(animateLoop);
+if (!prefersReducedMotion && isWatermarkLoopRunning) {
+watermarkAnimFrameId = requestAnimationFrame(animateLoop);
 }
 }
+
+startWatermarkAnimation = function() {
+if (isWatermarkLoopRunning || prefersReducedMotion) return;
+const storedMode = localStorage.getItem('nexus_watermark_mode');
+const defaultMode = isMobileDevice() ? 'off' : 'both';
+const currentMode = storedMode || defaultMode;
+if (currentMode === 'off') return;
+isWatermarkLoopRunning = true;
+watermarkAnimFrameId = requestAnimationFrame(animateLoop);
+};
+
+stopWatermarkAnimation = function() {
+isWatermarkLoopRunning = false;
+if (watermarkAnimFrameId) {
+cancelAnimationFrame(watermarkAnimFrameId);
+watermarkAnimFrameId = null;
+}
+};
+
 if (prefersReducedMotion) {
 const now = new Date();
 const angles = calculateClockAngles(now);
@@ -883,7 +916,11 @@ const a = calculateClockAngles(d);
 applyHandRotations(a.hourAngle, a.minuteAngle, a.secondAngle);
 }, 1000);
 } else {
-requestAnimationFrame(animateLoop);
+const storedM = localStorage.getItem('nexus_watermark_mode');
+const defM = isMobileDevice() ? 'off' : 'both';
+if ((storedM || defM) !== 'off') {
+startWatermarkAnimation();
+}
 }
 }
 if (typeof window !== 'undefined') {

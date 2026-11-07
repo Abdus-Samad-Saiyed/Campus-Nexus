@@ -3,3 +3,111 @@
 .glass,.student-card,.ride-card{word-wrap:break-word;overflow-wrap:break-word;}
 .student-card{overflow:hidden!important;position:relative!important;}
 .student-card *{max-width:100%;}
+
+/* ==========================================================================
+   MOBILE-FIRST HIGH PERFORMANCE & STREAMLINED PHONE UI ENHANCEMENTS
+   Strictly scoped to mobile viewports (<= 768px and <= 991.98px)
+   Leaves Desktop (PC) 100% Unchanged
+   ========================================================================== */
+
+@media (max-width: 991.98px) {
+    /* Mobile Navigation Drawer */
+    .navbar-collapse {
+        background: #0b140f !important;
+        border: 1px solid var(--border, rgba(39, 48, 42, 0.6));
+        border-radius: var(--radius, 16px);
+        padding: 1rem;
+        margin-top: 0.75rem;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    }
+    [data-bs-theme="light"] .navbar-collapse,
+    [data-theme="light"] .navbar-collapse {
+        background: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1);
+    }
+    .navbar-nav .nav-link {
+        padding: 0.65rem 0.85rem !important;
+        border-radius: var(--radius-sm, 8px);
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+    }
+    .navbar-nav .nav-link:hover,
+    .navbar-nav .nav-link.active {
+        background: rgba(8, 183, 79, 0.12) !important;
+        color: var(--green, #08B74F) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Mobile Performance Boost: Disable heavy compositing blur across layered surfaces */
+    .glass,
+    .navbar-custom,
+    .modal-content,
+    .dropdown-menu,
+    .glass-glow,
+    .glass-toast,
+    .direct-chat-footer {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    :root:not([data-bs-theme="light"]):not([data-theme="light"]) .glass,
+    :root:not([data-bs-theme="light"]):not([data-theme="light"]) .navbar-custom,
+    :root:not([data-bs-theme="light"]):not([data-theme="light"]) .modal-content,
+    :root:not([data-bs-theme="light"]):not([data-theme="light"]) .dropdown-menu {
+        background-color: #0c1611 !important;
+    }
+    [data-bs-theme="light"] .glass,
+    [data-bs-theme="light"] .navbar-custom,
+    [data-bs-theme="light"] .modal-content,
+    [data-bs-theme="light"] .dropdown-menu {
+        background-color: #ffffff !important;
+    }
+
+    /* Hardware-Accelerated Smooth Touch Scrolling */
+    body, html {
+        -webkit-overflow-scrolling: touch;
+    }
+    .density-chart-container,
+    .chat-messages,
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* Mobile Buttons & Touch Target Ergonomics */
+    .btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-sm {
+        min-height: 36px;
+    }
+    .hero-title {
+        font-size: 2rem !important;
+        line-height: 1.2 !important;
+    }
+    .hero-subtitle {
+        font-size: 0.95rem !important;
+    }
+
+    /* Streamlined Mobile Cards & Spacing */
+    .ride-card {
+        padding: 1.25rem !important;
+    }
+    .spots-bar-wrap {
+        height: 8px;
+    }
+    .density-chart-container {
+        padding-bottom: 0.5rem !important;
+    }
+
+    /* Mobile Filter Controls Clean Stacking */
+    #coordinate-rides-container .form-select,
+    #coordinate-rides-container .form-control {
+        font-size: 0.9rem;
+    }
+}
