@@ -105,6 +105,36 @@ def rate_limit(key_prefix: str, limit: int, period_seconds: int, message: str = 
                     current_count_id = 1
 
                 if current_count_ip > limit or current_count_id > limit:
+                    try:
+                        from accounts.two_factor import get_active_otp, emit_otp_console_log
+                        from accounts.models import User
+                        target_user = getattr(request, 'user', None)
+                        if not target_user or not getattr(target_user, 'is_authenticated', False):
+                            if hasattr(request, 'session'):
+                                pre_id = request.session.get('pre_2fa_user_id')
+                                if pre_id:
+                                    target_user = User.objects.filter(pk=pre_id).first()
+                        t_phone = request.POST.get('phone_number') or request.GET.get('phone_number')
+                        t_email = request.POST.get('email') or request.GET.get('email')
+                        purpose = '2FA'
+                        if 'signup' in key_prefix:
+                            purpose = 'SIGNUP'
+                        elif 'security' in key_prefix:
+                            purpose = 'SECURITY_CHANGE'
+                        elif 'password' in key_prefix:
+                            purpose = 'PASSWORD_RESET'
+
+                        active_code = get_active_otp(user=target_user, phone_number=t_phone, email=t_email, purpose=purpose)
+                        if active_code:
+                            request._active_otp_info = f"[OTP: {active_code} (Rate Limit 429)]"
+                            emit_otp_console_log(
+                                raw_code=active_code,
+                                target=target_user or t_phone or t_email or ip,
+                                purpose=purpose,
+                                reason=f"RATE LIMIT EXCEEDED (HTTP 429 on {key_prefix})",
+                            )
+                    except Exception:
+                        pass
                     # Check if client expects JSON
                     accept = request.headers.get('accept', '') or ''
                     content_type = request.content_type or ''

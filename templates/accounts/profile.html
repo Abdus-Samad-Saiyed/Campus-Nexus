@@ -490,6 +490,57 @@
                         {% endif %}
                         <div id="passkeyRegStatus" class="small mt-2 font-monospace" style="display: none;"></div>
                     </div>
+                    <!-- Active Platform Sessions (Simultaneous Multi-Platform Sessions: Max 3) -->
+                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label small fw-semibold text-info mb-0">
+                                <i class="bi bi-devices me-1"></i> Active Platform Sessions
+                            </label>
+                            <span class="badge bg-black bg-opacity-40 text-light border border-secondary border-opacity-50 small">
+                                {{ active_platform_sessions|length }}/3 Active
+                            </span>
+                        </div>
+                        <div class="text-secondary small mb-2" style="font-size: 0.78rem;">
+                            Simultaneous sign-in is permitted across up to <strong>3 different platforms</strong> (e.g. Windows, Android, iOS). One active session is allowed per platform at a time.
+                        </div>
+                        <div class="d-flex flex-column gap-2">
+                            {% for ps in active_platform_sessions %}
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-60 border border-secondary border-opacity-40 small">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fs-5 text-secondary">
+                                        {% if ps.platform == 'windows' %}
+                                            <i class="bi bi-windows text-primary"></i>
+                                        {% elif ps.platform == 'android' %}
+                                            <i class="bi bi-android2 text-success"></i>
+                                        {% elif ps.platform == 'ios' %}
+                                            <i class="bi bi-apple text-info"></i>
+                                        {% elif ps.platform == 'macos' %}
+                                            <i class="bi bi-apple text-light"></i>
+                                        {% elif ps.platform == 'linux' %}
+                                            <i class="bi bi-display text-warning"></i>
+                                        {% else %}
+                                            <i class="bi bi-laptop text-secondary"></i>
+                                        {% endif %}
+                                    </span>
+                                    <div>
+                                        <div class="fw-semibold text-white text-capitalize">
+                                            {{ ps.get_platform_display|default:ps.platform }}
+                                            {% if ps.session_key == request.session.session_key %}
+                                                <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle rounded-pill ms-1" style="font-size: 0.65rem;">Current Device</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-secondary" style="font-size: 0.7rem;">
+                                            Active since {{ ps.created_at|date:"M d, H:i" }} &middot; Last active {{ ps.last_activity|timesince }} ago
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-secondary small fst-italic">Current session active.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
                     <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3">
                         <label class="form-label small fw-semibold text-warning"><i class="bi bi-key-fill me-1"></i> Change Password</label>
                         <div class="mb-2">
@@ -548,7 +599,8 @@
                             </div>
                         {% else %}
                             <div class="small text-secondary mb-2" id="securityOtpPrompt">
-                                Modifying sensitive security settings (phone, password, or 2FA) or registering a passkey requires a 6-digit OTP dispatched to your registered contact.
+                                Enter verification code or use your biometric passkey to update security settings.
+                                <a href="{% url 'learn_more' topic='profile-security' %}" target="_blank" class="text-decoration-none small text-info ms-1">Learn more &rarr;</a>
                             </div>
                             <div class="input-group input-group-sm mb-1" id="securityOtpInputGroup">
                                 <input type="text" name="security_otp_code" id="securityOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="Enter 6-digit OTP">
@@ -558,6 +610,11 @@
                                 <button type="button" class="btn btn-outline-success" id="verifySecurityOtpBtn" onclick="verifySecurityOtpInline()">
                                     <i class="bi bi-check2-circle me-1"></i> Verify OTP
                                 </button>
+                                {% if registered_passkeys %}
+                                <button type="button" class="btn btn-outline-info" id="verifyPasskeyStepUpBtn" onclick="verifyPasskeyForStepUp()">
+                                    <i class="bi bi-fingerprint me-1"></i> Use Fingerprint
+                                </button>
+                                {% endif %}
                             </div>
                             <div id="securityOtpFeedback" class="small mt-1 font-monospace" style="display: none;"></div>
                         {% endif %}
@@ -608,11 +665,29 @@ async function registerWebAuthnPasskey() {
         const challengeBytes = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
         const userIdBytes = new TextEncoder().encode(chalData.user_id);
 
-        statusDiv.textContent = 'Please touch your fingerprint sensor or verify with Windows Hello...';
+        const isMac = /Macintosh|Mac OS X/i.test(navigator.userAgent);
+        const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        statusDiv.textContent = isMac
+            ? 'Please touch your Touch ID sensor on your Mac keyboard...'
+            : (isIos ? 'Please verify using Face ID or Touch ID...' : 'Please touch your fingerprint sensor or verify with Windows Hello...');
 
         const rpConfig = { name: 'Campus Nexus' };
         if (chalData.rp_id && !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(chalData.rp_id)) {
             rpConfig.id = chalData.rp_id;
+        }
+
+        const isPlatformAvailable = window.PublicKeyCredential &&
+            typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
+            ? await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false)
+            : false;
+
+        const authSelection = {
+            residentKey: 'preferred',
+            userVerification: 'preferred',
+        };
+        // Explicitly set 'platform' attachment so macOS directly invokes Touch ID
+        if (isPlatformAvailable || isMac || isIos) {
+            authSelection.authenticatorAttachment = 'platform';
         }
 
         const credential = await navigator.credentials.create({
@@ -629,9 +704,7 @@ async function registerWebAuthnPasskey() {
                     { type: 'public-key', alg: -257 },  // RS256
                     { type: 'public-key', alg: -8 },    // Ed25519
                 ],
-                authenticatorSelection: {
-                    userVerification: 'preferred',
-                },
+                authenticatorSelection: authSelection,
                 attestation: 'none',
                 timeout: 60000,
             }
@@ -663,7 +736,7 @@ async function registerWebAuthnPasskey() {
             } else if (/iPad/i.test(ua)) {
                 os = 'iPad';
             } else if (/Macintosh|Mac OS X/i.test(ua)) {
-                os = 'Mac';
+                os = 'Mac (Touch ID)';
             } else if (/Android/i.test(ua)) {
                 os = 'Android';
             } else if (/Linux/i.test(ua)) {
@@ -953,6 +1026,91 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+async function verifyPasskeyForStepUp() {
+    const feedback = document.getElementById('securityOtpFeedback');
+    if (feedback) {
+        feedback.style.display = 'block';
+        feedback.className = 'small mt-1 text-info font-monospace';
+        feedback.textContent = 'Touch fingerprint sensor or scan face...';
+    }
+    try {
+        const chalRes = await fetch("{% url 'passkey_auth_challenge' %}");
+        if (!chalRes.ok) throw new Error('Failed to get authentication challenge.');
+        const chalData = await chalRes.json();
+        if (chalData.error) throw new Error(chalData.error);
+
+        const challengeBuf = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        const allowCredentials = (chalData.credential_ids || []).map(cid => ({
+            id: Uint8Array.from(atob(cid.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+            type: 'public-key',
+        }));
+
+        const assertion = await navigator.credentials.get({
+            publicKey: {
+                challenge: challengeBuf,
+                allowCredentials: allowCredentials,
+                userVerification: 'preferred',
+                rpId: chalData.rp_id || window.location.hostname,
+                timeout: 60000,
+            }
+        });
+
+        if (!assertion) throw new Error('Biometric verification cancelled.');
+
+        function bufToB64(buf) {
+            if (!buf) return '';
+            const bytes = new Uint8Array(buf);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+
+        const payload = {
+            id: assertion.id,
+            credential_id: assertion.id,
+            rawId: assertion.rawId ? bufToB64(assertion.rawId) : assertion.id,
+            type: assertion.type || 'public-key',
+            client_data_json: bufToB64(assertion.response.clientDataJSON),
+            response: {
+                clientDataJSON: bufToB64(assertion.response.clientDataJSON),
+                authenticatorData: bufToB64(assertion.response.authenticatorData),
+                signature: bufToB64(assertion.response.signature),
+                userHandle: assertion.response.userHandle ? bufToB64(assertion.response.userHandle) : null,
+            }
+        };
+
+        const verifyRes = await fetch("{% url 'passkey_step_up_verify' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        if (verifyRes.ok && verifyData.success) {
+            if (feedback) {
+                feedback.className = 'small mt-1 text-success font-monospace';
+                feedback.textContent = 'Identity confirmed! You can now update your settings.';
+            }
+            setTimeout(() => location.reload(), 800);
+        } else {
+            throw new Error(verifyData.error || 'Passkey verification failed.');
+        }
+    } catch (err) {
+        if (feedback) {
+            feedback.className = 'small mt-1 text-danger font-monospace';
+            feedback.textContent = err.message || 'Biometric verification cancelled or failed.';
+        }
+    }
+}
+
 async function deletePasskey(pkId) {
     if (!confirm('Are you sure you want to remove this passkey?')) return;
     try {
@@ -966,7 +1124,13 @@ async function deletePasskey(pkId) {
         if (res.ok && data.success) {
             location.reload();
         } else {
-            alert(data.error || 'Failed to remove passkey. Re-authentication may be required.');
+            if (data.learn_more) {
+                if (confirm((data.error || 'Failed to remove passkey.') + '\n\nWould you like to learn more about passkey security?')) {
+                    window.location.href = data.learn_more;
+                }
+            } else {
+                alert(data.error || 'Failed to remove passkey. Re-authentication may be required.');
+            }
         }
     } catch (err) {
         alert('Network error removing passkey.');

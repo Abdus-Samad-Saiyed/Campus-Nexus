@@ -68,6 +68,14 @@ def ensure_postgresql(host: str = None, port: int = None):
     print(f"[POSTGRESQL] Checking PostgreSQL service on {host}:{port}...", end=" ", flush=True)
     if check_socket(host, port):
         print("ONLINE [OK]")
+        try:
+            import psycopg
+            db_url = os.environ.get("DATABASE_URL", "postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_nexus")
+            with psycopg.connect(db_url, autocommit=True) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND pid != pg_backend_pid() AND state_change < NOW() - INTERVAL '30 seconds';")
+        except Exception:
+            pass
         return True
 
     if host in ("127.0.0.1", "localhost"):
@@ -96,6 +104,14 @@ def ensure_redis(host: str = None, port: int = None):
     print(f"[REDIS] Checking Redis server on {host}:{port}...", end=" ", flush=True)
     if check_socket(host, port):
         print("ONLINE [OK]")
+        try:
+            import psycopg
+            db_url = os.environ.get("DATABASE_URL", "postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_nexus")
+            with psycopg.connect(db_url, autocommit=True) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND pid != pg_backend_pid() AND state_change < NOW() - INTERVAL '30 seconds';")
+        except Exception:
+            pass
         return True
 
     if host not in ("127.0.0.1", "localhost"):

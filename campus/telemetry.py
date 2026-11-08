@@ -67,12 +67,8 @@ def _record_in_memory(elapsed_ms: float):
         if _CURRENT_SEC_COUNT > _BUFFER['peak_rps']:
             _BUFFER['peak_rps'] = _CURRENT_SEC_COUNT
 
-    # Update cache if available (best-effort, non-blocking)
-    try:
-        if not cache.add(KEY_TOTAL_REQUESTS, 1, timeout=None):
-            cache.incr(KEY_TOTAL_REQUESTS)
-    except Exception:
-        pass
+    # In-memory buffer is flushed to durable database state via background worker
+    pass
 
 
 def flush_telemetry_to_db(fail_silently: bool = True):

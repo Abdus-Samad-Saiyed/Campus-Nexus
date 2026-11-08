@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ topic.title }} — Campus Nexus Knowledge Base{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5" style="max-width: 1080px;">
+    <!-- Breadcrumb Header -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing' %}{% endif %}" class="text-secondary text-decoration-none"><i class="bi bi-house-door me-1"></i>Home</a></li>
+            <li class="breadcrumb-item"><a href="/learn-more/passkeys/" class="text-secondary text-decoration-none">Help &amp; Security</a></li>
+            <li class="breadcrumb-item active text-light" aria-current="page">{{ topic.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Main Content Column -->
+        <div class="col-lg-8">
+            <!-- Article Card -->
+            <div class="card bg-dark border-secondary shadow-lg rounded-4 overflow-hidden mb-4">
+                <div class="card-body p-4 p-md-5">
+                    <!-- Category Badge & Read Time -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                        <span class="badge {{ topic.badge_class }} py-2 px-3 fw-semibold" style="font-size: 0.8rem;">
+                            <i class="bi {{ topic.icon }} me-1"></i> {{ topic.badge }}
+                        </span>
+                        <span class="text-secondary small font-monospace">
+                            <i class="bi bi-clock me-1"></i>{{ topic.read_time }}
+                        </span>
+                    </div>
+
+                    <!-- Article Title -->
+                    <h1 class="h2 fw-bold text-white mb-3" style="letter-spacing: -0.02em; line-height: 1.25;">
+                        {{ topic.title }}
+                    </h1>
+
+                    <!-- The Short Answer / Plain English Box -->
+                    <div class="p-3 p-md-4 rounded-3 mb-4" style="background: rgba(8, 183, 79, 0.08); border-left: 4px solid var(--green, #08B74F);">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-success fw-bold text-uppercase small" style="letter-spacing: 0.5px;">
+                            <i class="bi bi-lightning-charge-fill"></i> The Quick Summary
+                        </div>
+                        <p class="mb-0 text-light fw-medium" style="font-size: 1.05rem; line-height: 1.6;">
+                            {{ topic.simple_summary }}
+                        </p>
+                    </div>
+
+                    <!-- Why This Matters Section -->
+                    <div class="mb-4">
+                        <h2 class="h5 text-white fw-bold mb-2">
+                            <i class="bi bi-shield-check text-info me-2"></i>Why Does This Exist on Campus Nexus?
+                        </h2>
+                        <p class="text-secondary" style="font-size: 0.95rem; line-height: 1.65;">
+                            {{ topic.why_matters }}
+                        </p>
+                    </div>
+
+                    <!-- Technical Deep Dive / Under the Hood -->
+                    <div class="mb-4 pt-3 border-top border-secondary border-opacity-50">
+                        <h2 class="h5 text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-cpu-fill text-warning"></i> Technical Deep Dive (Under the Hood)
+                        </h2>
+                        <div class="p-3 p-md-4 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-40 font-monospace small text-light text-opacity-90" style="line-height: 1.7; font-size: 0.88rem;">
+                            {{ topic.how_it_works_technical }}
+                        </div>
+                    </div>
+
+                    <!-- Step-by-Step Resolution -->
+                    <div class="mb-4 pt-3 border-top border-secondary border-opacity-50">
+                        <h2 class="h5 text-white fw-bold mb-3">
+                            <i class="bi bi-check2-circle text-success me-2"></i>What Should You Do Now?
+                        </h2>
+                        <div class="d-flex flex-column gap-3">
+                            {% for step in topic.steps_to_resolve %}
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="badge rounded-circle bg-success text-dark fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px; font-size: 0.85rem;">
+                                    {{ forloop.counter }}
+                                </span>
+                                <span class="text-light text-opacity-90 pt-1" style="font-size: 0.92rem; line-height: 1.5;">
+                                    {{ step }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Frequently Asked Questions -->
+                    {% if topic.faq %}
+                    <div class="pt-3 border-top border-secondary border-opacity-50">
+                        <h2 class="h5 text-white fw-bold mb-3">
+                            <i class="bi bi-question-circle text-primary me-2"></i>Frequently Asked Questions
+                        </h2>
+                        <div class="accordion accordion-flush bg-transparent" id="faqAccordion">
+                            {% for f in topic.faq %}
+                            <div class="accordion-item bg-dark border-secondary border-opacity-40 mb-2 rounded-3 overflow-hidden">
+                                <h3 class="accordion-header" id="heading{{ forloop.counter }}">
+                                    <button class="accordion-button collapsed bg-dark text-white fw-semibold small py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter }}">
+                                        {{ f.q }}
+                                    </button>
+                                </h3>
+                                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-secondary small pt-2 pb-3">
+                                        {{ f.a }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Back navigation button -->
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Return to Campus Nexus
+                </a>
+                <a href="#deskContactCard" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-headset me-1"></i> Get Support
+                </a>
+            </div>
+        </div>
+
+        <!-- Sidebar Topics & Support Column -->
+        <div class="col-lg-4">
+            <!-- Topic Navigation Directory -->
+            <div class="card bg-dark border-secondary shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-transparent border-secondary border-opacity-50 py-3">
+                    <h3 class="h6 text-white fw-bold mb-0">
+                        <i class="bi bi-compass text-success me-2"></i>Security &amp; Help Topics
+                    </h3>
+                </div>
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for item in all_topics %}
+                    <a href="/learn-more/{{ item.slug }}/" class="list-group-item list-group-item-action bg-transparent border-secondary border-opacity-40 py-3 px-3 d-flex align-items-center justify-content-between {% if item.slug == current_slug %}active bg-success bg-opacity-10 border-success{% endif %}">
+                        <div class="d-flex align-items-center gap-2 min-w-0">
+                            <i class="bi {{ item.icon }} text-{% if item.slug == current_slug %}success{% else %}secondary{% endif %}"></i>
+                            <span class="small fw-semibold text-truncate {% if item.slug == current_slug %}text-success{% else %}text-white{% endif %}">
+                                {{ item.title }}
+                            </span>
+                        </div>
+                        <i class="bi bi-chevron-right small text-secondary"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Operations Desk Support Card -->
+            <div class="card bg-dark border-secondary shadow-sm rounded-4" id="deskContactCard">
+                <div class="card-body p-4 text-center">
+                    <div class="feature-icon mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                        <i class="bi bi-headset text-success"></i>
+                    </div>
+                    <h3 class="h6 text-white fw-bold mb-1">Campus Operations Desk</h3>
+                    <p class="text-secondary small mb-3">
+                        Need immediate assistance with an OTP, passkey reset, or ID verification? Contact our student maintenance team directly.
+                    </p>
+                    <div class="d-flex flex-column gap-2 text-start small font-monospace bg-black bg-opacity-40 p-3 rounded-3 mb-3 border border-secondary border-opacity-40">
+                        <div><strong class="text-secondary">Location:</strong> Main Gate Building, NIT Srinagar</div>
+                        <div><strong class="text-secondary">Lead Engineer:</strong> Abdus Samad Saiyed</div>
+                        <div><strong class="text-secondary">Enrollment:</strong> 2024BCSE065</div>
+                        <div><strong class="text-secondary">Desk WhatsApp:</strong> +91 9149812345</div>
+                    </div>
+                    <a href="https://wa.me/919149812345?text=Hello%20Campus%20Nexus%20Desk%2C%20I%20need%20help%20with%20my%20account" target="_blank" class="btn btn-green w-100 btn-sm">
+                        <i class="bi bi-whatsapp me-1"></i> Message Desk on WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

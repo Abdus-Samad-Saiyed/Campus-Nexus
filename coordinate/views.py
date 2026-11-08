@@ -86,9 +86,9 @@ def _are_friends(user1, user2) -> bool:
     ).exists()
 
 
-def _user_can_see_ride(user, ride) -> bool:
+def _user_can_see_ride(user, ride, **kwargs) -> bool:
     """Enforce server-authoritative audience comfort and ride visibility via centralized policy."""
-    return can_view_ride(user, ride)
+    return can_view_ride(user, ride, **kwargs)
 
 
 def _user_can_join_ride(
@@ -355,8 +355,38 @@ def ride_list(request):
 
         visible_rides = demo_rides + guest_visible_real_rides
     else:
-        # Filter visibility per user
-        visible_rides = [r for r in rides_qs if _user_can_see_ride(request.user, r)]
+        # Precompute privacy and permission sets to eliminate per-ride N+1 queries
+        kicked_ids = set()
+        part_ids = set()
+        friends_ids = set()
+        if request.user.is_authenticated:
+            kicked_ids = set(
+                RideParticipant.all_rows.filter(
+                    user=request.user, status=ParticipantStatus.KICKED
+                ).values_list('ride_id', flat=True)
+            ) | set(request.user.kicked_from_rides.values_list('id', flat=True))
+            part_ids = set(
+                RideParticipant.objects.filter(
+                    user=request.user, status=ParticipantStatus.CONFIRMED
+                ).values_list('ride_id', flat=True)
+            )
+            friends_ids = set(
+                Friendship.objects.filter(user1=request.user).values_list('user2_id', flat=True)
+            ) | set(
+                Friendship.objects.filter(user2=request.user).values_list('user1_id', flat=True)
+            )
+
+        # Filter visibility per user with pre-evaluated sets
+        visible_rides = [
+            r for r in rides_qs
+            if _user_can_see_ride(
+                request.user,
+                r,
+                kicked_ride_ids=kicked_ids,
+                friend_user_ids=friends_ids,
+                participating_ride_ids=part_ids,
+            )
+        ]
 
     if not guest_mode:
         # Pre-fetch user state and aggregates to eliminate N+1 queries

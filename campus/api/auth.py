@@ -65,8 +65,16 @@ def get_api_user(request: HttpRequest, allow_cookie: bool = True) -> Optional[An
                         user = User.objects.filter(pk=user_id, is_active=True).first()
                         if user and not getattr(user, "is_deleted", False):
                             token_hash = hash_otp(token)
-                            if not user.current_session_key or user.current_session_key in (token, token_hash):
+                            if hasattr(user, 'is_session_valid'):
+                                active_keys = user.get_active_session_keys()
+                                if not active_keys or user.is_session_valid(token):
+                                    return user
+                            elif not user.current_session_key:
                                 return user
+                            else:
+                                active_csv = [k.strip() for k in user.current_session_key.split(',') if k.strip()]
+                                if token in active_csv or token_hash in active_csv:
+                                    return user
             except Exception:
                 pass
         return None
@@ -76,8 +84,14 @@ def get_api_user(request: HttpRequest, allow_cookie: bool = True) -> Optional[An
         actual_key = request.session.session_key
         if actual_key:
             actual_hash = hash_otp(actual_key)
-            if request.user.current_session_key and request.user.current_session_key not in (actual_key, actual_hash):
-                return None
+            if hasattr(request.user, 'is_session_valid'):
+                active_keys = request.user.get_active_session_keys()
+                if active_keys and not request.user.is_session_valid(actual_key):
+                    return None
+            elif request.user.current_session_key:
+                active_csv = [k.strip() for k in request.user.current_session_key.split(',') if k.strip()]
+                if actual_key not in active_csv and actual_hash not in active_csv:
+                    return None
         return request.user
 
     return None

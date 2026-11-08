@@ -162,6 +162,20 @@ def ensure_infrastructure(pg_host="127.0.0.1", pg_port=5432, redis_host="127.0.0
         print("\n[WARNING] Infrastructure verification returned non-zero. Continuing anyway...")
 
 
+def prompt_console_log_mode() -> str:
+    """Prompt user for console output display format."""
+    print("\nSelect Console Output Mode:")
+    print("  [1] Request Mode     — Individual colored HTTP/WebSocket request traces [DEFAULT]")
+    print("  [2] Descriptive Mode — Structured 2-line student action feed (5-tier color coded)")
+    try:
+        sub = input("Choose console mode [1-2, default=1]: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        return "request"
+    if sub == "2":
+        return "descriptive"
+    return "request"
+
+
 def execute_server(cmd_args, env_map, pg_host="127.0.0.1", pg_port=5432, redis_host="127.0.0.1", redis_port=6379, daphne_port=8000):
     try:
         ensure_infrastructure(pg_host, pg_port, redis_host, redis_port, daphne_port)
@@ -345,6 +359,8 @@ def main():
         r_p = args.redis_port or prof["redis_port"]
 
         env = os.environ.copy()
+        if "CONSOLE_LOG_MODE" not in env:
+            env["CONSOLE_LOG_MODE"] = "request"
         env["DATABASE_URL"] = f"postgres://{prof['pg_user']}:{prof['pg_password']}@{pg_h}:{pg_p}/{prof['pg_db']}"
         env["REDIS_URL"] = f"redis://{r_h}:{r_p}/{prof['redis_db']}?protocol=2&socket_timeout=15&socket_connect_timeout=5"
         env["DJANGO_DEBUG"] = "True" if args.debug else "False"
@@ -387,6 +403,8 @@ def main():
             break
 
         env = os.environ.copy()
+        if choice in ("1", "2", "3", "4", "5", "c"):
+            env["CONSOLE_LOG_MODE"] = prompt_console_log_mode()
 
         if choice == "1":
             p = get_active_profile()["data"]

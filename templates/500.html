@@ -18,9 +18,17 @@
             justify-content: center;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
+        @media (pointer: fine) {
+            *, *::before, *::after, body, html {
+                cursor: default !important;
+            }
+            a, button, .btn, [role="button"], input, select {
+                cursor: pointer !important;
+            }
+        }
     </style>
 </head>
-<body>
+<body class="error-page no-custom-cursor">
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-lg-7 col-md-9 text-center">

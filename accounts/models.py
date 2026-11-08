@@ -9,7 +9,7 @@ from django.utils import timezone
 
 
 ENROLLMENT_VALIDATOR = RegexValidator(
-    regex=r'^(?:(?:\d{4}|20XX)[BMP][A-Z]{3}\d{3}|GUEST_DEMO)$',
+    regex=r'^(?:(?:\d{4}|20XX)[BMP][A-Z]{3}\d{3}|GUEST_DEMO|DEL_\d+.*)$',
     message='Invalid enrollment number. Expected format: 2024BCSE001, 20XXBCSE001, or GUEST_DEMO',
 )
 
@@ -28,7 +28,7 @@ class User(AbstractUser):
     """
 
     enrollment_number = models.CharField(
-        max_length=11,
+        max_length=50,
         unique=True,
         validators=[ENROLLMENT_VALIDATOR],
         db_index=True,
@@ -56,12 +56,34 @@ class User(AbstractUser):
     dm_read_receipts = models.BooleanField(default=True)
     two_factor_enabled = models.BooleanField(default=False)
 
-    # Single active session security key (HMAC digest or raw key)
-    current_session_key = models.CharField(max_length=64, blank=True, default='')
+    # Active session security keys (comma-separated active session keys across allowed platforms)
+    current_session_key = models.CharField(max_length=255, blank=True, default='')
 
     # Soft deletion / Account closed state
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def get_active_session_keys(self) -> set:
+        """Return set of valid active session keys for this user across allowed platforms."""
+        keys = set()
+        if hasattr(self, 'platform_sessions'):
+            keys.update(self.platform_sessions.values_list('session_key', flat=True))
+        if self.current_session_key:
+            for k in self.current_session_key.split(','):
+                k = k.strip()
+                if k:
+                    keys.add(k)
+        return keys
+
+    def is_session_valid(self, session_key: str) -> bool:
+        """Verify whether the session_key is currently active for this user."""
+        if not session_key:
+            return False
+        active_keys = self.get_active_session_keys()
+        if session_key in active_keys:
+            return True
+        from accounts.two_factor import hash_otp
+        return hash_otp(session_key) in active_keys
 
     # Ride reliability stats
     @property
@@ -153,6 +175,8 @@ class User(AbstractUser):
                 self.degree = 'Guest'
                 self.branch = 'DEMO'
                 self.roll_number = '000'
+            elif e.startswith('DEL_'):
+                pass
             else:
                 year_part = e[:4]
                 self.joining_year = int(year_part) if year_part.isdigit() else 2099
@@ -974,6 +998,68 @@ def cleanup_user_profile_photo_on_delete(sender, instance, **kwargs):
 
 
 
+class UserPlatformSession(models.Model):
+    """
+    Tracks concurrent platform sessions for each user.
+    Rules:
+    1. Maximum of 3 simultaneous active platform sessions per user.
+    2. Only 1 active session per platform at any given time (concurrent login on same platform terminates prior session).
+    """
+    PLATFORM_CHOICES = (
+        ('windows', 'Windows PC'),
+        ('android', 'Android'),
+        ('ios', 'iOS / iPadOS'),
+        ('macos', 'macOS'),
+        ('linux', 'Linux'),
+        ('other', 'Other Platform'),
+    )
+
+    user = models.ForeignKey(
+        'User',
+        on_delete=models.CASCADE,
+        related_name='platform_sessions',
+        db_index=True,
+    )
+    platform = models.CharField(max_length=32, db_index=True, default='other')
+    session_key = models.CharField(max_length=64, unique=True, db_index=True)
+    ip_address = models.CharField(max_length=45, blank=True, default='')
+    user_agent = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-last_activity']
+        indexes = [
+            models.Index(fields=['user', 'platform']),
+            models.Index(fields=['user', '-last_activity']),
+        ]
+
+    def __str__(self):
+        enrollment = getattr(self.user, 'enrollment_number', str(self.user_id))
+        return f"{enrollment} - {self.platform} ({self.session_key[:8]}...)"
+
+
+class WebPushSubscription(models.Model):
+    """Browser Push API subscription for background native mobile & desktop notifications."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint = models.URLField(max_length=500, unique=True, db_index=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user', '-updated_at']),
+        ]
+
+    def __str__(self):
+        enrollment = getattr(self.user, 'enrollment_number', str(self.user_id))
+        return f"PushSubscription: {enrollment} ({self.endpoint[:40]}...)"
+
+
 # ---------------------------------------------------------------------------
 # Signals
 # ---------------------------------------------------------------------------
@@ -982,8 +1068,12 @@ from django.dispatch import receiver
 
 @receiver(user_logged_out)
 def on_user_logged_out(sender, request, user, **kwargs):
-    if user and hasattr(user, 'current_session_key') and getattr(user, 'pk', None):
-        user.current_session_key = ''
+    if user and getattr(user, 'pk', None):
+        session_key = getattr(getattr(request, 'session', None), 'session_key', None)
+        if session_key:
+            UserPlatformSession.objects.filter(user=user, session_key=session_key).delete()
+        active_keys = list(UserPlatformSession.objects.filter(user=user).values_list('session_key', flat=True))
+        user.current_session_key = ','.join(active_keys)[:255]
         user.save(update_fields=['current_session_key'])
 
 

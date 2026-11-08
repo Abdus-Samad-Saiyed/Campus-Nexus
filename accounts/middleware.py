@@ -28,17 +28,32 @@ class SingleSessionMiddleware:
                 messages.error(request, "This account has been closed.")
                 return redirect('login')
 
-            expected_key = getattr(request.user, 'current_session_key', '')
             actual_key = request.session.session_key
-            if expected_key and actual_key:
-                actual_hash = hash_otp(actual_key)
-                if expected_key not in (actual_key, actual_hash):
+            auth_header = request.headers.get('Authorization', '') or request.META.get('HTTP_AUTHORIZATION', '')
+            if request.path_info.startswith('/api/') and auth_header:
+                parts = auth_header.split()
+                if len(parts) == 2 and parts[0].lower() in ('bearer', 'token'):
+                    actual_key = parts[1].strip()
+
+            if actual_key:
+                is_valid = True
+                if hasattr(request.user, 'is_session_valid'):
+                    active_keys = request.user.get_active_session_keys()
+                    if active_keys:
+                        is_valid = request.user.is_session_valid(actual_key)
+                else:
+                    expected_key = getattr(request.user, 'current_session_key', '')
+                    if expected_key:
+                        actual_hash = hash_otp(actual_key)
+                        is_valid = (actual_key in expected_key.split(',') or actual_hash in expected_key.split(','))
+
+                if not is_valid:
                     logout(request)
                     if request.path_info.startswith('/api/'):
                         return JsonResponse({'status': 'error', 'error': 'Session invalidated.', 'code': 'SESSION_REVOKED'}, status=401)
                     messages.warning(
                         request,
-                        "You have been logged out because this account was logged into from another device or browser."
+                        "You have been logged out because your session on this platform was replaced or revoked."
                     )
                     from django.urls import reverse
                     redirect_url = reverse('login')
@@ -220,6 +235,52 @@ class ClientIdentityLoggingMiddleware:
                 real_client=real_client,
                 user_type=user_type,
             )
+
+            # Determine OTP limit status to display alongside request in console
+            otp_info = getattr(request, '_active_otp_info', None)
+            if not otp_info and response is not None:
+                try:
+                    from accounts.two_factor import get_active_otp, can_resend_otp
+                    from accounts.models import User
+                    target_user = user if (user and getattr(user, 'is_authenticated', False)) else None
+                    if not target_user and hasattr(request, 'session'):
+                        pre_2fa_uid = request.session.get('pre_2fa_user_id')
+                        if pre_2fa_uid:
+                            target_user = User.objects.filter(pk=pre_2fa_uid).first()
+
+                    target_phone = None
+                    target_email = None
+                    if request.method == 'POST' and getattr(request, 'content_type', '') in ('application/x-www-form-urlencoded', 'multipart/form-data'):
+                        try:
+                            target_phone = request.POST.get('phone_number')
+                            target_email = request.POST.get('email')
+                        except Exception:
+                            pass
+                    if not target_phone and not target_email and hasattr(request, 'GET'):
+                        target_phone = request.GET.get('phone_number')
+                        target_email = request.GET.get('email')
+
+                    purpose = '2FA'
+                    if 'signup' in request.path_info:
+                        purpose = 'SIGNUP'
+                    elif 'security' in request.path_info:
+                        purpose = 'SECURITY_CHANGE'
+                    elif 'password' in request.path_info:
+                        purpose = 'PASSWORD_RESET'
+
+                    active_code = get_active_otp(user=target_user, phone_number=target_phone, email=target_email, purpose=purpose)
+                    if active_code:
+                        can_resend, wait_sec = can_resend_otp(user=target_user, phone_number=target_phone, email=target_email, purpose=purpose)
+                        resp_status = getattr(response, 'status_code', None)
+                        if resp_status == 429:
+                            otp_info = f"[OTP: {active_code} (Rate Limit 429)]"
+                        elif not can_resend:
+                            otp_info = f"[OTP: {active_code} (Cooldown: {wait_sec}s)]"
+                        elif any(token in request.path_info for token in ('2fa', 'two-factor', 'otp', 'forgot-password')):
+                            otp_info = f"[OTP: {active_code}]"
+                except Exception:
+                    pass
+
             update_or_record_client_request(
                 client_key,
                 enrollment=enrollment,
@@ -228,6 +289,7 @@ class ClientIdentityLoggingMiddleware:
                 received_at=received_at,
                 path=request.path_info,
                 user_type=user_type,
+                otp_info=otp_info,
             )
             if scope is not None:
                 scope['client_identity'] = {
@@ -235,6 +297,7 @@ class ClientIdentityLoggingMiddleware:
                     'name': name,
                     'user_type': user_type,
                     'real_client': real_client,
+                    'otp_info': otp_info,
                 }
 
             # If Daphne's custom Command.log_action is NOT active, log directly as fallback
@@ -247,7 +310,8 @@ class ClientIdentityLoggingMiddleware:
                 status_code = getattr(response, 'status_code', 200)
                 method = request.method
                 path = request.get_full_path()
-                msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {real_client}, {enrollment}, {name}]"
+                otp_str = f" {otp_info}" if otp_info else ""
+                msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {real_client}, {enrollment}, {name}]{otp_str}"
                 color = get_request_color(status=status_code, path=path, user_type=user_type)
                 colored_msg = colorize(msg, color)
                 logger_instance = logging.getLogger("django.channels.server")
@@ -282,8 +346,14 @@ class ClientIdentityLoggingMiddleware:
             if not user or getattr(user, 'is_deleted', False):
                 return None
             token_hash = hash_otp(token_key)
-            if user.current_session_key and user.current_session_key not in (token_key, token_hash):
-                return None
+            if hasattr(user, 'is_session_valid'):
+                active_keys = user.get_active_session_keys()
+                if active_keys and not user.is_session_valid(token_key):
+                    return None
+            elif user.current_session_key:
+                active_keys = [k.strip() for k in user.current_session_key.split(',') if k.strip()]
+                if active_keys and token_key not in active_keys and token_hash not in active_keys:
+                    return None
             return user
         except Exception:
             return None

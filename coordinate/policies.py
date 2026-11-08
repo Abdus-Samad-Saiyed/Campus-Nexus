@@ -89,7 +89,14 @@ def can_view_profile_field(viewer: Optional[User], target_user: User, field_name
     return False
 
 
-def can_view_ride(viewer: Optional[User], ride) -> bool:
+def can_view_ride(
+    viewer: Optional[User],
+    ride,
+    *,
+    kicked_ride_ids: Optional[set] = None,
+    friend_user_ids: Optional[set] = None,
+    participating_ride_ids: Optional[set] = None,
+) -> bool:
     """Enforce audience comfort and membership visibility for rides."""
     if not viewer or not viewer.is_authenticated:
         return False
@@ -108,17 +115,26 @@ def can_view_ride(viewer: Optional[User], ride) -> bool:
         return False
 
     # Kicked users cannot see the ride (check both M2M and unified status)
-    from .models import RideParticipant, ParticipantStatus
-    if RideParticipant.all_rows.filter(ride=ride, user=viewer, status=ParticipantStatus.KICKED).exists():
-        return False
-    if hasattr(ride, 'kicked_users') and ride.kicked_users.filter(id=viewer.id).exists():
-        return False
+    if kicked_ride_ids is not None:
+        if ride.id in kicked_ride_ids:
+            return False
+    else:
+        from .models import RideParticipant, ParticipantStatus
+        if RideParticipant.all_rows.filter(ride=ride, user=viewer, status=ParticipantStatus.KICKED).exists():
+            return False
+        if hasattr(ride, 'kicked_users') and ride.kicked_users.filter(id=viewer.id).exists():
+            return False
 
     # Creator and confirmed active participants can always view
     if ride.creator_id == viewer.id:
         return True
-    if ride.participants.filter(user=viewer, status=ParticipantStatus.CONFIRMED).exists():
-        return True
+    if participating_ride_ids is not None:
+        if ride.id in participating_ride_ids:
+            return True
+    else:
+        from .models import ParticipantStatus
+        if ride.participants.filter(user=viewer, status=ParticipantStatus.CONFIRMED).exists():
+            return True
 
     # Audience visibility rules
     v = ride.visibility
@@ -129,6 +145,8 @@ def can_view_ride(viewer: Optional[User], ride) -> bool:
     if v == 'GIRLS':
         return viewer.gender == 'F'
     if v == 'FRIENDS':
+        if friend_user_ids is not None:
+            return (ride.creator_id in friend_user_ids)
         return Friendship.objects.filter(
             models.Q(user1=viewer, user2=ride.creator) | models.Q(user1=ride.creator, user2=viewer)
         ).exists()

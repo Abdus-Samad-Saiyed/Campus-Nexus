@@ -6,10 +6,10 @@
 {% block content %}
 <div class="container py-4">
     <!-- Ride Header Info -->
-    <div class="glass p-4 mb-4">
+    <div class="glass p-4 mb-4 overflow-hidden">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
             <div>
-                <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                     <span class="badge badge-status badge-{{ ride.visibility|lower }}">
                         {{ ride.get_visibility_display }}
                     </span>
@@ -113,7 +113,7 @@
                 {% if is_creator and pending_join_requests %}
                     <!-- Host Action Panel: Pending Join Requests -->
                     <div class="p-3 mb-4 rounded bg-warning bg-opacity-10 border border-warning">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                             <h6 class="fw-bold text-warning mb-0">
                                 <i class="bi bi-bell-fill me-1"></i> Pending Join Requests
                             </h6>
@@ -123,7 +123,7 @@
                             {% for req in pending_join_requests %}
                                 <div class="p-2 rounded bg-black bg-opacity-40 border border-secondary d-flex flex-column gap-1">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex align-items-center gap-2">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
                                             <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
                                                 <i class="bi bi-person text-secondary" style="font-size: 0.75rem;"></i>
                                             </div>
@@ -156,11 +156,11 @@
                     </div>
                 {% endif %}
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold mb-0">
                         <i class="bi bi-people-fill green-accent me-2"></i>Passengers
                     </h5>
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <span class="badge bg-dark border border-secondary text-secondary">
                             {{ participants|length }} / {{ ride.total_spots }} Spots
                         </span>
@@ -176,9 +176,9 @@
                 {% if is_participant or is_creator or request.user.is_staff or request.user.is_superuser %}
                 <div class="d-flex flex-column gap-3">
                     {% for p in participants %}
-                        <div class="glass p-3 participant-card border-secondary">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <div class="d-flex align-items-center gap-2">
+                        <div class="glass p-3 participant-card border-secondary overflow-hidden">
+                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2 participant-header-row">
+                                <div class="participant-user-info d-flex align-items-center gap-2 flex-wrap min-w-0">
                                     <a href="{% url 'profile' p.user.enrollment_number %}" class="d-flex align-items-center gap-2 text-decoration-none" title="View Profile">
                                         <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; overflow: hidden;">
                                             {% if p.user.profile_photo %}
@@ -187,9 +187,7 @@
                                                 <i class="bi bi-person-fill text-secondary"></i>
                                             {% endif %}
                                         </div>
-                                        <span class="fw-bold text-white text-hover-green">
-                                            {{ p.user.enrollment_number }}
-                                        </span>
+                                        <span class="fw-bold text-white text-hover-green text-truncate font-mono" style="max-width: 135px;">{{ p.user.enrollment_number }}</span>
                                     </a>
                                     {% if p.user == ride.creator %}
                                         <span class="badge bg-success-subtle text-success small py-0">Host</span>
@@ -200,7 +198,7 @@
                                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle small py-0" title="Quick-Bypass self-declared access"><i class="bi bi-lightning-charge-fill me-1"></i>Quick-Bypass</span>
                                     {% endif %}
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
+                                <div class="participant-stats-info d-flex align-items-center gap-2 flex-wrap ms-auto">
                                     <span class="presence-badge badge rounded-pill {% if p.user.id in online_user_ids %}bg-success-subtle text-success border border-success-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary{% endif %} small py-0 px-2"
                                           id="presence-badge-{{ p.user.id }}"
                                           data-user-id="{{ p.user.id }}"
@@ -208,11 +206,11 @@
                                           title="{% if p.user.id in online_user_ids %}Online in ride{% else %}Offline{% endif %}">
                                         <span class="presence-dot">●</span> <span class="presence-text">{% if p.user.id in online_user_ids %}Online{% else %}Offline{% endif %}</span>
                                     </span>
-                                    <span class="small text-secondary">{{ p.user.on_time_percentage }}% on-time</span>
+                                    <span class="small text-secondary text-nowrap">{{ p.user.on_time_percentage }}% on-time</span>
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center small text-secondary participant-details-row">
+                            <div class="d-flex justify-content-between align-items-center small text-secondary participant-details-row flex-wrap gap-2">
                                 {% if p.can_view_contact %}
                                     <span class="d-flex align-items-center gap-1">
                                         <a href="tel:{{ p.user.phone_number }}" class="text-secondary text-decoration-none">
@@ -265,7 +263,7 @@
                 {% if kicked_users.exists or left_users.exists %}
                     <!-- Departed or Kicked Users Section with Immediate Grievance Access -->
                     <div class="mt-4 pt-3 border-top border-secondary">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                             <h6 class="fw-bold text-secondary mb-0">
                                 <i class="bi bi-person-x-fill me-1"></i> Removed / Departed Passengers
                             </h6>
@@ -273,7 +271,7 @@
                         </div>
                         <div class="d-flex flex-column gap-2">
                             {% for u in kicked_users.all %}
-                                <div class="p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 d-flex justify-content-between align-items-center small">
+                                <div class="p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 d-flex justify-content-between align-items-center small flex-wrap gap-2">
                                     <div>
                                         <span class="text-danger fw-semibold">{{ u.enrollment_number }}</span>
                                         <span class="badge bg-danger-subtle text-danger ms-1">Removed</span>
@@ -286,7 +284,7 @@
                                 </div>
                             {% endfor %}
                             {% for u in left_users.all %}
-                                <div class="p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25 d-flex justify-content-between align-items-center small">
+                                <div class="p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25 d-flex justify-content-between align-items-center small flex-wrap gap-2">
                                     <div>
                                         <span class="text-warning fw-semibold">{{ u.enrollment_number }}</span>
                                         <span class="badge bg-secondary ms-1">Left Ride</span>
@@ -304,7 +302,7 @@
 
                 {% if waitlist_entries %}
                     <div class="mt-4 pt-3 border-top border-secondary">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                             <h6 class="fw-bold text-warning mb-0">
                                 <i class="bi bi-hourglass-split me-1"></i>Standby Queue
                             </h6>
@@ -312,8 +310,8 @@
                         </div>
                         <div class="d-flex flex-column gap-2">
                             {% for entry in waitlist_entries %}
-                                <div class="p-2 rounded bg-black bg-opacity-25 border border-secondary d-flex justify-content-between align-items-center small">
-                                    <div class="d-flex align-items-center gap-2">
+                                <div class="p-2 rounded bg-black bg-opacity-25 border border-secondary d-flex justify-content-between align-items-center small flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
                                         <span class="badge bg-secondary">#{{ forloop.counter }}</span>
                                         <a href="{% url 'profile' entry.user.enrollment_number %}" class="text-white text-decoration-none fw-semibold">
                                             {{ entry.user.enrollment_number }}
@@ -335,8 +333,8 @@
         <div class="col-lg-7">
             <div class="glass p-4">
                 <div class="chat-container" id="ride-chat-box" data-ride-id="{{ ride.id }}" data-current-user="{{ request.user.enrollment_number }}">
-                    <div class="chat-header d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
+                    <div class="chat-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
                             <i class="bi bi-chat-dots-fill green-accent"></i>
                             <span class="fw-semibold">Ride Chat Room</span>
                             {% if ride.share_chat_history %}
@@ -345,7 +343,7 @@
                                 <span class="badge bg-secondary-subtle text-secondary border border-secondary small py-0" title="Late joiners only see messages sent after joining"><i class="bi bi-shield-lock me-1"></i>Joined History Only</span>
                             {% endif %}
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
                             {% if is_creator or is_participant %}
                                 <form method="POST" action="{% url 'toggle_ride_chat_history' ride.id %}" class="m-0">
                                     {% csrf_token %}
@@ -594,7 +592,7 @@
 
                     <!-- Dynamic Warning: Decrease requiring kicks -->
                     <div id="cap-kick-required-box" class="alert alert-danger d-none py-2 px-3 small">
-                        <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                             <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
                             <div>
                                 <strong>Passenger Reduction Required:</strong> The new capacity (<span id="cap-target-val"></span>) is less than the current members joined (<span id="cap-current-val">{{ confirmed_count }}</span>).
@@ -607,7 +605,7 @@
                         <div class="d-flex flex-column gap-2 mt-2" id="cap-kick-passengers-list">
                             {% for p in non_host_participants %}
                                 <div class="form-check p-2 rounded bg-black bg-opacity-60 border border-danger border-opacity-50 d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
                                         <input class="form-check-input cap-kick-checkbox ms-0 me-2" type="checkbox"
                                                name="kick_users" value="{{ p.user.id }}" id="kick-p-{{ p.user.id }}">
                                         <label class="form-check-label text-white fw-semibold small cursor-pointer" for="kick-p-{{ p.user.id }}">

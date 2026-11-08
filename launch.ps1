@@ -387,6 +387,7 @@ function Main-Menu {
 
         switch -Regex ($choice) {
             "^[1]$" {
+                Select-ConsoleLogMode
                 $p = (Get-ActiveProfile).Data
                 $env:DATABASE_URL = "postgres://$($p.pg_user):$($p.pg_password)@$($p.pg_host):$($p.pg_port)/$($p.pg_db)"
                 $env:REDIS_URL = "redis://$($p.redis_host):$($p.redis_port)/$($p.redis_db)?protocol=2&socket_timeout=15&socket_connect_timeout=5"
@@ -402,6 +403,7 @@ function Main-Menu {
                 }
             }
             "^[2]$" {
+                Select-ConsoleLogMode
                 $p = (Get-ActiveProfile).Data
                 $env:DATABASE_URL = "postgres://$($p.pg_user):$($p.pg_password)@$($p.pg_host):$($p.pg_port)/$($p.pg_db)"
                 $env:REDIS_URL = "redis://$($p.redis_host):$($p.redis_port)/$($p.redis_db)?protocol=2&socket_timeout=15&socket_connect_timeout=5"
@@ -413,6 +415,7 @@ function Main-Menu {
                 }
             }
             "^[3]$" {
+                Select-ConsoleLogMode
                 $p = (Get-ActiveProfile).Data
                 $env:DATABASE_URL = "postgres://$($p.pg_user):$($p.pg_password)@$($p.pg_host):$($p.pg_port)/$($p.pg_db)"
                 $env:REDIS_URL = "redis://$($p.redis_host):$($p.redis_port)/$($p.redis_db)?protocol=2&socket_timeout=15&socket_connect_timeout=5"
@@ -424,11 +427,13 @@ function Main-Menu {
                 }
             }
             "^[4]$" {
+                Select-ConsoleLogMode
                 Write-Host "`n[LAUNCH] Starting Turbo High-Concurrency Daphne Cluster (16 Workers) on 0.0.0.0:8000..." -ForegroundColor Green
                 $env:DJANGO_DEBUG = "False"
                 Invoke-CampusServer { & $PythonExe manage.py runserver 0.0.0.0:8000 -w 16 }
             }
             "^[5]$" {
+                Select-ConsoleLogMode
                 Write-Host "`n[LAUNCH] Starting Comparative SQLite Multi-Worker Cluster on 0.0.0.0:9000 (8 Workers)..." -ForegroundColor Yellow
                 $env:DATABASE_URL = "sqlite:///$ScriptDir/db.sqlite3"
                 $env:DJANGO_DEBUG = "False"

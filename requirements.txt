@@ -21,3 +21,6 @@ whitenoise>=6.6
 
 # Authentication & Security
 webauthn>=2.0
+
+# Web Push Notifications
+pywebpush>=2.0

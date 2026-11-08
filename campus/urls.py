@@ -20,6 +20,7 @@ from accounts.views import (
     passkey_delete,
     verify_security_otp,
     verify_security_step_up,
+    passkey_step_up_verify,
     service_catalogue,
     two_factor_verify,
     acknowledge_announcement,
@@ -50,6 +51,7 @@ from campus.views import (
     remove_contributor,
     offline_view,
 )
+from campus.learn_more import learn_more_view
 from campus.agentic import robots_txt, llms_txt, ard_json
 
 # Enforce platform 2FA and single-session on Django admin
@@ -81,8 +83,10 @@ class CustomPasswordChangeView(PasswordChangeView):
             except Exception:
                 pass
         if current_key:
-            user.current_session_key = current_key
-            user.save(update_fields=['current_session_key'])
+            from accounts.models import UserPlatformSession
+            from accounts.utils import enforce_platform_session_login
+            UserPlatformSession.objects.filter(user=user).delete()
+            enforce_platform_session_login(self.request, user)
 
         from accounts.utils import broadcast_user_session_revocation
         from django.db import transaction
@@ -210,6 +214,9 @@ urlpatterns = [
     path('contributors/<int:contributor_id>/remove/', remove_contributor, name='remove_contributor'),
     path('feedback/', feedback_view, name='feedback'),
     path('report-bug/', feedback_view, name='report_bug'),
+    # Learn More interactive technical guides
+    path('learn-more/', learn_more_view, name='learn_more_default'),
+    path('learn-more/<slug:topic>/', learn_more_view, name='learn_more'),
     path('services/', service_catalogue, name='service_catalogue'),
     path('services/<slug:slug>/', service_gateway_view, name='service_gateway'),
 
@@ -236,6 +243,7 @@ urlpatterns = [
         name='password_change',
     ),
     path('auth/passkey/step-up/', verify_security_step_up, name='passkey_step_up'),
+    path('auth/passkey/step-up-verify/', passkey_step_up_verify, name='passkey_step_up_verify'),
     path('otp/verify-security/', verify_security_otp, name='verify_security_otp'),
     path(
         'password_change/done/',
@@ -248,7 +256,8 @@ urlpatterns = [
     # Accounts app (dashboard, profile, apply, friends, analytics…)
     path('', include('accounts.urls')),
 
-    # Coordinate app (rides)
+    # Coordinate app (rides) & clean alias
+    path('rides/', RedirectView.as_view(url='/coordinate/', permanent=False), name='rides_redirect'),
     path('coordinate/', include('coordinate.urls')),
 ]
 

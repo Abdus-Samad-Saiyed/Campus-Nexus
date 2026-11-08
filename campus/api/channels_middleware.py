@@ -41,10 +41,16 @@ def get_user_from_token(token_key: str):
         if not user or getattr(user, 'is_deleted', False):
             return AnonymousUser()
 
-        # Enforce single session key if set
+        # Enforce valid session key against active platform sessions
         token_hash = hash_otp(token_key)
-        if user.current_session_key and user.current_session_key not in (token_key, token_hash):
-            return AnonymousUser()
+        if hasattr(user, 'is_session_valid'):
+            active_keys = user.get_active_session_keys() if hasattr(user, 'get_active_session_keys') else []
+            if active_keys and not user.is_session_valid(token_key):
+                return AnonymousUser()
+        elif user.current_session_key:
+            active_keys = [k.strip() for k in user.current_session_key.split(',') if k.strip()]
+            if active_keys and token_key not in active_keys and token_hash not in active_keys:
+                return AnonymousUser()
 
         return user
     except Exception:

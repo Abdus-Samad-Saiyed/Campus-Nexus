@@ -134,10 +134,15 @@ def api_login(request: HttpRequest) -> JsonResponse:
     if requires_2fa:
         otp_code = str(body.get("otp", "")).strip()
         if not otp_code:
-            from accounts.two_factor import can_resend_otp, create_phone_otp
-            can_resend, _ = can_resend_otp(user, purpose="2FA")
+            from accounts.two_factor import can_resend_otp, create_phone_otp, get_active_otp, emit_otp_console_log
+            can_resend, wait_sec = can_resend_otp(user, purpose="2FA")
             if can_resend:
                 create_phone_otp(user, purpose="2FA")
+            else:
+                active_otp = get_active_otp(user, purpose="2FA")
+                if active_otp:
+                    request._active_otp_info = f"[OTP: {active_otp} (Cooldown: {wait_sec}s)]"
+                    emit_otp_console_log(active_otp, user, purpose="2FA", reason=f"API 2FA resend limit (wait {wait_sec}s)", wait_seconds=wait_sec)
             return json_error(
                 "Two-factor authentication required. An OTP has been dispatched.",
                 status=403,
@@ -691,3 +696,98 @@ def api_my_rides(request: HttpRequest) -> JsonResponse:
         "active_rides": active_rides,
         "past_rides": past_rides,
     })
+
+
+@require_GET
+def api_recent_notifications(request: HttpRequest) -> JsonResponse:
+    """Retrieve recent active notifications, announcements, and requests for authenticated user."""
+    user = get_api_user(request, allow_cookie=True)
+    if not user or not user.is_authenticated:
+        return json_error("Authentication required.", status=401, code="UNAUTHORIZED")
+
+    notifications = []
+
+    # 1. Active Announcements
+    try:
+        from accounts.models import Announcement, AnnouncementReceipt
+        active_anns = Announcement.get_active_for_user(user)
+        seen_ids = set(
+            AnnouncementReceipt.objects.filter(user=user, dismissed=True).values_list('announcement_id', flat=True)
+        )
+        for ann in active_anns[:10]:
+            notifications.append({
+                'id': f'ann_{ann.id}',
+                'category': 'announcement',
+                'title': ann.title,
+                'content': ann.content,
+                'priority': ann.priority,
+                'icon': 'bi-megaphone-fill',
+                'badge': ann.get_priority_display() if hasattr(ann, 'get_priority_display') else 'Announcement',
+                'badge_class': (
+                    'bg-primary-subtle text-primary border border-primary-subtle' if ann.priority == 'INFO' else (
+                        'bg-danger-subtle text-danger border border-danger-subtle' if ann.priority == 'CRITICAL' else (
+                            'bg-warning-subtle text-warning border border-warning-subtle'
+                        )
+                    )
+                ),
+                'url': '/dashboard/',
+                'timestamp': ann.created_at.strftime('%d %b, %H:%M') if ann.created_at else '',
+                'read': ann.id in seen_ids,
+            })
+    except Exception:
+        pass
+
+    # 2. Incoming Friend Requests
+    try:
+        from accounts.models import FriendRequest
+        frs = FriendRequest.objects.filter(receiver=user).select_related('sender')[:10]
+        for fr in frs:
+            sender = fr.sender
+            notifications.append({
+                'id': f'fr_{fr.id}',
+                'category': 'social',
+                'title': f'Friend Request from {sender.get_full_name() or sender.enrollment_number}',
+                'content': f'{sender.enrollment_number} wants to connect with you.',
+                'icon': 'bi-person-plus-fill',
+                'badge': 'Friend Request',
+                'badge_class': 'bg-info-subtle text-info border border-info-subtle',
+                'url': f'/profile/?friend_req={fr.id}',
+                'timestamp': fr.created_at.strftime('%d %b, %H:%M') if hasattr(fr, 'created_at') and fr.created_at else '',
+                'read': False,
+            })
+    except Exception:
+        pass
+
+    # 3. Active Ride Updates / Requests
+    try:
+        from coordinate.models import RideJoinRequest
+        host_reqs = RideJoinRequest.objects.filter(
+            ride__creator=user,
+            ride__status='OPEN',
+            status='PENDING'
+        ).select_related('user', 'ride')[:10]
+        for req in host_reqs:
+            notifications.append({
+                'id': f'rjr_{req.id}',
+                'category': 'ride',
+                'title': f'Ride Application: {req.ride.get_route_display() if hasattr(req.ride, "get_route_display") else req.ride.route}',
+                'content': f'{req.user.enrollment_number} applied to join your ride.',
+                'icon': 'bi-car-front-fill',
+                'badge': 'Pending Approval',
+                'badge_class': 'bg-warning-subtle text-warning border border-warning-subtle',
+                'url': f'/coordinate/ride/{req.ride_id}/',
+                'timestamp': req.created_at.strftime('%d %b, %H:%M') if hasattr(req, 'created_at') and req.created_at else '',
+                'read': False,
+            })
+    except Exception:
+        pass
+
+    unread = len([n for n in notifications if not n.get('read', False)])
+    return json_success(
+        data={
+            'notifications': notifications,
+            'unread_count': unread,
+        },
+        notifications=notifications,
+        unread_count=unread,
+    )

@@ -411,6 +411,8 @@ def admin_delete_account(request: HttpRequest, user_id: int) -> HttpResponse:
     RideWaitlist.objects.filter(user=target_user).delete()
 
     # 4. Terminate any active sessions across devices
+    from accounts.models import UserPlatformSession
+    UserPlatformSession.objects.filter(user=target_user).delete()
     target_user.current_session_key = ''
     for s in Session.objects.filter(expire_date__gt=timezone.now()):
         try:
@@ -420,10 +422,12 @@ def admin_delete_account(request: HttpRequest, user_id: int) -> HttpResponse:
         except Exception:
             pass
 
+    original_enrollment = target_user.enrollment_number
     target_user.is_deleted = True
     target_user.deleted_at = timezone.now()
     target_user.is_active = False
-    target_user.save()
+    from accounts.utils import tombstone_deleted_user
+    tombstone_deleted_user(target_user)
 
     from accounts.utils import broadcast_user_session_revocation
     transaction.on_commit(lambda: broadcast_user_session_revocation(target_user.id, "Account deactivated by administrator."))
@@ -431,10 +435,10 @@ def admin_delete_account(request: HttpRequest, user_id: int) -> HttpResponse:
     log_audit_event(
         event_type='ACCOUNT_DELETED',
         actor_enrollment=request.user.enrollment_number,
-        description=f"Account for {target_user.enrollment_number} was closed / soft-deleted by admin",
+        description=f"Account for {original_enrollment} was closed / soft-deleted by admin",
         target_id=str(target_user.id),
     )
-    messages.success(request, f"Account {target_user.enrollment_number} has been soft-deleted and closed. Past trip logs and reviews are safely retained.")
+    messages.success(request, f"Account {original_enrollment} has been soft-deleted and closed. Identifiers have been freed for new student registrations while past trip logs are safely retained.")
     return redirect('operational_dashboard')
 
 
@@ -483,6 +487,8 @@ def admin_resolve_physical_verification(request: HttpRequest, request_id: int) -
                     s.delete()
             except Exception:
                 pass
+        from accounts.models import UserPlatformSession
+        UserPlatformSession.objects.filter(user=pvr.user).delete()
         pvr.user.current_session_key = ''
         pvr.user.save()
 
@@ -663,10 +669,10 @@ def manage_superusers(request: HttpRequest) -> HttpResponse:
 def export_rides_csv(request: HttpRequest) -> HttpResponse:
     """Export rides with formula-injection sanitation and audit logging."""
     if not check_step_up_or_recent_auth(request):
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
-            return redirect('operational_dashboard')
-        return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
+        return redirect(f"{reverse('operational_dashboard')}?prompt_step_up=1")
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="campus_nexus_rides_export.csv"'
 
@@ -709,10 +715,10 @@ def export_rides_csv(request: HttpRequest) -> HttpResponse:
 def export_users_csv(request: HttpRequest) -> HttpResponse:
     """Export verified users with sensitive fields strictly omitted."""
     if not check_step_up_or_recent_auth(request):
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
-            return redirect('operational_dashboard')
-        return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
+        return redirect(f"{reverse('operational_dashboard')}?prompt_step_up=1")
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="campus_nexus_users_export.csv"'
 
@@ -750,10 +756,10 @@ def export_users_csv(request: HttpRequest) -> HttpResponse:
 def export_applications_csv(request: HttpRequest) -> HttpResponse:
     """Export application queue with formula-injection sanitation. Superuser only; phone redacted by default."""
     if not check_step_up_or_recent_auth(request):
-        if 'text/html' in request.META.get('HTTP_ACCEPT', ''):
-            messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
-            return redirect('operational_dashboard')
-        return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
+        return redirect(f"{reverse('operational_dashboard')}?prompt_step_up=1")
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="campus_nexus_applications_export.csv"'
 

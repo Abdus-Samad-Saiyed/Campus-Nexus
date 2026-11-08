@@ -125,15 +125,18 @@ class AccountApplicationForm(forms.ModelForm):
         )
         perm_db = 'permanent' if is_distinct_perm else 'default'
 
-        # Only block if an already verified user exists
-        if User.objects.filter(enrollment_number=enrollment, verified=True).exists():
+        # Only block if an already verified, active non-deleted user exists
+        if User.objects.filter(enrollment_number=enrollment, verified=True, is_deleted=False).exists():
             raise forms.ValidationError(
                 'An account with this enrollment number is already registered and verified.'
             )
-        if perm_db != 'default' and User.objects.using(perm_db).filter(enrollment_number=enrollment, verified=True).exists():
+        if perm_db != 'default' and User.objects.using(perm_db).filter(enrollment_number=enrollment, verified=True, is_deleted=False).exists():
             raise forms.ValidationError(
                 'An account with this enrollment number is already registered and verified.'
             )
+
+        from accounts.utils import release_deleted_user_identifiers
+        release_deleted_user_identifiers(enrollment=enrollment)
 
         # Block if an application is already pending
         if AccountApplication.objects.filter(enrollment_number=enrollment, approved=False).exists():
@@ -173,10 +176,13 @@ class AccountApplicationForm(forms.ModelForm):
         )
         perm_db = 'permanent' if is_distinct_perm else 'default'
 
-        if User.objects.filter(email=email, verified=True).exists():
+        if User.objects.filter(email=email, verified=True, is_deleted=False).exists():
             raise forms.ValidationError('An account with this email address already exists.')
-        if perm_db != 'default' and User.objects.using(perm_db).filter(email=email, verified=True).exists():
+        if perm_db != 'default' and User.objects.using(perm_db).filter(email=email, verified=True, is_deleted=False).exists():
             raise forms.ValidationError('An account with this email address already exists.')
+
+        from accounts.utils import release_deleted_user_identifiers
+        release_deleted_user_identifiers(email=email)
 
         if AccountApplication.objects.filter(email=email, approved=False).exists():
             raise forms.ValidationError('An application with this email address is already pending verification.')
@@ -298,11 +304,13 @@ class EarlyLaunchDeclarationForm(forms.Form):
                 'Synthetic debug enrollments (20XX...) are disabled in production.'
             )
 
-        if User.objects.filter(enrollment_number=enrollment).exists():
+        if User.objects.filter(enrollment_number=enrollment, is_deleted=False).exists():
             raise forms.ValidationError(
                 'An account with this enrollment number is already registered. Please log in.'
             )
 
+        from accounts.utils import release_deleted_user_identifiers
+        release_deleted_user_identifiers(enrollment=enrollment)
         return enrollment
 
     def clean_full_name(self):
@@ -321,8 +329,11 @@ class EarlyLaunchDeclarationForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data.get('email', '').strip().lower()
-        if email and User.objects.filter(email=email).exists():
+        if email and User.objects.filter(email=email, is_deleted=False).exists():
             raise forms.ValidationError('An account with this email address already exists.')
+        if email:
+            from accounts.utils import release_deleted_user_identifiers
+            release_deleted_user_identifiers(email=email)
         return email
 
     def clean(self):
@@ -355,6 +366,9 @@ class EarlyLaunchDeclarationForm(forms.Form):
         gender = self.cleaned_data.get('gender', '')
         password = self.cleaned_data['password']
         email = self.cleaned_data.get('email') or f"{enrollment.lower()}@nitsri.ac.in"
+
+        from accounts.utils import release_deleted_user_identifiers
+        release_deleted_user_identifiers(enrollment=enrollment, email=email)
 
         parts = full_name.split() if full_name else []
         first_name = parts[0][:150] if parts else ''

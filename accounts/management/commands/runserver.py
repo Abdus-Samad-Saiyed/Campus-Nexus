@@ -160,7 +160,46 @@ class Command(DaphneRunserverCommand):
             enrollment = details["enrollment"]
             name = details["name"]
 
-            msg = f"[{details['server_time']}] HTTP {method} {path} {status} [{time_taken:.2f}, {client}, {enrollment}, {name}]"
+            if os.environ.get("CONSOLE_LOG_MODE") == "descriptive":
+                from accounts.action_descriptions import format_descriptive_log_lines
+                desc_msg = format_descriptive_log_lines(
+                    server_time=details["server_time"],
+                    name=name,
+                    enrollment=enrollment,
+                    client_ip=client,
+                    latency_ms=time_taken * 1000.0,
+                    path=path,
+                    method=method,
+                    status=status,
+                    protocol="http",
+                )
+                if desc_msg:
+                    if status >= 500:
+                        logger.error(desc_msg)
+                    elif status >= 400:
+                        logger.warning(desc_msg)
+                    else:
+                        logger.info(desc_msg)
+                return
+
+            otp_info = meta.get("otp_info") or details.get("otp_info")
+            if not otp_info and enrollment and enrollment != "N.A.":
+                try:
+                    from accounts.two_factor import get_active_otp, can_resend_otp
+                    from django.contrib.auth import get_user_model
+                    u = get_user_model().objects.filter(enrollment_number=enrollment).first()
+                    if u:
+                        code = get_active_otp(user=u)
+                        if code:
+                            can_r, wait_s = can_resend_otp(user=u)
+                            if not can_r:
+                                otp_info = f"[OTP: {code} (Limit: {wait_s}s)]"
+                            else:
+                                otp_info = f"[OTP: {code}]"
+                except Exception:
+                    pass
+            otp_str = f" {otp_info}" if otp_info else ""
+            msg = f"[{details['server_time']}] HTTP {method} {path} {status} [{time_taken:.2f}, {client}, {enrollment}, {name}]{otp_str}"
             color = get_request_color(status=status, path=path, user_type=user_type)
             colored_msg = colorize(msg, color)
 
@@ -195,6 +234,25 @@ class Command(DaphneRunserverCommand):
                 "connecting": "HANDSHAKING",
                 "rejected": "REJECT",
             }.get(action, action.upper())
+
+            if os.environ.get("CONSOLE_LOG_MODE") == "descriptive":
+                from accounts.action_descriptions import format_descriptive_log_lines
+                desc_msg = format_descriptive_log_lines(
+                    server_time=details["server_time"],
+                    name=details["name"],
+                    enrollment=details["enrollment"],
+                    client_ip=details["client"],
+                    latency_ms=0.0,
+                    path=details.get("path", ""),
+                    protocol="websocket",
+                    ws_action=action_name,
+                )
+                if desc_msg:
+                    if action in ("rejected", "error"):
+                        logger.warning(desc_msg)
+                    else:
+                        logger.info(desc_msg)
+                return
 
             msg = f"[{details['server_time']}] WebSocket {action_name} {details.get('path', '')} [{details['client']}, {details['enrollment']}, {details['name']}]"
             color = get_request_color(status=None, path=details.get("path"), user_type=user_type, action=action)

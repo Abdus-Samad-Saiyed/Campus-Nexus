@@ -126,6 +126,29 @@
         </div>
     </div>
 
+        <!-- Mandatory Passkey Prompt for Verified Permanent Accounts -->
+    {% if user.verified and not has_passkeys and not is_guest_demo %}
+    <div class="alert alert-dark border-secondary border-opacity-50 d-flex flex-column flex-md-row align-items-md-center justify-content-between p-3 mb-4 rounded-3 shadow-sm">
+        <div class="d-flex align-items-center gap-3 mb-2 mb-md-0">
+            <div class="rounded-circle bg-dark border border-info border-opacity-50 d-flex align-items-center justify-content-center text-info" style="width: 44px; height: 44px; font-size: 1.3rem;">
+                <i class="bi bi-fingerprint"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-white">Set up fingerprint or face unlock</div>
+                <div class="small text-secondary">Sign in faster without waiting for SMS codes.</div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'profile' enrollment_number=user.enrollment_number %}" class="btn btn-sm btn-info fw-semibold text-dark">
+                <i class="bi bi-shield-plus me-1"></i> Set up now
+            </a>
+            <a href="{% url 'learn_more' topic='passkeys' %}" class="btn btn-sm btn-outline-secondary">
+                Learn more &rarr;
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Post-Login PWA Install Hero Prompt (Visible in browser on desktop & mobile, hidden in standalone app or if dismissed) -->
     <div id="postLoginPwaPrompt" class="position-relative mb-4 rounded-4 overflow-hidden shadow-lg"
          style="display: none; background: linear-gradient(135deg, rgba(8, 183, 79, 0.14) 0%, rgba(15, 23, 42, 0.94) 100%);

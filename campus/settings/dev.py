@@ -60,8 +60,8 @@ if _use_redis:
     }
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': _redis_url,
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'campus-nexus-locmem-cache',
         }
     }
 else:
@@ -173,3 +173,8 @@ if (
 ):
     EARLY_LAUNCH_MODE = True
 
+
+
+# Allow local HTTP testing without dropping CSRF / Session cookies
+CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=False)
+SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=False)

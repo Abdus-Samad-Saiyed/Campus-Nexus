@@ -142,10 +142,19 @@ GUEST_DEMO_DB_PATH = BASE_DIR / 'guest_demo.sqlite3'
 _DEFAULT_DB_URL = env.str('DATABASE_URL')
 _GUEST_DEMO_DB_URL = env.str('GUEST_DEMO_DATABASE_URL')
 
+_default_db = env.db_url_config(_DEFAULT_DB_URL)
+_default_db['CONN_MAX_AGE'] = env.int('CONN_MAX_AGE', default=0)
+
+_permanent_db = env.db_url_config(_DEFAULT_DB_URL)
+_permanent_db['CONN_MAX_AGE'] = env.int('CONN_MAX_AGE', default=0)
+
+_guest_demo_db = env.db_url_config(_GUEST_DEMO_DB_URL)
+_guest_demo_db['CONN_MAX_AGE'] = env.int('CONN_MAX_AGE', default=0)
+
 DATABASES = {
-    'default': env.db_url_config(_DEFAULT_DB_URL),
-    'permanent': env.db_url_config(_DEFAULT_DB_URL),
-    'guest_demo': env.db_url_config(_GUEST_DEMO_DB_URL),
+    'default': _default_db,
+    'permanent': _permanent_db,
+    'guest_demo': _guest_demo_db,
 }
 
 
@@ -360,3 +369,9 @@ SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=True)
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=True)
+
+# --- Web Push (VAPID) --------------------------------------------------------
+VAPID_PUBLIC_KEY = env.str('VAPID_PUBLIC_KEY', default='BLkZl62TuGdb1K6tKpBU7LRwlwSQ3I8xmSYphqq1jgqf6h2dIjF8Twv9T27OKuVKrxH6eAwiBUYheP661CgMjH8')
+VAPID_PRIVATE_KEY = env.str('VAPID_PRIVATE_KEY', default='MyaX72FdKRmmV46dUl7BUQ2WMe5ey3rIUwoB4usXxdI')
+VAPID_CLAIMS = {'sub': env.str('VAPID_ADMIN_EMAIL', default='mailto:admin@campus-nexus.online')}
+

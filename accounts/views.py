@@ -61,6 +61,7 @@ from .models import (
     PhoneOTP,
     PhysicalVerificationRequest,
     User,
+    WebPushSubscription,
     log_audit_event,
 )
 from .throttling import rate_limit
@@ -85,6 +86,8 @@ def verified_student_required(view_func):
 from .two_factor import (
     can_resend_otp,
     create_phone_otp,
+    get_active_otp,
+    emit_otp_console_log,
     generate_webauthn_challenge,
     verify_passkey_assertion,
     verify_passkey_registration,
@@ -131,63 +134,13 @@ def service_catalogue(request):
 
 def enforce_single_session_login(request, user: User):
     """
-    Ensure each account can only have one active session at a time.
-    Invalidates any previous session across other devices/browsers, and records current session key.
+    Enforce multi-platform simultaneous login policy:
+    1. One sign-in per platform at a time (concurrent login on same platform terminates prior session).
+    2. Multiple sign-ins across different platforms allowed up to a maximum of 3.
+    3. If a 4th platform logs in, the least-recently-active platform session is evicted.
     """
-    if not request.session.session_key:
-        request.session.save()
-    current_key = request.session.session_key
-
-    # Fast path: revoke previously recorded session key directly from cache and database
-    if user.current_session_key and user.current_session_key != current_key:
-        try:
-            from django.contrib.sessions.backends.cached_db import SessionStore as CachedSessionStore
-            CachedSessionStore(session_key=user.current_session_key).delete()
-        except Exception:
-            pass
-        Session.objects.filter(session_key=user.current_session_key).delete()
-
-    prior_terminated = False
-    for s in Session.objects.filter(expire_date__gt=timezone.now()):
-        try:
-            data = s.get_decoded()
-            if str(data.get('_auth_user_id')) == str(user.pk) and s.session_key != current_key:
-                try:
-                    from django.contrib.sessions.backends.cached_db import SessionStore as CachedSessionStore
-                    CachedSessionStore(session_key=s.session_key).delete()
-                except Exception:
-                    pass
-                s.delete()
-                prior_terminated = True
-                log_audit_event(
-                    event_type='SESSION_TERMINATED_CONCURRENT',
-                    actor_enrollment=user.enrollment_number,
-                    description='Prior session invalidated on concurrent device/browser login',
-                )
-        except Exception:
-            pass
-
-    user.current_session_key = current_key
-    user.last_seen = timezone.now()
-    user.save(update_fields=['current_session_key', 'last_seen'])
-    request.session['last_activity'] = time.time()
-
-    try:
-        from accounts.client_logger import register_client_identity
-        enrollment = getattr(user, 'enrollment_number', '') or getattr(user, 'username', 'N.A.')
-        full_name = user.get_full_name() if hasattr(user, 'get_full_name') else ''
-        display_name = full_name.strip() or getattr(user, 'display_name', '') or getattr(user, 'username', '') or enrollment
-        register_client_identity(
-            session_key=current_key,
-            enrollment=enrollment,
-            name=display_name,
-        )
-    except Exception:
-        pass
-
-    if prior_terminated:
-        from accounts.utils import broadcast_user_session_revocation
-        transaction.on_commit(lambda: broadcast_user_session_revocation(user.pk, "Prior session invalidated on concurrent login."))
+    from accounts.utils import enforce_platform_session_login
+    return enforce_platform_session_login(request, user)
 
 
 def _safe_redirect_url(request, redirect_to, fallback='dashboard'):
@@ -396,12 +349,16 @@ def two_factor_verify(request):
             if can_resend:
                 otp, raw_code = create_phone_otp(user, purpose='2FA')
                 if not getattr(otp, 'any_delivered', True):
-                    messages.warning(request, "Delivery failed. Could not dispatch verification code to your email or mobile. You may authenticate using your passkey if registered.")
+                    messages.warning(request, "Carrier/SMTP delivery unavailable. If in server console fallback mode, enter the active verification code shown in the server console, or use a passkey.")
                 elif getattr(otp, 'email_sent', False) and not getattr(otp, 'sms_sent', False):
                     messages.info(request, f"A 6-digit verification code has been dispatched to your email ({masked_email}). (SMS delivery is currently unavailable).")
                 else:
                     messages.info(request, "A 6-digit verification code has been dispatched to your email and phone.")
             else:
+                active_otp = get_active_otp(user, purpose='2FA')
+                if active_otp:
+                    request._active_otp_info = f"[OTP: {active_otp} (Cooldown: {wait_seconds}s)]"
+                    emit_otp_console_log(active_otp, user, purpose='2FA', reason=f"Resend limit reached (wait {wait_seconds}s)", wait_seconds=wait_seconds)
                 messages.info(request, f"A verification code was already dispatched recently. Please check your inbox or wait {wait_seconds} seconds before requesting a new code.")
             request.session['pre_2fa_method'] = 'otp'
             return redirect('two_factor_verify')
@@ -411,12 +368,16 @@ def two_factor_verify(request):
             if can_resend:
                 otp, raw_code = create_phone_otp(user, purpose='2FA')
                 if not getattr(otp, 'any_delivered', True):
-                    messages.warning(request, "Delivery failed. Could not dispatch verification code to your email or mobile. You may authenticate using your passkey if registered.")
+                    messages.warning(request, "Carrier/SMTP delivery unavailable. If in server console fallback mode, enter the active verification code shown in the server console, or use a passkey.")
                 elif getattr(otp, 'email_sent', False) and not getattr(otp, 'sms_sent', False):
                     messages.info(request, f"A new 6-digit verification code has been dispatched to your email ({masked_email}). (SMS delivery is currently unavailable).")
                 else:
                     messages.info(request, "A new 6-digit verification code has been dispatched to your email and phone.")
             else:
+                active_otp = get_active_otp(user, purpose='2FA')
+                if active_otp:
+                    request._active_otp_info = f"[OTP: {active_otp} (Cooldown: {wait_seconds}s)]"
+                    emit_otp_console_log(active_otp, user, purpose='2FA', reason=f"Resend limit reached (wait {wait_seconds}s)", wait_seconds=wait_seconds)
                 messages.warning(request, f"Please wait {wait_seconds} seconds before requesting a new code.")
             request.session['pre_2fa_method'] = 'otp'
             return redirect('two_factor_verify')
@@ -869,6 +830,14 @@ def passkey_delete(request, credential_id):
             'requires_step_up': True,
         }, status=403)
 
+    # Anti-lockout invariant: students cannot delete their last remaining passkey
+    if PasskeyCredential.objects.filter(user=request.user).count() <= 1:
+        return JsonResponse({
+            'success': False,
+            'error': 'You need at least one passkey saved. Add a new one before removing this.',
+            'learn_more': '/learn-more/passkey-lockout/'
+        }, status=400)
+
     cred = get_object_or_404(PasskeyCredential, id=credential_id, user=request.user)
     cred_name = cred.name
     cred.delete()
@@ -879,6 +848,41 @@ def passkey_delete(request, credential_id):
         description=f'Deleted passkey credential: {cred_name[:50]}',
     )
     return JsonResponse({'success': True, 'message': 'Passkey deleted successfully.'})
+
+@login_required
+@rate_limit(key_prefix='passkey_stepup_ver', limit=10, period_seconds=60)
+@require_POST
+def passkey_step_up_verify(request):
+    """Verify biometric passkey assertion to activate security grace window for profile editing."""
+    now_ts = timezone.now().timestamp()
+    challenge = request.session.pop('passkey_challenge', '')
+    challenge_time = request.session.pop('passkey_challenge_time', None)
+    if not challenge or not challenge_time or (now_ts - challenge_time) > 120:
+        return JsonResponse({'success': False, 'error': 'Challenge expired or missing. Please try again.'}, status=400)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        credential_id = data.get('credential_id') or data.get('id', '')
+        client_data_json = data.get('client_data_json') or data.get('response', {}).get('clientDataJSON', '')
+        effective_origin, server_rp_id, _ = _get_webauthn_origin_and_rp_id(request)
+        full_cred = data if ('response' in data and 'authenticatorData' in data['response']) else None
+
+        success, msg = verify_passkey_assertion(
+            user=request.user,
+            credential_id=credential_id,
+            client_data_json_b64=client_data_json,
+            session_challenge=challenge,
+            full_credential=full_cred,
+            expected_rp_id=server_rp_id,
+            expected_origin=effective_origin,
+        )
+        if success:
+            request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=15)).isoformat()
+            return JsonResponse({'success': True, 'message': 'Biometric passkey verified! You can now update your profile.'})
+        return JsonResponse({'success': False, 'error': msg or 'Passkey verification failed.'}, status=400)
+    except Exception as exc:
+        return JsonResponse({'success': False, 'error': str(exc)}, status=400)
+
 
 
 
@@ -913,11 +917,38 @@ def send_signup_otp(request):
     auth_user = request.user if is_real_auth else None
     can_resend, wait_sec = can_resend_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
     if not can_resend:
+        active_otp = get_active_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
+        if active_otp:
+            request._active_otp_info = f"[OTP: {active_otp} (Cooldown: {wait_sec}s)]"
+            emit_otp_console_log(active_otp, phone or email, purpose='SIGNUP', reason=f"Signup OTP resend limit (wait {wait_sec}s)", wait_seconds=wait_sec)
         return JsonResponse({'success': False, 'error': f'Please wait {wait_sec} seconds before requesting a new code.'}, status=429)
 
-    otp, raw_code = create_phone_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
+    applicant_details = {
+        'name': f"{request.POST.get('first_name', '')} {request.POST.get('last_name', '')}".strip() or getattr(auth_user, 'get_full_name', lambda: '')(),
+        'enrollment': request.POST.get('enrollment_number', '') or getattr(auth_user, 'enrollment_number', ''),
+        'phone': phone,
+        'email': email,
+        'branch': request.POST.get('branch', ''),
+        'gender': request.POST.get('gender', ''),
+    }
+
+    otp, raw_code = create_phone_otp(
+        user=auth_user,
+        phone_number=phone,
+        email=email,
+        purpose='SIGNUP',
+        applicant_details=applicant_details,
+    )
     if not getattr(otp, 'any_delivered', True):
-        return JsonResponse({'success': False, 'error': 'The server has reached a temporary OTP limit. Please try another day.'}, status=400)
+        active_otp = raw_code or get_active_otp(user=auth_user, phone_number=phone, email=email, purpose='SIGNUP')
+        if active_otp:
+            request._active_otp_info = f"[OTP: {active_otp} (Manual Dispatch)]"
+        return JsonResponse({
+            'success': True,
+            'message': 'SMS delivery is currently delayed. An administrator can provide your code, or check console.',
+            'learn_more': '/learn-more/otp-delay/',
+            'console_fallback': True,
+        })
 
     dest_parts = []
     if getattr(otp, 'email_sent', False) or (email and not getattr(otp, 'sms_sent', False)):
@@ -950,11 +981,23 @@ def send_security_otp(request):
 
     can_resend, wait_sec = can_resend_otp(user=user, phone_number=target_phone, email=target_email, purpose='SECURITY_CHANGE')
     if not can_resend:
+        active_otp = get_active_otp(user=user, phone_number=target_phone, email=target_email, purpose='SECURITY_CHANGE')
+        if active_otp:
+            request._active_otp_info = f"[OTP: {active_otp} (Cooldown: {wait_sec}s)]"
+            emit_otp_console_log(active_otp, user, purpose='SECURITY_CHANGE', reason=f"Security OTP resend limit (wait {wait_sec}s)", wait_seconds=wait_sec)
         return JsonResponse({'success': False, 'error': f'Please wait {wait_sec} seconds before requesting a new code.'}, status=429)
 
     otp, raw_code = create_phone_otp(user=user, phone_number=target_phone, email=target_email, purpose='SECURITY_CHANGE')
     if not getattr(otp, 'any_delivered', True):
-        return JsonResponse({'success': False, 'error': 'The server has reached a temporary OTP limit. Please try another day.'}, status=400)
+        active_otp = raw_code or get_active_otp(user=user, phone_number=target_phone, email=target_email, purpose='SECURITY_CHANGE')
+        if active_otp:
+            request._active_otp_info = f"[OTP: {active_otp} (Delivery Limit)]"
+            emit_otp_console_log(active_otp, user, purpose='SECURITY_CHANGE', reason="DISPATCH LIMIT/FAILURE (Carrier or SMTP unavailable)")
+        return JsonResponse({
+            'success': True,
+            'message': 'SMS/Email dispatch unavailable. Active verification code has been printed to the system console for verification.',
+            'console_fallback': True,
+        })
 
     dest_parts = []
     if getattr(otp, 'email_sent', False) or (target_email and not getattr(otp, 'sms_sent', False)):
@@ -985,6 +1028,11 @@ def forgot_password_view(request):
                 can_resend, wait_sec = can_resend_otp(user, purpose='PASSWORD_RESET')
                 if can_resend:
                     create_phone_otp(user, purpose='PASSWORD_RESET')
+                else:
+                    active_otp = get_active_otp(user=user, purpose='PASSWORD_RESET')
+                    if active_otp:
+                        request._active_otp_info = f"[OTP: {active_otp} (Cooldown: {wait_sec}s)]"
+                        emit_otp_console_log(active_otp, user, purpose='PASSWORD_RESET', reason=f"Password Reset resend limit (wait {wait_sec}s)", wait_seconds=wait_sec)
                 request.session['reset_user_id'] = user.pk
                 request.session['reset_requested_at'] = timezone.now().timestamp()
             
@@ -1421,6 +1469,7 @@ def dashboard(request):
             'other_participations': other_participations,
             'services': get_all_services(),
             'pending_application': None,
+            'has_passkeys': False,
             'incoming_friend_requests': [],
             'incoming_ride_join_requests': [],
             'is_guest_demo': True,
@@ -1472,8 +1521,10 @@ def dashboard(request):
 
     just_signed_in = request.session.pop('just_signed_in', False)
 
+    has_passkeys = PasskeyCredential.objects.filter(user=request.user).exists()
     return render(request, 'accounts/dashboard.html', {
         'active_participation': active_participation,
+        'has_passkeys': has_passkeys,
         'other_participations': other_participations,
         'services': get_all_services(),
         'pending_application': pending_application,
@@ -1695,9 +1746,11 @@ def profile_view(request, enrollment_number):
     )
 
     registered_passkeys = list(PasskeyCredential.objects.filter(user=profile_user)) if is_self else []
+    active_platform_sessions = list(profile_user.platform_sessions.all()) if is_self else []
     return render(request, 'accounts/profile.html', {
         'profile_user': profile_user,
         'registered_passkeys': registered_passkeys,
+        'active_platform_sessions': active_platform_sessions,
         'is_self': is_self,
         'is_friend': is_friend,
         'can_see_phone': can_see_phone,
@@ -1884,52 +1937,89 @@ def direct_chat_view(request, enrollment_number):
 
     read_only = not friend.is_active or getattr(friend, 'is_deleted', False)
 
-    if read_only and request.method == 'POST':
-        messages.error(request, "This user account is inactive. Conversation is read-only.")
-        return redirect('direct_chat', enrollment_number=friend.enrollment_number)
-
     if request.method == 'POST':
-        content = request.POST.get('content', '').strip()
-        if content:
-            msg = DirectMessage.objects.create(
-                sender=request.user,
-                recipient=friend,
-                content=content[:2000],
-            )
-            def _broadcast_dm():
-                try:
-                    from channels.layers import get_channel_layer
-                    from asgiref.sync import async_to_sync
-                    channel_layer = get_channel_layer()
-                    if channel_layer:
-                        u1_id, u2_id = sorted([request.user.pk, friend.pk])
-                        async_to_sync(channel_layer.group_send)(
-                            f'direct_chat_{u1_id}_{u2_id}',
-                            {
-                                'type': 'chat.direct_message',
-                                'message_id': msg.id,
-                                'sender': request.user.enrollment_number,
-                                'content': msg.content,
-                                'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
-                            }
-                        )
-                        async_to_sync(channel_layer.group_send)(
-                            f'user_notifications_{friend.pk}',
-                            {
-                                'type': 'chat.notification',
-                                'message_id': msg.id,
-                                'sender': request.user.enrollment_number,
-                                'sender_name': request.user.get_full_name() or request.user.enrollment_number,
-                                'sender_avatar': request.user.profile_photo.url if request.user.profile_photo else '',
-                                'content': msg.content[:120],
-                                'url': f'/messages/{request.user.enrollment_number}/',
-                                'timestamp': timezone.localtime(msg.created_at).strftime('%H:%M'),
-                            }
-                        )
-                except Exception:
-                    pass
-            transaction.on_commit(_broadcast_dm)
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest'
+            or 'application/json' in request.headers.get('accept', '')
+            or request.content_type == 'application/json'
+        )
+
+        if read_only:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'error': 'This user account is inactive. Conversation is read-only.'}, status=403)
+            messages.error(request, "This user account is inactive. Conversation is read-only.")
             return redirect('direct_chat', enrollment_number=friend.enrollment_number)
+
+        content = request.POST.get('content', '').strip()
+        if not content:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'error': 'Message content cannot be empty.'}, status=400)
+            return redirect('direct_chat', enrollment_number=friend.enrollment_number)
+
+        # Server-side deduplication against rapid duplicate submissions (e.g. within 12 seconds)
+        recent_dup = DirectMessage.objects.filter(
+            sender=request.user,
+            recipient=friend,
+            content=content[:2000],
+            created_at__gte=timezone.now() - timedelta(seconds=12)
+        ).first()
+        if recent_dup:
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'success',
+                    'message_id': recent_dup.id,
+                    'content': recent_dup.content,
+                    'timestamp': date_filter(timezone.localtime(recent_dup.created_at), 'M j, H:i'),
+                    'is_duplicate': True,
+                })
+            return redirect('direct_chat', enrollment_number=friend.enrollment_number)
+
+        msg = DirectMessage.objects.create(
+            sender=request.user,
+            recipient=friend,
+            content=content[:2000],
+        )
+        def _broadcast_dm():
+            try:
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    u1_id, u2_id = sorted([request.user.pk, friend.pk])
+                    async_to_sync(channel_layer.group_send)(
+                        f'direct_chat_{u1_id}_{u2_id}',
+                        {
+                            'type': 'chat.direct_message',
+                            'message_id': msg.id,
+                            'sender': request.user.enrollment_number,
+                            'content': msg.content,
+                            'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
+                        }
+                    )
+                    async_to_sync(channel_layer.group_send)(
+                        f'user_notifications_{friend.pk}',
+                        {
+                            'type': 'chat.notification',
+                            'message_id': msg.id,
+                            'sender': request.user.enrollment_number,
+                            'sender_name': request.user.get_full_name() or request.user.enrollment_number,
+                            'sender_avatar': request.user.profile_photo.url if request.user.profile_photo else '',
+                            'content': msg.content[:120],
+                            'url': f'/messages/{request.user.enrollment_number}/',
+                            'timestamp': timezone.localtime(msg.created_at).strftime('%H:%M'),
+                        }
+                    )
+            except Exception:
+                pass
+        transaction.on_commit(_broadcast_dm)
+        if is_ajax:
+            return JsonResponse({
+                'status': 'success',
+                'message_id': msg.id,
+                'content': msg.content,
+                'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
+            })
+        return redirect('direct_chat', enrollment_number=friend.enrollment_number)
 
     # Mark unread messages from this friend as read
     now = timezone.now()
@@ -2205,7 +2295,7 @@ def approve_application(request, application_id):
         first_name = parts[0][:150] if parts else ''
         last_name = ' '.join(parts[1:])[:150] if len(parts) > 1 else ''
 
-        existing_user = User.objects.filter(enrollment_number=application.enrollment_number).first()
+        existing_user = User.objects.filter(enrollment_number=application.enrollment_number, is_deleted=False).first()
         if existing_user:
             if existing_user.verified:
                 application.delete()
@@ -2236,6 +2326,8 @@ def approve_application(request, application_id):
                 existing_user.save()
                 user = existing_user
         else:
+            from accounts.utils import release_deleted_user_identifiers
+            release_deleted_user_identifiers(enrollment=application.enrollment_number, email=application.email)
             user = User.objects.create(
                 enrollment_number=application.enrollment_number,
                 username=application.enrollment_number,
@@ -2763,3 +2855,57 @@ def forget_app_remembered_user(request):
     response = JsonResponse({'success': True})
     response.delete_cookie('nexus_app_remembered_user', path='/')
     return response
+
+def vapid_public_key_view(request):
+    """Return the VAPID applicationServerKey for Browser PushManager subscriptions."""
+    from django.conf import settings
+    key = getattr(settings, 'VAPID_PUBLIC_KEY', '')
+    return JsonResponse({'publicKey': key, 'status': 'success'})
+
+
+@login_required
+@require_POST
+def webpush_subscribe_view(request):
+    """Store or update a browser Web Push subscription for background notifications."""
+    import json
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON body.'}, status=400)
+
+    endpoint = (data.get('endpoint') or '').strip()
+    keys = data.get('keys') or {}
+    p256dh = (keys.get('p256dh') or '').strip()
+    auth = (keys.get('auth') or '').strip()
+
+    if not endpoint or not p256dh or not auth:
+        return JsonResponse({'status': 'error', 'message': 'Missing required subscription fields.'}, status=400)
+
+    user_agent = request.META.get('HTTP_USER_AGENT', '')[:250]
+    WebPushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={
+            'user': request.user,
+            'p256dh': p256dh,
+            'auth': auth,
+            'user_agent': user_agent,
+        }
+    )
+    return JsonResponse({'status': 'success', 'message': 'Push subscription active.'})
+
+
+@login_required
+@require_POST
+def webpush_unsubscribe_view(request):
+    """Remove a browser Web Push subscription."""
+    import json
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON body.'}, status=400)
+
+    endpoint = (data.get('endpoint') or '').strip()
+    if endpoint:
+        WebPushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+    return JsonResponse({'status': 'success', 'message': 'Push subscription removed.'})
+

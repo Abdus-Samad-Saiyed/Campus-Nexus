@@ -20,6 +20,7 @@ from .models import (
     PlatformFeedback,
     PlatformRuntimeState,
     User,
+    UserPlatformSession,
     log_audit_event,
 )
 
@@ -63,8 +64,12 @@ class UserAdmin(BaseUserAdmin):
         response = super().user_change_password(request, id, form_url)
         if request.method == 'POST' and user:
             from django.contrib.sessions.models import Session
+            UserPlatformSession.objects.filter(user=user).delete()
             if getattr(user, 'current_session_key', None):
-                Session.objects.filter(session_key=user.current_session_key).delete()
+                for k in user.current_session_key.split(','):
+                    k = k.strip()
+                    if k:
+                        Session.objects.filter(session_key=k).delete()
                 user.current_session_key = ''
                 user.save(update_fields=['current_session_key'])
             log_audit_event(
@@ -290,4 +295,18 @@ class AnnouncementReceiptAdmin(admin.ModelAdmin):
     search_fields = ['user__enrollment_number', 'announcement__title']
     ordering = ['-seen_at']
     readonly_fields = ['seen_at']
+
+
+@admin.register(UserPlatformSession)
+class UserPlatformSessionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'platform', 'session_key_short', 'ip_address', 'last_activity', 'created_at']
+    list_filter = ['platform', 'created_at', 'last_activity']
+    search_fields = ['user__enrollment_number', 'user__first_name', 'user__last_name', 'session_key', 'ip_address']
+    ordering = ['-last_activity']
+    readonly_fields = ['created_at', 'last_activity']
+
+    def session_key_short(self, obj):
+        return f"{obj.session_key[:8]}..."
+    session_key_short.short_description = "Session Key"
+
 

@@ -130,6 +130,7 @@ class MultiWorkerCluster:
             "GUEST_DEMO_DATABASE_URL",
             "postgres://campus_admin:CampusPass123!@127.0.0.1:5432/campus_guest_demo",
         )
+        os.environ.setdefault("CONN_MAX_AGE", "0")
         if self.early_launch:
             env["CAMPUS_EARLY_LAUNCH_MODE"] = "True"
             env["EARLY_LAUNCH_MODE"] = "True"
@@ -166,6 +167,31 @@ class MultiWorkerCluster:
         )
         self.workers[port] = proc
         return proc
+
+    def _is_port_occupied(self, port: int) -> bool:
+        """Check if port is currently in use."""
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.25)
+            return s.connect_ex(("127.0.0.1", port)) == 0
+
+    def _cleanup_stale_ports(self):
+        """Clean up any orphan Daphne processes listening on worker ports before launch."""
+        for port in self.worker_ports:
+            if self._is_port_occupied(port):
+                print(f"[MultiWorkerCluster] Cleaning up stale listener on worker port 127.0.0.1:{port}...")
+                if sys.platform == "win32":
+                    try:
+                        output = subprocess.check_output(f'netstat -ano | findstr ":{port} "', shell=True, text=True)
+                        for line in output.splitlines():
+                            parts = line.strip().split()
+                            if len(parts) >= 5 and "LISTENING" in parts:
+                                pid = int(parts[-1])
+                                if pid != os.getpid():
+                                    subprocess.run(f"taskkill /F /PID {pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    except Exception:
+                        pass
+                time.sleep(0.2)
 
     async def _forward_stream(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         """Asynchronously pipe bytes from reader to writer with 64KB chunks."""
@@ -305,6 +331,7 @@ class MultiWorkerCluster:
         print("=" * 70)
 
         # Pre-migrate if in Early Launch Mode
+        os.environ.setdefault("CONN_MAX_AGE", "0")
         if self.early_launch:
             print("[MultiWorkerCluster] Running migrations for temporary database before worker startup...")
             try:
@@ -323,6 +350,15 @@ class MultiWorkerCluster:
             except Exception as e:
                 print(f"[MultiWorkerCluster] Pre-migration notice: {e}")
 
+        # 1. Early port conflict check: prevent starting workers if proxy port is already occupied
+        if self._is_port_occupied(self.proxy_port):
+            print(f"\n[MultiWorkerCluster] ERROR: Port {self.proxy_port} is already in use by another running server instance.")
+            print(f"[MultiWorkerCluster] Please stop the existing server on {self.bind_host}:{self.proxy_port} before starting a new cluster.\n")
+            raise OSError(10048, f"Address ({self.bind_host}, {self.proxy_port}) is already in use.")
+
+        # 2. Clean up any stale/orphaned Daphne worker processes
+        self._cleanup_stale_ports()
+
         # Ensure Redis is running for multi-worker WebSockets
         self._ensure_redis()
 
@@ -334,10 +370,15 @@ class MultiWorkerCluster:
         # Wait briefly for workers to bind sockets
         await asyncio.sleep(1.0)
 
-        # Start Proxy Server
-        self.server = await asyncio.start_server(
-            self._handle_connection, self.bind_host, self.proxy_port
-        )
+        # Start Proxy Server with exception-safe fallback
+        try:
+            self.server = await asyncio.start_server(
+                self._handle_connection, self.bind_host, self.proxy_port
+            )
+        except Exception as exc:
+            print(f"\n[MultiWorkerCluster] ERROR: Failed to bind proxy on {self.bind_host}:{self.proxy_port}: {exc}")
+            self.shutdown()
+            raise
         print(
             f"[MultiWorkerCluster] Load-balancing proxy active on {self.bind_host}:{self.proxy_port}."
         )

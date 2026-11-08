@@ -63,7 +63,6 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
         try:
             from asgiref.sync import sync_to_async
-            from django.utils import timezone
             from accounts.models import User
             await sync_to_async(User.objects.filter(id=self.user.id).update)(last_seen=timezone.now())
         except Exception:
@@ -112,6 +111,11 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                         }
                     )
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        try:
+            from django.db import close_old_connections
+            await database_sync_to_async(close_old_connections)()
+        except Exception:
+            pass
 
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data is not None or not text_data:
@@ -130,29 +134,32 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
 
         event_type = data.get('type')
 
-        # Read receipt
-        if event_type == 'mark_read':
-            msg_id = data.get('message_id')
-            if msg_id:
-                read_time = await self._mark_message_read(msg_id)
-                # Check if this user permits DM read receipts
-                if await self._user_allows_read_receipts():
-                    import zoneinfo
-                    from django.utils import timezone
-                    ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
-                    local_dt = timezone.localtime(read_time or timezone.now(), ist_tz)
-                    time_str = local_dt.strftime("%H:%M")
-                    display_str = f"Today at {local_dt.strftime('%I:%M %p')} IST"
-                    await self.channel_layer.group_send(
-                        self.group_name,
-                        {
-                            'type': 'chat.read_receipt',
-                            'message_id': msg_id,
-                            'reader': self.user.enrollment_number,
-                            'read_at_time': time_str,
-                            'read_at_display': display_str,
-                        }
-                    )
+        # Read receipt (supports both individual and single-batch mark_all_read)
+        if event_type in ('mark_read', 'mark_all_read'):
+            if event_type == 'mark_all_read':
+                read_time = await self._mark_all_messages_read()
+                msg_id = 0
+            else:
+                msg_id = data.get('message_id')
+                read_time = await self._mark_message_read(msg_id) if msg_id else None
+
+            # Check if this user permits DM read receipts
+            if read_time and await self._user_allows_read_receipts():
+                import zoneinfo
+                ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+                local_dt = timezone.localtime(read_time or timezone.now(), ist_tz)
+                time_str = local_dt.strftime("%H:%M")
+                display_str = f"Today at {local_dt.strftime('%I:%M %p')} IST"
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {
+                        'type': 'chat.read_receipt',
+                        'message_id': msg_id,
+                        'reader': self.user.enrollment_number,
+                        'read_at_time': time_str,
+                        'read_at_display': display_str,
+                    }
+                )
             return
 
         # Real-time typing indicator (suppressed if user hid online status)
@@ -201,6 +208,7 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'chat.direct_message',
                     'message_id': msg.id,
+                    'temp_id': data.get('temp_id'),
                     'sender': self.user.enrollment_number,
                     'content': msg.content,
                     'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
@@ -224,10 +232,26 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+            # Background Web Push to recipient if app is closed / backgrounded
+            try:
+                from accounts.notifications import dispatch_web_push
+                dm_push_payload = {
+                    'title': f'Message from {sender_name}',
+                    'body': msg.content[:150],
+                    'url': f'/messages/{self.user.enrollment_number}/',
+                    'icon': avatar_url or '/static/img/pwa/icon-192x192.png',
+                    'badge': '/static/img/pwa/icon-192x192.png',
+                    'tag': f'dm-{self.user.id}',
+                }
+                dispatch_web_push(self.friend.id, dm_push_payload)
+            except Exception:
+                pass
+
             await self.send(text_data=json.dumps({
                 'type': 'ack',
                 'status': 'sent',
                 'message_id': msg.id,
+                'temp_id': data.get('temp_id'),
             }))
 
     # ------------------------------------------------------------------
@@ -250,6 +274,7 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'message',
             'message_id': event['message_id'],
+            'temp_id': event.get('temp_id'),
             'sender': event['sender'],
             'content': event['content'],
             'timestamp': event['timestamp'],
@@ -318,6 +343,16 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _save_direct_message(self, content: str):
         from accounts.models import DirectMessage
+        import datetime
+        # Prevent rapid duplicate creation (e.g. within 12 seconds)
+        recent = DirectMessage.objects.filter(
+            sender=self.user,
+            recipient=self.friend,
+            content=content,
+            created_at__gte=timezone.now() - datetime.timedelta(seconds=12)
+        ).first()
+        if recent:
+            return recent
         return DirectMessage.objects.create(
             sender=self.user,
             recipient=self.friend,
@@ -375,9 +410,22 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
             pass
 
     @database_sync_to_async
+    def _mark_all_messages_read(self):
+        from accounts.models import DirectMessage
+        try:
+            now = timezone.now()
+            updated = DirectMessage.objects.filter(
+                sender=self.friend,
+                recipient=self.user,
+                is_read=False,
+            ).update(is_read=True, read_at=now)
+            return now if updated else None
+        except Exception:
+            return None
+
+    @database_sync_to_async
     def _mark_message_read(self, message_id):
         from accounts.models import DirectMessage
-        from django.utils import timezone
         try:
             now = timezone.now()
             updated = DirectMessage.objects.filter(
@@ -470,7 +518,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.accept()
         try:
             from asgiref.sync import sync_to_async
-            from django.utils import timezone
             from accounts.models import User
             await sync_to_async(User.objects.filter(id=self.user.id).update)(last_seen=timezone.now())
         except Exception:

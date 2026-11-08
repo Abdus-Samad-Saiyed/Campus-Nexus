@@ -1,3 +1,4 @@
+from accounts.views import vapid_public_key_view, webpush_subscribe_view, webpush_unsubscribe_view
 """URL configuration for Campus Nexus REST API (v1)."""
 
 from django.urls import path
@@ -16,6 +17,7 @@ from .views import (
     api_ride_join,
     api_ride_leave,
     api_ride_list,
+    api_recent_notifications,
     api_root,
     api_service_detail,
 )
@@ -43,4 +45,9 @@ urlpatterns = [
     path("rides/<int:ride_id>/requests/<int:request_id>/decline/", api_ride_decline_request, name="api_ride_decline_request"),
     path("rides/<int:ride_id>/leave/", api_ride_leave, name="api_ride_leave"),
     path("my-rides/", api_my_rides, name="api_my_rides"),
+    path("notifications/recent/", api_recent_notifications, name="api_recent_notifications"),
+    # Background Web Push
+    path("notifications/push/vapid-key/", vapid_public_key_view, name="api_webpush_vapid_key"),
+    path("notifications/push/subscribe/", webpush_subscribe_view, name="api_webpush_subscribe"),
+    path("notifications/push/unsubscribe/", webpush_unsubscribe_view, name="api_webpush_unsubscribe"),
 ]

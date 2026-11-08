@@ -327,6 +327,7 @@ def update_or_record_client_request(
     received_at: float | None = None,
     path: str | None = None,
     user_type: str = "unregistered",
+    otp_info: str | None = None,
 ):
     """Update the in-flight request entry with authenticated user details from Django middleware."""
     if not client_key:
@@ -381,6 +382,8 @@ def update_or_record_client_request(
                 target_item["user_type"] = user_type
             if received_at and not target_item.get("received_at"):
                 target_item["received_at"] = received_at
+            if otp_info:
+                target_item["otp_info"] = otp_info
             target_item["ts"] = now
         else:
             queue.append({
@@ -390,6 +393,7 @@ def update_or_record_client_request(
                 "received_at": received_at or now,
                 "path": path,
                 "user_type": user_type or "unregistered",
+                "otp_info": otp_info,
                 "ts": now,
             })
 
@@ -564,7 +568,7 @@ class ClientLoggingASGIWrapper:
                 if not cached:
                     # 3. Check connection cache
                     with _REGISTRY_LOCK:
-                        cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
+                        cached = None  # Do not inherit identity across TCP keep-alive sockets
 
                 if cached:
                     enrollment = cached["enrollment"]
@@ -601,14 +605,17 @@ class ClientLoggingASGIWrapper:
                         resp_status[0] = message.get("status", 200)
                     await send(message)
                     if m_type == "http.response.body" and not message.get("more_body", False):
-                        ClientLoggingASGIWrapper._log_http_event(
-                            scope=scope,
-                            client_key=client_key,
-                            real_client=real_client,
-                            received_at=received_at,
-                            status_code=resp_status[0],
-                            auth_token=auth_token,
-                        )
+                        try:
+                            ClientLoggingASGIWrapper._log_http_event(
+                                scope=scope,
+                                client_key=client_key,
+                                real_client=real_client,
+                                received_at=received_at,
+                                status_code=resp_status[0],
+                                auth_token=auth_token,
+                            )
+                        except Exception:
+                            pass
 
                 return await self.inner(scope, receive, wrapped_send)
 
@@ -618,25 +625,31 @@ class ClientLoggingASGIWrapper:
                 async def wrapped_send(message):
                     m_type = message.get("type")
                     if m_type == "websocket.accept":
-                        ClientLoggingASGIWrapper._log_ws_event(
-                            action_name="CONNECT",
-                            path=path,
-                            client_key=client_key,
-                            real_client=real_client,
-                            status_type="connected",
-                            auth_token=auth_token,
-                            scope=scope,
-                        )
+                        try:
+                            ClientLoggingASGIWrapper._log_ws_event(
+                                action_name="CONNECT",
+                                path=path,
+                                client_key=client_key,
+                                real_client=real_client,
+                                status_type="connected",
+                                auth_token=auth_token,
+                                scope=scope,
+                            )
+                        except Exception:
+                            pass
                     elif m_type == "websocket.close":
-                        ClientLoggingASGIWrapper._log_ws_event(
-                            action_name="REJECTED",
-                            path=path,
-                            client_key=client_key,
-                            real_client=real_client,
-                            status_type="rejected",
-                            auth_token=auth_token,
-                            scope=scope,
-                        )
+                        try:
+                            ClientLoggingASGIWrapper._log_ws_event(
+                                action_name="REJECTED",
+                                path=path,
+                                client_key=client_key,
+                                real_client=real_client,
+                                status_type="rejected",
+                                auth_token=auth_token,
+                                scope=scope,
+                            )
+                        except Exception:
+                            pass
                     await send(message)
 
                 async def wrapped_receive():
@@ -683,7 +696,7 @@ class ClientLoggingASGIWrapper:
             enrollment = meta.get("enrollment", "N.A.") or "N.A."
             name = meta.get("name", "N.A.") or "N.A."
             user_type = meta.get("user_type", "unregistered")
-            display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+            display_client = (scope_ident.get("real_client") if scope_ident else None) or real_client or (meta.get("real_client") if 'meta' in locals() and isinstance(meta, dict) else None) or client_key or "127.0.0.1"
 
         if enrollment == "N.A." and auth_token:
             with _REGISTRY_LOCK:
@@ -695,14 +708,49 @@ class ClientLoggingASGIWrapper:
 
         if enrollment == "N.A." and client_key:
             with _REGISTRY_LOCK:
-                cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
+                cached = None  # Do not inherit identity across TCP keep-alive sockets
                 if cached:
                     enrollment = cached["enrollment"]
                     name = cached["name"]
                     user_type = cached.get("user_type", "unregistered")
 
-        display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
-        msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {display_client}, {enrollment}, {name}]"
+        display_client = (scope_ident.get("real_client") if scope_ident else None) or real_client or (meta.get("real_client") if 'meta' in locals() and isinstance(meta, dict) else None) or client_key or "127.0.0.1"
+
+        if os.environ.get("CONSOLE_LOG_MODE") == "descriptive":
+            from accounts.action_descriptions import format_descriptive_log_lines
+            desc_msg = format_descriptive_log_lines(
+                server_time=server_time,
+                name=name,
+                enrollment=enrollment,
+                client_ip=display_client,
+                latency_ms=duration * 1000.0,
+                path=path,
+                method=method,
+                status=status_code,
+                protocol="http",
+            )
+            if desc_msg:
+                emit_console_log(desc_msg, status_code)
+            return
+
+        otp_info = (scope_ident.get("otp_info") if scope_ident else None) or (meta.get("otp_info") if 'meta' in locals() and isinstance(meta, dict) else None)
+        if not otp_info and enrollment and enrollment != "N.A.":
+            try:
+                from accounts.two_factor import get_active_otp, can_resend_otp
+                from django.contrib.auth import get_user_model
+                u = get_user_model().objects.filter(enrollment_number=enrollment).first()
+                if u:
+                    code = get_active_otp(user=u)
+                    if code:
+                        can_r, wait_s = can_resend_otp(user=u)
+                        if not can_r:
+                            otp_info = f"[OTP: {code} (Limit: {wait_s}s)]"
+                        else:
+                            otp_info = f"[OTP: {code}]"
+            except Exception:
+                pass
+        otp_str = f" {otp_info}" if otp_info else ""
+        msg = f"[{server_time}] HTTP {method} {path} {status_code} [{duration:.2f}, {display_client}, {enrollment}, {name}]{otp_str}"
         color = get_request_color(status=status_code, path=path, user_type=user_type)
         colored_msg = colorize(msg, color)
         emit_console_log(colored_msg, status_code)
@@ -728,7 +776,7 @@ class ClientLoggingASGIWrapper:
             enrollment = meta.get("enrollment", "N.A.") or "N.A."
             name = meta.get("name", "N.A.") or "N.A."
             user_type = meta.get("user_type", "unregistered")
-            display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+            display_client = (scope_ident.get("real_client") if scope_ident else None) or real_client or (meta.get("real_client") if 'meta' in locals() and isinstance(meta, dict) else None) or client_key or "127.0.0.1"
 
         if enrollment == "N.A." and auth_token:
             with _REGISTRY_LOCK:
@@ -740,13 +788,13 @@ class ClientLoggingASGIWrapper:
 
         if enrollment == "N.A." and client_key:
             with _REGISTRY_LOCK:
-                cached = _CONNECTION_IDENTITY_CACHE.get(client_key)
+                cached = None  # Do not inherit identity across TCP keep-alive sockets
                 if cached:
                     enrollment = cached["enrollment"]
                     name = cached["name"]
                     user_type = cached.get("user_type", "unregistered")
 
-        display_client = real_client or meta.get("real_client") or client_key or "127.0.0.1"
+        display_client = (scope_ident.get("real_client") if scope_ident else None) or real_client or (meta.get("real_client") if 'meta' in locals() and isinstance(meta, dict) else None) or client_key or "127.0.0.1"
         msg = f"[{server_time}] WebSocket {action_name} {path} [{display_client}, {enrollment}, {name}]"
         status = 400 if status_type == "rejected" else 200
         color = get_request_color(status=status, path=path, user_type=user_type, action=status_type)

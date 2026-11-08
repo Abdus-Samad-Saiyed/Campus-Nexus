@@ -452,6 +452,7 @@ class Stage1WebAuthnEndpointTests(TestCase):
             public_key=self.pubkey_b64,
             name="Carol Key",
         )
+        PasskeyCredential.objects.create(user=self.user, credential_id=bytes_to_base64url(b"second_backup_key_id"), public_key=self.pubkey_b64, name="Backup Key")
 
         # Deletion without step-up -> 403
         del_fail = self.client.post(reverse("passkey_delete", args=[cred.id]))

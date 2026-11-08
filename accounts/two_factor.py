@@ -8,6 +8,7 @@ import hmac
 import json
 import logging
 import secrets
+import time
 from datetime import timedelta
 from typing import Optional, Tuple
 
@@ -25,6 +26,286 @@ logger = logging.getLogger(__name__)
 OTP_EXPIRY_SECONDS = 300       # 5 minutes
 RESEND_COOLDOWN_SECONDS = 60   # 1 minute
 MAX_ATTEMPTS = 3
+
+import threading
+_ACTIVE_OTP_LOCK = threading.Lock()
+_ACTIVE_OTP_REGISTRY = {}  # key -> (raw_code, expire_timestamp)
+
+_OTP_SEND_CIRCUIT_CACHE_KEY = 'otp_dispatch_circuit_open_until'
+_OTP_CIRCUIT_DURATION_SECONDS = 18000  # 5 hours
+
+
+def is_otp_send_circuit_open() -> bool:
+    """Check if the 5-hour OTP external dispatch circuit breaker is currently active."""
+    from django.core.cache import cache
+    until = cache.get(_OTP_SEND_CIRCUIT_CACHE_KEY)
+    if until and time.time() < until:
+        return True
+    return False
+
+
+def trip_otp_send_circuit(duration_seconds: int = _OTP_CIRCUIT_DURATION_SECONDS):
+    """Trip 5-hour circuit breaker after dispatch failure, pausing external SMS/SMTP relays."""
+    from django.core.cache import cache
+    until = time.time() + duration_seconds
+    cache.set(_OTP_SEND_CIRCUIT_CACHE_KEY, until, timeout=duration_seconds)
+    logger.warning("[OTP CIRCUIT BREAKER] Tripped for %d seconds (5 hours). External SMS/SMTP relay paused until %s.", duration_seconds, time.ctime(until))
+
+
+
+def store_active_otp(
+    raw_code: str,
+    user: User = None,
+    phone_number: str = None,
+    email: str = None,
+    purpose: str = '2FA',
+    expires_seconds: int = OTP_EXPIRY_SECONDS,
+):
+    """Cache the active plain-text OTP code across Django cache and in-memory registry.
+    Enables console printing alongside requests when OTP limits are reached.
+    """
+    from django.core.cache import cache
+    now = time.time()
+    exp_ts = now + expires_seconds
+    target_phone = normalize_phone_number(phone_number or (user.phone_number if user else None))
+    target_email = (email or (user.email if user else None) or '').strip().lower()
+
+    keys = []
+    if user:
+        if getattr(user, 'id', None):
+            keys.append(f"otp_raw:user:{user.id}:{purpose}")
+            keys.append(f"otp_raw:user:{user.id}:ANY")
+        if getattr(user, 'enrollment_number', None):
+            keys.append(f"otp_raw:enrollment:{user.enrollment_number}:{purpose}")
+            keys.append(f"otp_raw:enrollment:{user.enrollment_number}:ANY")
+    if target_phone:
+        keys.append(f"otp_raw:phone:{target_phone}:{purpose}")
+        keys.append(f"otp_raw:phone:{target_phone}:ANY")
+    if target_email:
+        keys.append(f"otp_raw:email:{target_email}:{purpose}")
+        keys.append(f"otp_raw:email:{target_email}:ANY")
+
+    with _ACTIVE_OTP_LOCK:
+        dead = [k for k, v in _ACTIVE_OTP_REGISTRY.items() if v[1] < now]
+        for k in dead:
+            _ACTIVE_OTP_REGISTRY.pop(k, None)
+        for k in keys:
+            _ACTIVE_OTP_REGISTRY[k] = (raw_code, exp_ts)
+
+    for k in keys:
+        try:
+            cache.set(k, raw_code, timeout=expires_seconds)
+        except Exception:
+            pass
+
+
+def clear_active_otp(
+    user: User = None,
+    phone_number: str = None,
+    email: str = None,
+    purpose: str = '2FA',
+):
+    """Purge active OTP from in-memory registry and Django cache upon verification or expiry."""
+    from django.core.cache import cache
+    target_phone = normalize_phone_number(phone_number or (user.phone_number if user else None))
+    target_email = (email or (user.email if user else None) or '').strip().lower()
+
+    keys = []
+    if user:
+        if getattr(user, 'id', None):
+            keys.append(f"otp_raw:user:{user.id}:{purpose}")
+            keys.append(f"otp_raw:user:{user.id}:ANY")
+        if getattr(user, 'enrollment_number', None):
+            keys.append(f"otp_raw:enrollment:{user.enrollment_number}:{purpose}")
+            keys.append(f"otp_raw:enrollment:{user.enrollment_number}:ANY")
+    if target_phone:
+        keys.append(f"otp_raw:phone:{target_phone}:{purpose}")
+        keys.append(f"otp_raw:phone:{target_phone}:ANY")
+    if target_email:
+        keys.append(f"otp_raw:email:{target_email}:{purpose}")
+        keys.append(f"otp_raw:email:{target_email}:ANY")
+
+    with _ACTIVE_OTP_LOCK:
+        for k in keys:
+            _ACTIVE_OTP_REGISTRY.pop(k, None)
+
+    for k in keys:
+        try:
+            cache.delete(k)
+        except Exception:
+            pass
+
+
+def get_active_otp(
+    user: User = None,
+    phone_number: str = None,
+    email: str = None,
+    purpose: str = '2FA',
+) -> Optional[str]:
+    """Retrieve currently active raw 6-digit OTP code for the given target and purpose.
+    Checks in-memory registry, Django cache, and performs fallback hash recovery if needed.
+    """
+    from django.core.cache import cache
+    target_phone = normalize_phone_number(phone_number or (user.phone_number if user else None))
+    target_email = (email or (user.email if user else None) or '').strip().lower()
+
+    keys = []
+    if user:
+        if getattr(user, 'id', None):
+            keys.append(f"otp_raw:user:{user.id}:{purpose}")
+            keys.append(f"otp_raw:user:{user.id}:ANY")
+        if getattr(user, 'enrollment_number', None):
+            keys.append(f"otp_raw:enrollment:{user.enrollment_number}:{purpose}")
+            keys.append(f"otp_raw:enrollment:{user.enrollment_number}:ANY")
+    if target_phone:
+        keys.append(f"otp_raw:phone:{target_phone}:{purpose}")
+        keys.append(f"otp_raw:phone:{target_phone}:ANY")
+    if target_email:
+        keys.append(f"otp_raw:email:{target_email}:{purpose}")
+        keys.append(f"otp_raw:email:{target_email}:ANY")
+
+    now = time.time()
+    # 1. Check in-memory registry
+    with _ACTIVE_OTP_LOCK:
+        for k in keys:
+            if k in _ACTIVE_OTP_REGISTRY:
+                code, exp = _ACTIVE_OTP_REGISTRY[k]
+                if exp > now:
+                    return code
+                else:
+                    _ACTIVE_OTP_REGISTRY.pop(k, None)
+
+    # 2. Check cache
+    for k in keys:
+        try:
+            code = cache.get(k)
+            if code:
+                return str(code)
+        except Exception:
+            pass
+
+    # 3. Fallback: Check PhoneOTP database record and recover 6-digit code via fast HMAC scan
+    try:
+        from django.db.models import Q
+        qs = PhoneOTP.objects.filter(purpose=purpose, is_used=False, expires_at__gt=timezone.now())
+        match_q = Q()
+        if user:
+            match_q |= Q(user=user)
+        if target_phone and target_email:
+            match_q |= (Q(phone_number=target_phone) & Q(email=target_email))
+        elif target_phone:
+            match_q |= Q(phone_number=target_phone)
+        elif target_email:
+            match_q |= Q(email=target_email)
+
+        if match_q:
+            latest = qs.filter(match_q).order_by('-created_at').first()
+            if latest:
+                salt = _get_salt()
+                target_hash = latest.otp_hash
+                for num in range(100000, 1000000):
+                    cand = str(num)
+                    if hmac.new(salt, cand.encode('utf-8'), hashlib.sha256).hexdigest() == target_hash:
+                        store_active_otp(cand, user=user, phone_number=target_phone, email=target_email, purpose=purpose)
+                        return cand
+    except Exception:
+        pass
+
+    return None
+
+
+def emit_otp_console_log(
+    raw_code: str,
+    target: Any = None,
+    purpose: str = '2FA',
+    reason: str = 'OTP LIMIT REACHED',
+    wait_seconds: int = None,
+    applicant_details: dict = None,
+):
+    """Emit high-visibility OTP assist card with applicant/user details to server console.
+    Enables platform operators to personally communicate verification codes to students.
+    """
+    if not raw_code:
+        return
+
+    import sys
+    name = ''
+    enrollment = ''
+    phone = ''
+    email = ''
+    branch = ''
+    gender = ''
+
+    if applicant_details:
+        name = applicant_details.get('name', '')
+        enrollment = applicant_details.get('enrollment', '')
+        phone = applicant_details.get('phone', '')
+        email = applicant_details.get('email', '')
+        branch = applicant_details.get('branch', '')
+        gender = applicant_details.get('gender', '')
+
+    if not name and target and hasattr(target, 'enrollment_number'):
+        first = getattr(target, 'first_name', '')
+        last = getattr(target, 'last_name', '')
+        name = f"{first} {last}".strip() or getattr(target, 'display_name', '') or getattr(target, 'username', '')
+        enrollment = target.enrollment_number
+        phone = getattr(target, 'phone_number', '') or phone
+        email = getattr(target, 'email', '') or email
+        branch = getattr(target, 'branch', '') or branch
+
+    if not phone and isinstance(target, str) and (target.startswith('+') or target.isdigit()):
+        phone = target
+    if not email and isinstance(target, str) and '@' in target:
+        email = target
+
+    purpose_labels = {
+        '2FA': 'Student Sign-In / 2FA Verification',
+        'SIGNUP': 'Apply for Permanent Verified Student Account',
+        'SECURITY_CHANGE': 'Profile Security Settings Step-Up',
+        'PASSWORD_RESET': 'Student Password Recovery',
+    }
+    action_label = purpose_labels.get(purpose, purpose)
+
+    card = [
+        "[1;33;40m" + "=" * 78,
+        "  [CAMPUS NEXUS OTP ASSIST CARD — DIRECT OPERATOR DISPATCH]",
+        "=" * 78,
+        f"  Action / Purpose:   {action_label}",
+        f"  ACTIVE OTP CODE:    >>> {raw_code} <<<  (Valid for 5 Hours)",
+        f"  Trigger Reason:     {reason}",
+    ]
+    if wait_seconds is not None:
+        card.append(f"  Resend Cooldown:    {wait_seconds} seconds")
+
+    card.append("  ----------------------------------------------------------------------------")
+    card.append("  STUDENT / APPLICANT CONTACT & IDENTIFIER DETAILS:")
+    if name:
+        card.append(f"    * Full Name:      {name}")
+    if enrollment:
+        card.append(f"    * Enrollment No:  {enrollment}")
+    if phone:
+        card.append(f"    * Phone Number:   {phone}")
+    if email:
+        card.append(f"    * Email Address:  {email}")
+    if branch:
+        card.append(f"    * Branch / Dept:  {branch}")
+    if gender:
+        card.append(f"    * Gender:         {gender}")
+
+    card.append("  ----------------------------------------------------------------------------")
+    card.append("  OPERATOR NOTE: External SMS/Email relay paused for 5 hours due to limits.")
+    card.append("  You can personally provide this OTP to the student via WhatsApp, Call, or Desk.")
+    card.append("=" * 78 + "[0m")
+
+    output_card = chr(10).join(card)
+    channels_logger = logging.getLogger("django.channels.server")
+    channels_logger.warning(output_card)
+
+    try:
+        sys.stdout.write(chr(10) + output_card + chr(10) + chr(10))
+        sys.stdout.flush()
+    except Exception:
+        pass
 
 
 def clean_person_name(name: str) -> str:
@@ -131,12 +412,21 @@ def dispatch_sms(phone_number: str, message: str) -> bool:
     return False
 
 
+_SMTP_CIRCUIT_OPEN_UNTIL = 0.0
+
 def dispatch_email_otp(email: str, code: str, purpose: str = '2FA', user: User = None) -> bool:
     """
     Dispatch MIME / SMTP multipart email containing the single-use OTP.
     Works natively across dev and production via standard SMTP with zero telecom registration required.
+    Includes fast-failing circuit breaker to prevent UI thread lockups when SMTP relays exceed daily quotas.
     """
+    global _SMTP_CIRCUIT_OPEN_UNTIL
     if not email or '@' not in email:
+        return False
+
+    now_ts = time.time()
+    if now_ts < _SMTP_CIRCUIT_OPEN_UNTIL:
+        logger.warning("[SMTP CIRCUIT OPEN] Daily quota/limit active. Fast-failing email dispatch for %s.", email)
         return False
 
     from django.core.mail import EmailMultiAlternatives
@@ -202,6 +492,10 @@ def dispatch_email_otp(email: str, code: str, purpose: str = '2FA', user: User =
             print(f"\n=======================================================\n[EMAIL DISPATCH] To: {email}\nSubject: {subject}\nCode: {code}\n=======================================================\n")
         return True
     except Exception as exc:
+        exc_str = str(exc)
+        if any(term in exc_str for term in ['550', '5.4.5', 'Daily user sending limit', 'limit exceeded', 'quota']):
+            _SMTP_CIRCUIT_OPEN_UNTIL = time.time() + 1800.0  # 30-minute fast-fail circuit
+            logger.warning("[SMTP CIRCUIT TRIP] Detected daily sending limit (%s). Tripping circuit breaker for 30m.", exc)
         logger.error("Failed to dispatch email OTP to %s: %s", email, exc)
         return False
 
@@ -211,15 +505,18 @@ def create_phone_otp(
     phone_number: str = None,
     email: str = None,
     purpose: str = '2FA',
+    applicant_details: dict = None,
 ) -> Tuple[PhoneOTP, str]:
     """
     Generate a cryptographically secure 6-digit OTP for the user, phone number, and/or email.
-    Dispatches to both SMS carrier and MIME/SMTP email channels simultaneously.
-    Invalidates any existing unused OTPs for the same target and purpose to prevent replay attacks.
+    If external dispatch has failed within the last 5 hours, the circuit breaker bypasses
+    external carrier/SMTP dispatch, sets OTP validity to 5 hours, and outputs a rich assist
+    card to the server console.
     Returns (PhoneOTP instance, raw_code).
     """
     target_phone = normalize_phone_number(phone_number or (user.phone_number if user else None))
     target_email = (email or (user.email if user else None) or '').strip().lower()
+
     if not target_phone and not target_email:
         raise ValueError("Phone number or email required to dispatch OTP.")
 
@@ -238,6 +535,10 @@ def create_phone_otp(
     if target_q:
         PhoneOTP.objects.filter(inval_q & target_q).update(is_used=True)
 
+    # Check 5-hour circuit breaker
+    circuit_open = is_otp_send_circuit_open()
+    validity_seconds = _OTP_CIRCUIT_DURATION_SECONDS if circuit_open else OTP_EXPIRY_SECONDS
+
     # Cryptographically secure 6-digit code: 100000 - 999999
     raw_code = str(secrets.randbelow(900000) + 100000)
     otp_hash = hash_otp(raw_code)
@@ -249,22 +550,39 @@ def create_phone_otp(
         otp_hash=otp_hash,
         phone_number=target_phone or '',
         email=target_email or '',
-        expires_at=now + timedelta(seconds=OTP_EXPIRY_SECONDS),
+        expires_at=now + timedelta(seconds=validity_seconds),
         attempts_left=MAX_ATTEMPTS,
         is_used=False,
     )
 
     ident = user.enrollment_number if user else (target_phone or target_email)
-    logger.info("OTP (%s) generated for %s", purpose, ident)
+    logger.info("OTP (%s) generated for %s (validity: %ds)", purpose, ident, validity_seconds)
+    store_active_otp(raw_code, user=user, phone_number=target_phone, email=target_email, purpose=purpose, expires_seconds=validity_seconds)
+
+    sms_sent = False
+    email_sent = False
+
+    if circuit_open:
+        # 5-hour circuit breaker is active: do NOT attempt SMS or SMTP dispatch
+        logger.info("[OTP CIRCUIT OPEN] Bypassing external dispatch for %s. Valid for 5 hours.", ident)
+        otp.sms_sent = False
+        otp.email_sent = False
+        otp.any_delivered = False
+        emit_otp_console_log(
+            raw_code,
+            target=user or target_phone or target_email,
+            purpose=purpose,
+            reason="5-HOUR CIRCUIT BREAKER ACTIVE (Relay paused; assist student directly)",
+            applicant_details=applicant_details,
+        )
+        return otp, raw_code
 
     # 1. Dispatch SMS
-    sms_sent = False
     if target_phone:
         sms_text = f"Your Campus Nexus verification code is {raw_code}. Valid for 5 minutes."
         sms_sent = dispatch_sms(target_phone, sms_text)
 
     # 2. Dispatch MIME / SMTP Email
-    email_sent = False
     if target_email:
         email_sent = dispatch_email_otp(target_email, raw_code, purpose=purpose, user=user)
 
@@ -273,9 +591,19 @@ def create_phone_otp(
     otp.email_sent = email_sent
     otp.any_delivered = bool(sms_sent or email_sent)
 
-    # Purge undelivered OTP rows so failed deliveries do not block cooldowns
+    # If dispatch failed, trip the 5-hour circuit breaker immediately!
     if not otp.any_delivered:
-        otp.delete()
+        trip_otp_send_circuit(_OTP_CIRCUIT_DURATION_SECONDS)
+        otp.expires_at = timezone.now() + timedelta(seconds=_OTP_CIRCUIT_DURATION_SECONDS)
+        otp.save(update_fields=['expires_at'])
+        store_active_otp(raw_code, user=user, phone_number=target_phone, email=target_email, purpose=purpose, expires_seconds=_OTP_CIRCUIT_DURATION_SECONDS)
+        emit_otp_console_log(
+            raw_code,
+            target=user or target_phone or target_email,
+            purpose=purpose,
+            reason="DISPATCH LIMIT/FAILURE (Tripped 5-hour circuit breaker; valid for 5h)",
+            applicant_details=applicant_details,
+        )
 
     return otp, raw_code
 
@@ -308,7 +636,17 @@ def can_resend_otp(user: User = None, phone_number: str = None, email: str = Non
     cooldown = 5 if getattr(settings, 'DEBUG', False) else RESEND_COOLDOWN_SECONDS
     elapsed = (timezone.now() - latest.created_at).total_seconds()
     if elapsed < cooldown:
-        return False, max(1, int(cooldown - elapsed))
+        wait_sec = max(1, int(cooldown - elapsed))
+        active_code = get_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
+        if active_code:
+            emit_otp_console_log(
+                raw_code=active_code,
+                target=user or target_phone or target_email,
+                purpose=purpose,
+                reason="RESEND COOLDOWN LIMIT REACHED",
+                wait_seconds=wait_sec,
+            )
+        return False, wait_sec
     return True, 0
 
 
@@ -358,18 +696,33 @@ def verify_phone_otp(
 
         otp = qs.order_by('-created_at').first()
         if not otp:
+            # Check if there is an existing OTP record that was already consumed or exhausted
+            latest_any = PhoneOTP.objects.filter(purpose=purpose).filter(match_q).order_by('-created_at').first()
+            if latest_any and (latest_any.is_used or latest_any.attempts_left <= 0):
+                clear_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
+                if latest_any.attempts_left <= 0:
+                    return False, "Maximum verification attempts exceeded. Please request a new code."
+                return False, "This verification code has already been used. Please request a new code."
+
+            # Dual-layer safety: check active code in cache / memory if DB row was pruned or missing
+            active_code = get_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
+            if active_code and hmac.compare_digest(active_code, code):
+                clear_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
+                return True, "Verification successful."
             return False, "No active verification code found. Please request a new one."
 
         # Check expiration
         if timezone.now() > otp.expires_at:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
+            clear_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
             return False, "Verification code has expired. Please request a new code."
 
         # Check remaining attempts
         if otp.attempts_left <= 0:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
+            clear_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
             return False, "Maximum verification attempts exceeded. Please request a new code."
 
         # Constant-time comparison
@@ -377,6 +730,7 @@ def verify_phone_otp(
         if hmac.compare_digest(otp.otp_hash, computed_hash):
             otp.is_used = True
             otp.save(update_fields=['is_used'])
+            clear_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
             return True, "Verification successful."
 
         # Failed attempt: atomically decrement remaining attempts
@@ -387,6 +741,7 @@ def verify_phone_otp(
         if otp.attempts_left <= 0:
             otp.is_used = True
             otp.save(update_fields=['is_used'])
+            clear_active_otp(user=user, phone_number=target_phone, email=target_email, purpose=purpose)
             return False, "Invalid verification code. Maximum attempts exceeded. Please request a new code."
 
         return False, f"Invalid verification code. {otp.attempts_left} attempt(s) remaining."
@@ -478,11 +833,26 @@ def verify_passkey_assertion(
     Requires complete cryptographic assertion with signature verification.
     """
     if full_credential:
-        credential_id = full_credential.get('id') or credential_id
-        if 'response' in full_credential:
-            client_data_json_b64 = full_credential['response'].get('clientDataJSON') or client_data_json_b64
-            authenticator_data_b64 = full_credential['response'].get('authenticatorData') or authenticator_data_b64
-            signature = full_credential['response'].get('signature') or signature
+        import webauthn.helpers
+        credential_id = full_credential.get('id') or full_credential.get('credential_id') or credential_id
+        raw_id_candidate = full_credential.get('rawId') or full_credential.get('raw_id') or full_credential.get('id') or credential_id
+        if isinstance(raw_id_candidate, bytes):
+            raw_id_candidate = webauthn.helpers.bytes_to_base64url(raw_id_candidate)
+        full_credential['rawId'] = str(raw_id_candidate) if raw_id_candidate else str(credential_id)
+
+        id_candidate = full_credential.get('id') or credential_id or full_credential['rawId']
+        if isinstance(id_candidate, bytes):
+            id_candidate = webauthn.helpers.bytes_to_base64url(id_candidate)
+        full_credential['id'] = str(id_candidate) if id_candidate else str(credential_id)
+        full_credential['type'] = 'public-key'
+
+        if 'response' in full_credential and isinstance(full_credential['response'], dict):
+            resp = full_credential['response']
+            client_data_json_b64 = resp.get('clientDataJSON') or client_data_json_b64
+            authenticator_data_b64 = resp.get('authenticatorData') or authenticator_data_b64
+            signature = resp.get('signature') or signature
+            if not resp.get('userHandle'):
+                resp.pop('userHandle', None)
 
     if not credential_id or not client_data_json_b64 or not session_challenge:
         return False, "Missing cryptographic assertion payload."
@@ -517,6 +887,12 @@ def verify_passkey_assertion(
 
     try:
         import webauthn
+        if not full_credential.get('rawId'):
+            full_credential['rawId'] = str(credential_id)
+        if not full_credential.get('id'):
+            full_credential['id'] = str(credential_id)
+        if not full_credential.get('type'):
+            full_credential['type'] = 'public-key'
         parsed_cred = webauthn.helpers.parse_authentication_credential_json(json.dumps(full_credential))
         expected_challenge_bytes = webauthn.helpers.base64url_to_bytes(session_challenge)
         pubkey_bytes = webauthn.helpers.base64url_to_bytes(credential.public_key)

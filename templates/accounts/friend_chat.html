@@ -227,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function updateChatHeight() {
             const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
             document.documentElement.style.setProperty('--chat-vh', `${vh}px`);
+            document.body.style.height = `${vh}px`;
             scrollToBottom();
         }
 
@@ -238,6 +239,15 @@ document.addEventListener('DOMContentLoaded', function () {
         updateChatHeight();
     }
     setupViewportTracking();
+
+    if (chatInput) {
+        chatInput.addEventListener('focus', function() {
+            setTimeout(function() {
+                chatInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                scrollToBottom();
+            }, 150);
+        });
+    }
 
     // Immediate active focus on input box
     if (chatInput) {
@@ -260,6 +270,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let socket = null;
     let typingTimeout = null;
+    let isSubmitting = false;
+    const pendingMessages = new Map(); // tempId -> element
+
+    function reconcilePendingMessage(messageId, tempId) {
+        let pendingEl = null;
+        if (tempId && pendingMessages.has(tempId)) {
+            pendingEl = pendingMessages.get(tempId);
+            pendingMessages.delete(tempId);
+        } else if (pendingMessages.size > 0) {
+            for (let [tId, el] of pendingMessages.entries()) {
+                pendingEl = el;
+                pendingMessages.delete(tId);
+                break;
+            }
+        }
+        if (pendingEl) {
+            pendingEl.setAttribute('data-message-id', messageId);
+            pendingEl.classList.remove('message-pending');
+            const receipt = pendingEl.querySelector('.read-receipt');
+            if (receipt) {
+                receipt.id = `dm-receipt-${messageId}`;
+                receipt.innerHTML = '<i class="bi bi-check2 text-secondary"></i>';
+                receipt.title = 'Sent';
+            }
+            return pendingEl;
+        }
+        return null;
+    }
 
     function connectSocket() {
         socket = new WebSocket(wsUrl);
@@ -267,22 +305,27 @@ document.addEventListener('DOMContentLoaded', function () {
         socket.onopen = function () {
             // Announce presence
             socket.send(JSON.stringify({ type: 'presence', status: 'online' }));
-            // Mark all existing incoming messages as read
-            document.querySelectorAll('.message-other[data-message-id]').forEach(el => {
-                const mid = el.getAttribute('data-message-id');
-                if (mid) {
-                    socket.send(JSON.stringify({ type: 'mark_read', message_id: parseInt(mid, 10) }));
-                }
-            });
+            // Mark all existing incoming messages as read in one batch
+            socket.send(JSON.stringify({ type: 'mark_all_read' }));
         };
+
+
 
         socket.onmessage = function (e) {
             try {
                 const data = JSON.parse(e.data);
                 if (data.type === 'message') {
-                    appendDirectMessage(data.sender, data.content, data.timestamp, data.is_self, data.message_id);
-                    if (!data.is_self && socket && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({ type: 'mark_read', message_id: data.message_id }));
+                    if (data.is_self) {
+                        reconcilePendingMessage(data.message_id, data.temp_id);
+                    } else {
+                        appendDirectMessage(data.sender, data.content, data.timestamp, data.is_self, data.message_id);
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({ type: 'mark_read', message_id: data.message_id }));
+                        }
+                    }
+                } else if (data.type === 'ack') {
+                    if (data.message_id) {
+                        reconcilePendingMessage(data.message_id, data.temp_id);
                     }
                 } else if (data.type === 'read_receipt') {
                     const receiptEl = document.getElementById(`dm-receipt-${data.message_id}`);
@@ -341,20 +384,50 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (btn) btn.disabled = true;
                 return;
             }
-            setTimeout(connectSocket, 3000);
+            setTimeout(connectSocket, 2500);
         };
     }
 
     connectSocket();
 
-    function appendDirectMessage(sender, content, timestamp, isSelf, messageId) {
+    function appendDirectMessage(sender, content, timestamp, isSelf, messageId, tempId) {
         const emptyNotice = document.getElementById('empty-direct-chat-notice');
         if (emptyNotice) emptyNotice.remove();
 
+        // Prevent duplicate rendering if already in DOM
+        if (messageId && document.querySelector(`.message-item[data-message-id="${messageId}"]`)) {
+            return document.querySelector(`.message-item[data-message-id="${messageId}"]`);
+        }
+
+        // If self and already rendered optimistically, match and update the message
+        if (isSelf && messageId) {
+            if (tempId && pendingMessages.has(tempId)) {
+                return reconcilePendingMessage(messageId, tempId);
+            }
+            for (let [tId, pendingEl] of pendingMessages.entries()) {
+                const bubble = pendingEl.querySelector('.message-bubble');
+                if (bubble && bubble.textContent.trim() === content.trim()) {
+                    pendingEl.setAttribute('data-message-id', messageId);
+                    pendingEl.classList.remove('message-pending');
+                    const receipt = pendingEl.querySelector('.read-receipt');
+                    if (receipt) {
+                        receipt.id = `dm-receipt-${messageId}`;
+                        receipt.innerHTML = '<i class="bi bi-check2 text-secondary"></i>';
+                        receipt.title = 'Sent';
+                    }
+                    pendingMessages.delete(tId);
+                    return pendingEl;
+                }
+            }
+        }
+
         const msgDiv = document.createElement('div');
-        msgDiv.className = `message-item ${isSelf ? 'message-self' : 'message-other'}`;
+        msgDiv.className = `message-item ${isSelf ? 'message-self' : 'message-other'} ${tempId ? 'message-pending' : ''}`;
         if (messageId) {
             msgDiv.setAttribute('data-message-id', messageId);
+        }
+        if (tempId) {
+            msgDiv.setAttribute('data-temp-id', tempId);
         }
 
         const authorDiv = document.createElement('div');
@@ -371,12 +444,12 @@ document.addEventListener('DOMContentLoaded', function () {
         spanTime.textContent = timestamp;
         timeDiv.appendChild(spanTime);
 
-        if (isSelf && messageId) {
+        if (isSelf) {
             const receiptSpan = document.createElement('span');
-            receiptSpan.id = `dm-receipt-${messageId}`;
+            receiptSpan.id = messageId ? `dm-receipt-${messageId}` : `dm-receipt-temp-${Date.now()}`;
             receiptSpan.className = 'read-receipt ms-1';
-            receiptSpan.title = 'Sent';
-            receiptSpan.innerHTML = '<i class="bi bi-check2 text-secondary"></i>';
+            receiptSpan.title = tempId ? 'Sending...' : 'Sent';
+            receiptSpan.innerHTML = tempId ? '<i class="bi bi-clock text-secondary opacity-75"></i>' : '<i class="bi bi-check2 text-secondary"></i>';
             timeDiv.appendChild(receiptSpan);
         }
 
@@ -385,6 +458,103 @@ document.addEventListener('DOMContentLoaded', function () {
         msgDiv.appendChild(timeDiv);
         messagesContainer.appendChild(msgDiv);
         scrollToBottom();
+        return msgDiv;
+    }
+
+    function handleSendMessage(e) {
+        if (e) e.preventDefault();
+        if (isSubmitting) return;
+
+        const text = (chatInput.value || '').trim();
+        if (!text) return;
+
+        isSubmitting = true;
+        const submitBtn = chatForm ? chatForm.querySelector('button[type="submit"]') : null;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+        }
+
+        const tempId = 'temp-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        // 1. Optimistic rendering: Message instantly displays in the chat window
+        const msgEl = appendDirectMessage('You', text, timeStr, true, null, tempId);
+        if (msgEl) {
+            pendingMessages.set(tempId, msgEl);
+        }
+
+        // Instantly clear the input field and maintain focus
+        chatInput.value = '';
+        chatInput.focus();
+
+        function sendViaAjax(contentStr, pendingTempId, fallbackEl) {
+            const formData = new FormData(chatForm);
+            formData.set('content', contentStr);
+            fetch(chatForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            }).then(r => {
+                if (!r.ok) {
+                    throw new Error(`HTTP ${r.status}`);
+                }
+                return r.json();
+            }).then(data => {
+                if (data && data.status === 'success') {
+                    if (data.message_id) {
+                        reconcilePendingMessage(data.message_id, pendingTempId);
+                    }
+                } else {
+                    throw new Error(data && data.error ? data.error : 'Failed to deliver message');
+                }
+            }).catch(err => {
+                console.error('AJAX send error:', err);
+                const receipt = fallbackEl ? fallbackEl.querySelector('.read-receipt') : null;
+                if (receipt && pendingMessages.has(pendingTempId)) {
+                    receipt.innerHTML = '<i class="bi bi-exclamation-circle text-danger" title="Delivery failed"></i>';
+                }
+            }).finally(() => {
+                isSubmitting = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                }
+            });
+        }
+
+        // 2. If WebSocket is connected, send it over WebSocket with fast ACK + 3s AJAX watchdog
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                type: 'message',
+                content: text,
+                temp_id: tempId,
+            }));
+            socket.send(JSON.stringify({ type: 'typing', is_typing: false }));
+
+            // 3-second watchdog timer: if no ack arrived, auto-fallback to AJAX
+            setTimeout(function() {
+                if (pendingMessages.has(tempId)) {
+                    console.warn('Direct chat WebSocket ack timed out; triggering AJAX fallback');
+                    sendViaAjax(text, tempId, msgEl);
+                }
+            }, 3000);
+
+            setTimeout(function() {
+                isSubmitting = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                }
+            }, 350);
+        } else {
+            // 3. Fast asynchronous AJAX fallback without full page reload or freezes
+            sendViaAjax(text, tempId, msgEl);
+        }
     }
 
     // Typing throttle handler
@@ -400,30 +570,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 }, 1500);
             }
         });
+
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(e);
+            }
+        });
     }
 
     if (chatForm) {
-        chatForm.addEventListener('submit', function (e) {
-            const text = (chatInput.value || '').trim();
-            if (!text) {
-                e.preventDefault();
-                return;
-            }
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                e.preventDefault();
-                socket.send(JSON.stringify({
-                    type: 'message',
-                    content: text,
-                }));
-                // Reset input and immediately maintain active focus
-                chatInput.value = '';
-                chatInput.focus();
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ type: 'typing', is_typing: false }));
-                }
-            }
-            // If WebSocket is not ready, lets standard HTTP POST proceed
-        });
+        chatForm.addEventListener('submit', handleSendMessage);
     }
 });
 </script>
