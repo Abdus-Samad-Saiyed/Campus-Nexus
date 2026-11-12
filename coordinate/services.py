@@ -196,6 +196,8 @@ def request_to_join_ride(
                 badge='Join Request',
                 badge_class='bg-warning-subtle text-warning border border-warning-subtle',
                 icon='bi-car-front-fill',
+                tag=f'rjr-{join_req.id}',
+                notif_id=f'rjr_{join_req.id}',
             )
         except Exception:
             pass
@@ -302,6 +304,8 @@ def approve_ride_join_request(
                 badge='Request Approved',
                 badge_class='bg-success-subtle text-success border border-success-subtle',
                 icon='bi-check-circle-fill',
+                tag=f'rjr-app-{join_req.id}',
+                notif_id=f'rjr_app_{join_req.id}',
             )
         except Exception:
             pass
@@ -358,6 +362,8 @@ def decline_ride_join_request(
                 badge='Request Declined',
                 badge_class='bg-danger-subtle text-danger border border-danger-subtle',
                 icon='bi-x-circle-fill',
+                tag=f'rjr-dec-{join_req.id}',
+                notif_id=f'rjr_dec_{join_req.id}',
             )
         except Exception:
             pass
@@ -428,6 +434,8 @@ def promote_waitlist_passenger(ride: RideRequest) -> Optional[User]:
                     badge='Promoted from Standby',
                     badge_class='bg-success-subtle text-success border border-success-subtle',
                     icon='bi-arrow-up-circle-fill',
+                    tag=f'standby-{ride.id}-{candidate.id}',
+                    notif_id=f'standby_{ride.id}_{candidate.id}',
                 )
             except Exception:
                 pass
@@ -486,6 +494,8 @@ def leave_ride_service(ride_id: int, user: User) -> Tuple[bool, str, Dict[str, A
                     badge='Passenger Left',
                     badge_class='bg-warning-subtle text-warning border border-warning-subtle',
                     icon='bi-person-dash-fill',
+                    tag=f'ride-left-{ride.id}-{user.id}',
+                    notif_id=f'ride_left_{ride.id}_{user.id}',
                 )
         except Exception:
             pass
@@ -548,6 +558,8 @@ def kick_passenger_service(ride_id: int, host_user: User, passenger_user: User) 
                 badge='Removed from Ride',
                 badge_class='bg-danger-subtle text-danger border border-danger-subtle',
                 icon='bi-person-dash-fill',
+                tag=f'ride-kick-{ride.id}-{passenger_user.id}',
+                notif_id=f'ride_kick_{ride.id}_{passenger_user.id}',
             )
         except Exception:
             pass
@@ -617,6 +629,8 @@ def cancel_ride_service(ride_id: int, host_user: User) -> Tuple[bool, str]:
                         badge='Ride Cancelled',
                         badge_class='bg-danger-subtle text-danger border border-danger-subtle',
                         icon='bi-x-circle-fill',
+                        tag=f'ride-cancel-{ride.id}',
+                        notif_id=f'ride_cancel_{ride.id}',
                     )
         except Exception:
             pass
@@ -730,6 +744,25 @@ def alter_ride_capacity_service(
                 revoke_ride_consent(ride, passenger_user)
                 ride.kicked_users.add(passenger_user)
                 kicked_enrollments.append(passenger_user.enrollment_number)
+
+                # Notify passenger via WebSocket + WebPush
+                try:
+                    from accounts.notifications import send_user_notification
+                    send_user_notification(
+                        user_id=passenger_user.id,
+                        title='Removed from Ride',
+                        content=f'You were removed from ride ({ride.route_display}) due to host capacity reduction.',
+                        url='/coordinate/',
+                        category='ride_kicked',
+                        sender_user=host_user,
+                        badge='Capacity Reduction',
+                        badge_class='bg-danger-subtle text-danger border border-danger-subtle',
+                        icon='bi-person-dash-fill',
+                        tag=f'ride-kick-{ride.id}-{passenger_user.id}',
+                        notif_id=f'ride_kick_{ride.id}_{passenger_user.id}',
+                    )
+                except Exception:
+                    pass
 
                 # WebSocket kick notice
                 try:

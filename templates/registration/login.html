@@ -6,7 +6,7 @@
 <style>
     .auth-card {
         border-radius: 20px;
-        background: linear-gradient(145deg, rgba(14, 23, 18, 0.90) 0%, rgba(10, 16, 12, 0.96) 100%);
+        background: linear-gradient(145deg, var(--glass-bg, rgba(14, 23, 18, 0.90)) 0%, var(--surface-solid, #0c1611) 100%);
         border: 1.5px solid var(--border, rgba(255, 255, 255, 0.1));
         box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 28px var(--green-glow, rgba(8, 183, 79, 0.12));
         backdrop-filter: blur(16px);
@@ -21,14 +21,14 @@
     }
 
     .auth-security-tip {
-        background: rgba(8, 183, 79, 0.07);
-        border: 1px solid rgba(8, 183, 79, 0.22);
+        background: var(--green-dim, rgba(8, 183, 79, 0.07));
+        border: 1px solid var(--glass-border, rgba(8, 183, 79, 0.22));
     }
 
     [data-bs-theme="light"] .auth-security-tip,
     [data-theme="light"] .auth-security-tip {
-        background: rgba(5, 150, 73, 0.06) !important;
-        border-color: rgba(5, 150, 73, 0.25) !important;
+        background: var(--green-dim, rgba(5, 150, 73, 0.06)) !important;
+        border-color: var(--glass-border, rgba(5, 150, 73, 0.25)) !important;
     }
 
     .auth-input-wrapper {
@@ -37,7 +37,7 @@
         align-items: stretch;
         border-radius: 12px;
         border: 1.5px solid var(--border, rgba(255, 255, 255, 0.14));
-        background: rgba(12, 20, 15, 0.82);
+        background: var(--input-bg, rgba(12, 20, 15, 0.82));
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         overflow: hidden;
     }
@@ -51,7 +51,7 @@
     .auth-input-wrapper:focus-within {
         border-color: var(--green, #08B74F) !important;
         box-shadow: 0 0 0 3.5px var(--green-glow, rgba(8, 183, 79, 0.24)), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
-        background: rgba(15, 26, 19, 0.96);
+        background: var(--input-bg-focus, rgba(15, 26, 19, 0.96));
     }
 
     [data-bs-theme="light"] .auth-input-wrapper:focus-within,
@@ -164,7 +164,7 @@
                 <!-- 2-Week Downloaded App Passkey Fast Sign-In Card -->
                 {% if remembered_user and has_app_passkey %}
                     <div id="app-passkey-container" class="mb-4">
-                        <div class="glass p-4 text-center border-success" style="background: rgba(8, 183, 79, 0.08); border: 1.5px solid var(--green,#08B74F); box-shadow: 0 0 25px rgba(8, 183, 79, 0.15); border-radius: 16px;">
+                        <div class="glass p-4 text-center border-success" style="background: var(--green-dim, rgba(8, 183, 79, 0.08)); border: 1.5px solid var(--green,#08B74F); box-shadow: 0 0 25px var(--green-glow, rgba(8, 183, 79, 0.15)); border-radius: 16px;">
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small fw-semibold mb-3">
                                 <i class="bi bi-shield-check me-1"></i> Downloaded App &middot; 2-Week Session
                             </span>
@@ -200,7 +200,7 @@
                     </div>
                 {% else %}
                     <div id="app-passkey-container" class="d-none mb-4">
-                        <div class="glass p-4 text-center border-success" style="background: rgba(8, 183, 79, 0.08); border: 1.5px solid var(--green,#08B74F); box-shadow: 0 0 25px rgba(8, 183, 79, 0.15); border-radius: 16px;">
+                        <div class="glass p-4 text-center border-success" style="background: var(--green-dim, rgba(8, 183, 79, 0.08)); border: 1.5px solid var(--green,#08B74F); box-shadow: 0 0 25px var(--green-glow, rgba(8, 183, 79, 0.15)); border-radius: 16px;">
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small fw-semibold mb-3">
                                 <i class="bi bi-shield-check me-1"></i> Downloaded App &middot; 2-Week Session
                             </span>

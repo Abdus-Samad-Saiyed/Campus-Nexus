@@ -898,6 +898,63 @@ def admin_announcements_view(request: HttpRequest) -> HttpResponse:
     })
 
 
+def dispatch_announcement_notifications(announcement: Announcement) -> int:
+    """Dispatch WebSocket + high-urgency WebPush notifications for a newly created announcement."""
+    if not announcement or not announcement.is_active:
+        return 0
+
+    from accounts.notifications import send_user_notification
+
+    if announcement.priority == 'CRITICAL':
+        badge = 'CRITICAL ANNOUNCEMENT'
+        badge_class = 'bg-danger-subtle text-danger border border-danger-subtle'
+        icon = 'bi-exclamation-octagon-fill'
+    elif announcement.priority == 'WARNING':
+        badge = 'IMPORTANT NOTICE'
+        badge_class = 'bg-warning-subtle text-warning border border-warning-subtle'
+        icon = 'bi-exclamation-triangle-fill'
+    else:
+        badge = 'CAMPUS ANNOUNCEMENT'
+        badge_class = 'bg-primary-subtle text-primary border border-primary-subtle'
+        icon = 'bi-megaphone-fill'
+
+    action_url = (announcement.action_url or '').strip()
+    target_url = action_url if action_url.startswith('/') else '/dashboard/'
+
+    if announcement.target_type == 'INDIVIDUAL':
+        target_user_ids = list(
+            announcement.target_users
+            .filter(is_active=True, is_deleted=False)
+            .exclude(enrollment_number='GUEST_DEMO')
+            .values_list('id', flat=True)
+        )
+    else:
+        candidates = (
+            User.objects
+            .filter(is_active=True, is_deleted=False)
+            .exclude(enrollment_number='GUEST_DEMO')
+        )
+        target_user_ids = [u.id for u in candidates if announcement.is_user_targeted(u)]
+
+    sent_count = 0
+    for uid in target_user_ids:
+        if send_user_notification(
+            user_id=uid,
+            title=announcement.title,
+            content=(announcement.content or '')[:180],
+            url=target_url,
+            category='announcement',
+            sender_user=announcement.created_by,
+            badge=badge,
+            badge_class=badge_class,
+            icon=icon,
+            tag=f'ann-{announcement.id}',
+            notif_id=f'ann_{announcement.id}',
+        ):
+            sent_count += 1
+    return sent_count
+
+
 @login_required
 @user_passes_test(_is_staff_or_superuser)
 def admin_create_announcement(request: HttpRequest) -> HttpResponse:
@@ -963,6 +1020,22 @@ def admin_create_announcement(request: HttpRequest) -> HttpResponse:
                 Q(enrollment_number__in=tokens) | Q(id__in=[t for t in tokens if t.isdigit()])
             )
             announcement.target_users.set(matched_users)
+
+        from accounts.utils import is_test_environment
+        def _dispatch_ann():
+            from django.db import close_old_connections
+            try:
+                dispatch_announcement_notifications(announcement)
+            except Exception:
+                pass
+            finally:
+                if not is_test_environment():
+                    close_old_connections()
+
+        if is_test_environment():
+            _dispatch_ann()
+        else:
+            threading.Thread(target=_dispatch_ann, daemon=True, name=f'ann-notif-{announcement.id}').start()
 
         log_audit_event(
             event_type='ANNOUNCEMENT_CREATED',

@@ -52,3 +52,14 @@ SECURE_HSTS_SECONDS = 0
 
 VAPID_PUBLIC_KEY = 'test_vapid_public_key_mock_12345678901234567890'
 VAPID_PRIVATE_KEY = 'test_vapid_private_key_mock_12345678901234567890'
+
+# Fail-safe guard: never allow automated tests to mutate live PostgreSQL or production MEDIA_ROOT
+if os.environ.get('ALLOW_POSTGRES_TESTS', '').lower() not in ('1', 'true', 'yes'):
+    for _db_alias, _db_cfg in DATABASES.items():
+        if 'postgres' in str(_db_cfg.get('ENGINE', '')).lower():
+            raise RuntimeError(
+                f"Blocked test execution against PostgreSQL database alias '{_db_alias}'. "
+                "Set ALLOW_POSTGRES_TESTS=1 only when explicitly targeting a dedicated test database."
+            )
+    if Path(MEDIA_ROOT).resolve() == (BASE_DIR / 'media').resolve():
+        raise RuntimeError("Blocked test execution against production MEDIA_ROOT.")

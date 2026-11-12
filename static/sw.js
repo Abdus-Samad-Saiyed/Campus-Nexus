@@ -1,12 +1,11 @@
 // Campus Nexus - Progressive Web App Service Worker
 // Provides Network-First navigation with offline fallback, asset caching, and Web Push notifications
 
-const CACHE_NAME = 'campus-nexus-v1';
+const CACHE_NAME = 'campus-nexus-v2';
 const PRECACHE_URLS = [
     '/offline/',
     '/static/img/pwa/icon-192x192.png',
-    '/static/img/pwa/icon-512x512.png',
-    '/manifest.json'
+    '/static/img/pwa/icon-512x512.png'
 ];
 
 self.addEventListener('install', function(event) {
@@ -31,6 +30,22 @@ self.addEventListener('activate', function(event) {
                     }
                 })
             );
+        }).then(function() {
+            // Purge stale CSS/JS entries inside current cache so existing PWAs pick up UI updates
+            return caches.open(CACHE_NAME).then(function(cache) {
+                return cache.keys().then(function(requests) {
+                    return Promise.all(
+                        requests.map(function(req) {
+                            try {
+                                const pathname = new URL(req.url).pathname;
+                                if (pathname.startsWith('/static/css/') || pathname.startsWith('/static/js/')) {
+                                    return cache.delete(req);
+                                }
+                            } catch (e) {}
+                        })
+                    );
+                });
+            });
         }).then(function() {
             return self.clients.claim();
         })
@@ -65,25 +80,40 @@ self.addEventListener('fetch', function(event) {
         return;
     }
 
-    // 2. Static application assets and manifest: Cache-First with Network Fallback & dynamic caching
-    if (url.origin === self.location.origin && (url.pathname.startsWith('/static/') || url.pathname === '/manifest.json')) {
+    // 2. Web App Manifest: Network-First so PWA config/theme updates always propagate
+    if (url.origin === self.location.origin && url.pathname === '/manifest.json') {
         event.respondWith(
-            caches.match(request).then(function(cachedResponse) {
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-                return fetch(request).then(function(networkResponse) {
-                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                        return networkResponse;
-                    }
+            fetch(request).then(function(networkResponse) {
+                if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(function(cache) {
                         cache.put(request, responseClone);
                     });
+                }
+                return networkResponse;
+            }).catch(function() {
+                return caches.match(request);
+            })
+        );
+        return;
+    }
+
+    // 3. Static application assets: Stale-While-Revalidate for instant load + automatic freshness
+    if (url.origin === self.location.origin && url.pathname.startsWith('/static/')) {
+        event.respondWith(
+            caches.match(request).then(function(cachedResponse) {
+                const fetchPromise = fetch(request).then(function(networkResponse) {
+                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(function(cache) {
+                            cache.put(request, responseClone);
+                        });
+                    }
                     return networkResponse;
                 }).catch(function() {
                     return cachedResponse;
                 });
+                return cachedResponse || fetchPromise;
             })
         );
         return;
@@ -104,25 +134,66 @@ self.addEventListener('push', function(event) {
     try {
         const payload = event.data.json();
         const title = payload.title || 'Campus Nexus';
+        const rawUrl = payload.url || '/dashboard/';
         const iconPath = payload.icon || '/static/img/pwa/icon-192x192.png';
         const badgePath = payload.badge || '/static/img/pwa/icon-192x192.png';
         const resolvedIcon = new URL(iconPath, self.location.origin).href;
         const resolvedBadge = new URL(badgePath, self.location.origin).href;
+        const pushTag = payload.tag || 'nexus-notification';
+        const targetPath = new URL(rawUrl, self.location.origin).pathname.replace(/\/+$/, '').toLowerCase();
+        const isLiveChatTag = pushTag.startsWith('dm-') || pushTag.startsWith('rchat-');
 
         const options = {
             body: payload.body || payload.content || '',
             icon: resolvedIcon,
             badge: resolvedBadge,
             vibrate: [200, 100, 200],
-            tag: payload.tag || 'nexus-notification',
+            tag: pushTag,
             renotify: true,
             requireInteraction: true,
             silent: false,
             data: {
-                url: payload.url || '/dashboard/',
+                url: rawUrl,
+                tag: pushTag,
             },
         };
-        event.waitUntil(self.registration.showNotification(title, options));
+
+        event.waitUntil(
+            Promise.all([
+                clients.matchAll({ type: 'window', includeUncontrolled: true }),
+                self.registration.getNotifications({ tag: pushTag }).catch(function() { return []; }),
+            ]).then(function(results) {
+                const clientList = results[0] || [];
+                const existingWithTag = results[1] || [];
+
+                // Avoid double-buzzing if the WebSocket layer just showed this exact event tag
+                const now = Date.now();
+                if (pushTag !== 'nexus-notification' && existingWithTag.some(function(n) {
+                    return !n.timestamp || (now - n.timestamp) < 15000;
+                })) {
+                    return;
+                }
+
+                // Suppress OS popup ONLY if the user is actively focused inside that exact chat conversation
+                if (isLiveChatTag) {
+                    const activelyViewingChat = clientList.some(function(client) {
+                        try {
+                            const clientPath = new URL(client.url).pathname.replace(/\/+$/, '').toLowerCase();
+                            return client.visibilityState === 'visible' && client.focused && clientPath === targetPath;
+                        } catch (err) {
+                            return false;
+                        }
+                    });
+                    if (activelyViewingChat) {
+                        return;
+                    }
+                }
+
+                return self.registration.showNotification(title, options);
+            }).catch(function() {
+                return self.registration.showNotification(title, options);
+            })
+        );
     } catch (e) {
         console.error('Service Worker push error:', e);
     }

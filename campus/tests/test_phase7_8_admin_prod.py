@@ -360,6 +360,8 @@ class Phase8ProductionReadinessTests(TestCase):
             "DATABASE_URL": "postgres://user:pass@localhost:5432/campus_db",
             "REDIS_URL": "redis://localhost:6379/0",
             "EMAIL_HOST_PASSWORD": "dummy-password",
+            "VAPID_PUBLIC_KEY": "mock_prod_vapid_public_key_1234567890",
+            "VAPID_PRIVATE_KEY": "mock_prod_vapid_private_key_1234567890",
         }
 
         orig_secrets = sys.modules.pop("campus.settings.secrets_local", None)

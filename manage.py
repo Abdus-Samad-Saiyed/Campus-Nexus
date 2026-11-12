@@ -6,7 +6,14 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'campus.settings.dev')
+    has_explicit_settings_flag = any(
+        arg == '--settings' or arg.startswith('--settings=')
+        for arg in sys.argv[1:]
+    )
+    if len(sys.argv) > 1 and sys.argv[1] == 'test' and not has_explicit_settings_flag:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'campus.settings.test')
+    else:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'campus.settings.dev')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

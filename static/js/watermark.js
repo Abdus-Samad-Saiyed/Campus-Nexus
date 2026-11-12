@@ -116,6 +116,17 @@ const compSelect = document.getElementById('fx-gear-complexity');
 if (compSelect) compSelect.value = complexity;
 const spreadSelect = document.getElementById('fx-gear-spread');
 if (spreadSelect) spreadSelect.value = gearSpread;
+const opPct = Math.round(parseFloat(opacity) * 100);
+const mOpSlider = document.getElementById('modal-fx-opacity-slider');
+const mOpVal = document.getElementById('modal-fx-opacity-val');
+if (mOpSlider && !isNaN(opPct)) mOpSlider.value = opPct;
+if (mOpVal && !isNaN(opPct)) mOpVal.textContent = `${opPct}%`;
+const mModeSelect = document.getElementById('modal-fx-watermark-mode');
+if (mModeSelect) mModeSelect.value = mode;
+const mCompSelect = document.getElementById('modal-fx-gear-complexity');
+if (mCompSelect) mCompSelect.value = complexity;
+const mSpreadSelect = document.getElementById('modal-fx-gear-spread');
+if (mSpreadSelect) mSpreadSelect.value = gearSpread;
 const spreadBadge = document.getElementById('fx-gear-spread-badge');
 if (spreadBadge) {
 if (gearSpread === 'constellation') {
@@ -277,6 +288,30 @@ purple: '#A855F7',
 teal: '#14B8A6',
 orange: '#FF6B2B'
 };
+const PRESET_BG_DARK = {
+emerald: '#050B08',
+cyan: '#030d14',
+indigo: '#080816',
+amber: '#140d04',
+rose: '#14050a',
+purple: '#0d0516',
+teal: '#030f0e',
+orange: '#140803'
+};
+const PRESET_BG_LIGHT = {
+emerald: '#f8fafc',
+cyan: '#f0f9ff',
+indigo: '#f5f3ff',
+amber: '#fffbeb',
+rose: '#fff1f2',
+purple: '#faf5ff',
+teal: '#f0fdfa',
+orange: '#fff7ed'
+};
+function toHexByte(n) {
+const h = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+return h.length === 1 ? '0' + h : h;
+}
 window.setNexusCustomHex = function (rawHex, preserveState) {
 if (!rawHex) return;
 let hex = rawHex.trim();
@@ -288,21 +323,32 @@ const g = parseInt(hex.slice(3, 5), 16);
 const b = parseInt(hex.slice(5, 7), 16);
 const root = document.documentElement;
 const isLight = root.getAttribute('data-bs-theme') === 'light';
+const bgHex = isLight ? '#f8fafc' : ('#' + toHexByte(r * 0.05) + toHexByte(g * 0.05) + toHexByte(b * 0.05));
+const solidSurfaceHex = isLight ? '#ffffff' : ('#' + toHexByte(r * 0.06 + 8) + toHexByte(g * 0.06 + 8) + toHexByte(b * 0.06 + 8));
 root.style.setProperty('--green', hex);
 root.style.setProperty('--green-hover', hex);
+root.style.setProperty('--green-rgb', `${r}, ${g}, ${b}`);
 root.style.setProperty('--green-dim', `rgba(${r}, ${g}, ${b}, 0.14)`);
 root.style.setProperty('--green-glow', `rgba(${r}, ${g}, ${b}, 0.32)`);
 root.style.setProperty('--shadow-green', `0 0 24px rgba(${r}, ${g}, ${b}, 0.22)`);
 root.style.setProperty('--border-hover', `rgba(${r}, ${g}, ${b}, 0.45)`);
 root.style.setProperty('--glass-border', `rgba(${r}, ${g}, ${b}, 0.22)`);
+root.style.setProperty('--bg', bgHex);
+root.style.setProperty('--surface-solid', solidSurfaceHex);
 if (isLight) {
-root.style.setProperty('--bg', '#f8fafc');
 root.style.setProperty('--bg-gradient', `radial-gradient(ellipse 80% 50% at 50% -10%, rgba(${r}, ${g}, ${b}, 0.10), transparent 70%)`);
 root.style.setProperty('--glass-bg', '#ffffff');
+root.style.setProperty('--navbar-bg', '#ffffff');
+root.style.setProperty('--toast-bg', 'rgba(255, 255, 255, 0.96)');
+root.style.setProperty('--input-bg', '#ffffff');
+root.style.setProperty('--input-bg-focus', '#ffffff');
 } else {
-root.style.setProperty('--bg', `rgb(${Math.round(r * 0.05)}, ${Math.round(g * 0.05)}, ${Math.round(b * 0.05)})`);
 root.style.setProperty('--bg-gradient', `radial-gradient(ellipse 80% 50% at 50% -10%, rgba(${r}, ${g}, ${b}, 0.18), transparent 70%)`);
-root.style.setProperty('--glass-bg', `rgba(${Math.round(r * 0.10 + 10)}, ${Math.round(g * 0.10 + 10)}, ${Math.round(b * 0.10 + 10)}, 0.82)`);
+root.style.setProperty('--glass-bg', `rgba(${Math.round(r * 0.08 + 10)}, ${Math.round(g * 0.08 + 10)}, ${Math.round(b * 0.08 + 10)}, 0.84)`);
+root.style.setProperty('--navbar-bg', `rgba(${Math.round(r * 0.05 + 4)}, ${Math.round(g * 0.05 + 4)}, ${Math.round(b * 0.05 + 4)}, 0.84)`);
+root.style.setProperty('--toast-bg', `rgba(${Math.round(r * 0.06 + 10)}, ${Math.round(g * 0.06 + 10)}, ${Math.round(b * 0.06 + 10)}, 0.96)`);
+root.style.setProperty('--input-bg', `rgba(${Math.round(r * 0.06 + 10)}, ${Math.round(g * 0.06 + 10)}, ${Math.round(b * 0.06 + 10)}, 0.88)`);
+root.style.setProperty('--input-bg-focus', `rgba(${Math.round(r * 0.08 + 13)}, ${Math.round(g * 0.08 + 13)}, ${Math.round(b * 0.08 + 13)}, 0.98)`);
 }
 root.setAttribute('data-accent', 'custom');
 if (!preserveState) {
@@ -315,13 +361,16 @@ const label = document.getElementById('fx-hex-label');
 if (picker) picker.value = hex;
 if (input) input.value = hex;
 if (label) label.textContent = hex;
-updateNexusDynamicFavicon(hex);
+if (typeof window.syncAccentUIElements === 'function') {
+window.syncAccentUIElements('custom', hex);
+}
+updateNexusDynamicFavicon(hex, bgHex);
 };
-function updateNexusDynamicFavicon(hexCode) {
+function updateNexusDynamicFavicon(hexCode, surfaceColor) {
 if (!hexCode) return;
 try {
 var metaTheme = document.getElementById('nexus-theme-color-meta');
-if (metaTheme) metaTheme.setAttribute('content', hexCode);
+if (metaTheme) metaTheme.setAttribute('content', surfaceColor || '#050B08');
 if (typeof window.HTMLCanvasElement === 'undefined') return;
 var canvas = document.createElement('canvas');
 canvas.width = 32;
@@ -346,8 +395,8 @@ ctx.closePath();
 ctx.clearRect(0, 0, 32, 32);
 roundRect(ctx, 1.5, 1.5, 29, 29, 7);
 var bgGrad = ctx.createLinearGradient(0, 0, 32, 32);
-bgGrad.addColorStop(0, '#0E1712');
-bgGrad.addColorStop(1, '#050A07');
+bgGrad.addColorStop(0, '#' + toHexByte(r * 0.06 + 10) + toHexByte(g * 0.06 + 10) + toHexByte(b * 0.06 + 10));
+bgGrad.addColorStop(1, '#' + toHexByte(r * 0.04 + 4) + toHexByte(g * 0.04 + 4) + toHexByte(b * 0.04 + 4));
 ctx.fillStyle = bgGrad;
 ctx.fill();
 ctx.lineWidth = 1.6;
@@ -394,7 +443,8 @@ if (f16) f16.href = pngUri;
 }
 window.updateNexusDynamicFavicon = updateNexusDynamicFavicon;
 function applyNexusAccent(accent) {
-const selected = accent || localStorage.getItem('nexus_accent') || 'emerald';
+const storedOrArg = accent || localStorage.getItem('nexus_accent') || 'emerald';
+const selected = (storedOrArg === 'custom' || PRESET_HEX_MAP[storedOrArg]) ? storedOrArg : 'emerald';
 if (selected === 'custom') {
 const hex = localStorage.getItem('nexus_custom_hex') || '#08B74F';
 window.setNexusCustomHex(hex);
@@ -402,21 +452,27 @@ return;
 }
 const root = document.documentElement;
 const dynamicProps = [
-'--green', '--green-hover', '--green-dim', '--green-glow',
+'--green', '--green-hover', '--green-rgb', '--green-dim', '--green-glow',
 '--shadow-green', '--border-hover', '--glass-border',
-'--bg', '--bg-gradient', '--glass-bg'
+'--bg', '--bg-gradient', '--glass-bg', '--surface-solid',
+'--navbar-bg', '--toast-bg', '--input-bg', '--input-bg-focus'
 ];
 dynamicProps.forEach(prop => root.style.removeProperty(prop));
 root.setAttribute('data-accent', selected);
 localStorage.setItem('nexus_accent', selected);
 const presetHex = PRESET_HEX_MAP[selected] || '#08B74F';
+const isLight = root.getAttribute('data-bs-theme') === 'light';
+const surfaceBg = (isLight ? PRESET_BG_LIGHT[selected] : PRESET_BG_DARK[selected]) || (isLight ? '#f8fafc' : '#050B08');
 const picker = document.getElementById('fx-custom-hex-picker');
 const input = document.getElementById('fx-custom-hex-input');
 const label = document.getElementById('fx-hex-label');
 if (picker) picker.value = presetHex;
 if (input) input.value = presetHex;
 if (label) label.textContent = presetHex;
-updateNexusDynamicFavicon(presetHex);
+if (typeof window.syncAccentUIElements === 'function') {
+window.syncAccentUIElements(selected, presetHex);
+}
+updateNexusDynamicFavicon(presetHex, surfaceBg);
 }
 window.setNexusAccent = function (accent) {
 applyNexusAccent(accent);

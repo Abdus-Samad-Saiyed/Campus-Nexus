@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Offline — Campus Nexus</title>
     <style>
         :root {
@@ -14,11 +14,13 @@
             --border: rgba(8, 183, 79, 0.25);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { background-color: var(--bg); min-height: 100%; }
         body {
             background-color: var(--bg);
             color: var(--text);
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;

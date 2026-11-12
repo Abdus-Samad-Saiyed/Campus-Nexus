@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' wss: ws: https:; frame-ancestors 'none';">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="description" content="Campus Nexus is the centralized digital mobility and services platform for university students. Coordinate verified carpools, campus rides, peer communication, and identity.">
     <meta http-equiv="x-dns-prefetch-control" content="on">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -28,7 +28,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}?v=6">
     <link rel="apple-touch-icon" sizes="192x192" href="{% static 'img/pwa/icon-192x192.png' %}">
     <link rel="apple-touch-icon" sizes="512x512" href="{% static 'img/pwa/icon-512x512.png' %}">
-    <meta id="nexus-theme-color-meta" name="theme-color" content="#08B74F">
+    <meta id="nexus-theme-color-meta" name="theme-color" content="#050B08">
     <script>
         (function() {
             try {
@@ -37,10 +37,70 @@
                     amber: '#F59E0B', rose: '#FB7185', purple: '#A855F7',
                     teal: '#14B8A6', orange: '#FF6B2B'
                 };
+                var bgDarkMap = {
+                    emerald: '#050B08', cyan: '#030d14', indigo: '#080816',
+                    amber: '#140d04', rose: '#14050a', purple: '#0d0516',
+                    teal: '#030f0e', orange: '#140803'
+                };
+                var bgLightMap = {
+                    emerald: '#f8fafc', cyan: '#f0f9ff', indigo: '#f5f3ff',
+                    amber: '#fffbeb', rose: '#fff1f2', purple: '#faf5ff',
+                    teal: '#f0fdfa', orange: '#fff7ed'
+                };
+                var theme = localStorage.getItem('nexus_theme') === 'light' ? 'light' : 'dark';
                 var acc = localStorage.getItem('nexus_accent') || 'emerald';
-                var hex = (acc === 'custom') ? (localStorage.getItem('nexus_custom_hex') || '#08B74F') : (pMap[acc] || '#08B74F');
+                if (acc !== 'custom' && !pMap[acc]) acc = 'emerald';
+
+                var root = document.documentElement;
+                root.setAttribute('data-bs-theme', theme);
+                root.setAttribute('data-theme', theme);
+                root.setAttribute('data-accent', acc);
+
+                var rawCustomHex = localStorage.getItem('nexus_custom_hex') || '#08B74F';
+                var customHex = rawCustomHex.trim();
+                if (customHex && customHex.charAt(0) !== '#') customHex = '#' + customHex;
+                if (!/^#[0-9a-fA-F]{6}$/.test(customHex)) customHex = '#08B74F';
+                customHex = customHex.toUpperCase();
+
+                var hex = (acc === 'custom') ? customHex : (pMap[acc] || '#08B74F');
+                var surfaceBg = (theme === 'light') ? (bgLightMap[acc] || '#f8fafc') : (bgDarkMap[acc] || '#050B08');
+
+                var c = hex.replace('#', '');
+                if (c.length === 3) c = c.split('').map(function(x) { return x + x; }).join('');
+                var r = parseInt(c.slice(0, 2), 16) || 8;
+                var g = parseInt(c.slice(2, 4), 16) || 183;
+                var b = parseInt(c.slice(4, 6), 16) || 79;
+                function toHex2(n) {
+                    var h = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+                    return h.length === 1 ? '0' + h : h;
+                }
+
+                if (acc === 'custom') {
+                    var isLight = (theme === 'light');
+                    var bgHex = isLight ? '#f8fafc' : ('#' + toHex2(r * 0.05) + toHex2(g * 0.05) + toHex2(b * 0.05));
+                    var solidHex = isLight ? '#ffffff' : ('#' + toHex2(r * 0.06 + 8) + toHex2(g * 0.06 + 8) + toHex2(b * 0.06 + 8));
+                    surfaceBg = bgHex;
+
+                    root.style.setProperty('--green', hex);
+                    root.style.setProperty('--green-hover', hex);
+                    root.style.setProperty('--green-rgb', r + ',' + g + ',' + b);
+                    root.style.setProperty('--green-dim', 'rgba(' + r + ',' + g + ',' + b + ',0.14)');
+                    root.style.setProperty('--green-glow', 'rgba(' + r + ',' + g + ',' + b + ',0.32)');
+                    root.style.setProperty('--shadow-green', '0 0 24px rgba(' + r + ',' + g + ',' + b + ',0.22)');
+                    root.style.setProperty('--border-hover', 'rgba(' + r + ',' + g + ',' + b + ',0.45)');
+                    root.style.setProperty('--glass-border', 'rgba(' + r + ',' + g + ',' + b + ',0.22)');
+                    root.style.setProperty('--bg', bgHex);
+                    root.style.setProperty('--bg-gradient', 'radial-gradient(ellipse 80% 50% at 50% -10%, rgba(' + r + ',' + g + ',' + b + ',' + (isLight ? '0.10' : '0.18') + '), transparent 70%)');
+                    root.style.setProperty('--glass-bg', isLight ? '#ffffff' : ('rgba(' + Math.round(r * 0.08 + 10) + ',' + Math.round(g * 0.08 + 10) + ',' + Math.round(b * 0.08 + 10) + ',0.84)'));
+                    root.style.setProperty('--surface-solid', solidHex);
+                    root.style.setProperty('--navbar-bg', isLight ? '#ffffff' : ('rgba(' + Math.round(r * 0.05 + 4) + ',' + Math.round(g * 0.05 + 4) + ',' + Math.round(b * 0.05 + 4) + ',0.84)'));
+                    root.style.setProperty('--toast-bg', isLight ? 'rgba(255,255,255,0.96)' : ('rgba(' + Math.round(r * 0.06 + 10) + ',' + Math.round(g * 0.06 + 10) + ',' + Math.round(b * 0.06 + 10) + ',0.96)'));
+                    root.style.setProperty('--input-bg', isLight ? '#ffffff' : ('rgba(' + Math.round(r * 0.06 + 10) + ',' + Math.round(g * 0.06 + 10) + ',' + Math.round(b * 0.06 + 10) + ',0.88)'));
+                    root.style.setProperty('--input-bg-focus', isLight ? '#ffffff' : ('rgba(' + Math.round(r * 0.08 + 13) + ',' + Math.round(g * 0.08 + 13) + ',' + Math.round(b * 0.08 + 13) + ',0.98)'));
+                }
+
                 var metaT = document.getElementById('nexus-theme-color-meta');
-                if (metaT && hex) metaT.content = hex;
+                if (metaT && surfaceBg) metaT.content = surfaceBg;
 
                 if (hex && hex.toUpperCase() !== '#08B74F') {
                     var canvas = document.createElement('canvas');
@@ -48,11 +108,6 @@
                     canvas.height = 32;
                     var ctx = canvas.getContext('2d');
                     if (ctx) {
-                        var c = hex.replace('#', '');
-                        if (c.length === 3) c = c.split('').map(function(x) { return x + x; }).join('');
-                        var r = parseInt(c.slice(0, 2), 16) || 8;
-                        var g = parseInt(c.slice(2, 4), 16) || 183;
-                        var b = parseInt(c.slice(4, 6), 16) || 79;
                         var bright = 'rgb(' + Math.min(255, Math.round(r * 0.6 + 102)) + ',' + Math.min(255, Math.round(g * 0.6 + 102)) + ',' + Math.min(255, Math.round(b * 0.6 + 102)) + ')';
 
                         function roundRect(ctx, x, y, w, h, radius) {
@@ -67,8 +122,8 @@
 
                         roundRect(ctx, 1.5, 1.5, 29, 29, 7);
                         var bgGrad = ctx.createLinearGradient(0, 0, 32, 32);
-                        bgGrad.addColorStop(0, '#0E1712');
-                        bgGrad.addColorStop(1, '#050A07');
+                        bgGrad.addColorStop(0, '#' + toHex2(r * 0.06 + 10) + toHex2(g * 0.06 + 10) + toHex2(b * 0.06 + 10));
+                        bgGrad.addColorStop(1, '#' + toHex2(r * 0.04 + 4) + toHex2(g * 0.04 + 4) + toHex2(b * 0.04 + 4));
                         ctx.fillStyle = bgGrad;
                         ctx.fill();
 
@@ -150,9 +205,20 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html {
+            background-color: var(--bg, #050B08);
+            min-height: 100%;
             max-width: 100vw;
-            overflow-x: hidden;
+            overflow-x: clip;
+        }
+
+        body {
+            background-color: var(--bg, #050B08);
+            min-height: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            max-width: 100vw;
+            overflow-x: clip;
             position: relative;
         }
 
@@ -391,9 +457,8 @@
 
     </style>
     <!-- Custom Theme & Watermark Styles -->
-    <link rel="stylesheet" href="{% static 'css/main.min.css' %}?v=3.2.0">
-    <link rel="preload" href="{% static 'css/watermark.min.css' %}?v=3.2.0" as="style" data-asset="watermark.css" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{% static 'css/watermark.min.css' %}?v=3.2.0" data-asset="watermark.css"></noscript>
+    <link rel="stylesheet" href="{% static 'css/main.min.css' %}?v=3.2.2">
+    <link rel="stylesheet" href="{% static 'css/watermark.min.css' %}?v=3.2.2" data-asset="watermark.css">
 
     <!-- PWA Installation Button Dynamic Accent Styles -->
     <style id="pwa-install-styles">
@@ -403,7 +468,7 @@
             display: inline-flex;
             align-items: center;
             border-radius: var(--radius-full, 999px);
-            background: rgba(14, 23, 18, 0.75);
+            background: var(--glass-bg, rgba(12, 20, 15, 0.82));
             border: 1px solid var(--green, #08B74F);
             color: var(--green, #08B74F);
             font-size: 0.78rem;
@@ -452,7 +517,7 @@
         .btn-pwa-install-mobile {
             display: none;
             align-items: center;
-            background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.14)) 0%, rgba(14, 23, 18, 0.85) 100%);
+            background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.14)) 0%, var(--surface-solid, #0c1611) 100%);
             border: 1.5px solid var(--green, #08B74F) !important;
             color: var(--text, #f3f4f6);
             padding: 10px 14px;
@@ -469,7 +534,7 @@
 
         .btn-pwa-install-mobile:hover,
         .btn-pwa-install-mobile:focus {
-            background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.22)) 0%, rgba(14, 23, 18, 0.95) 100%);
+            background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.22)) 0%, var(--surface-solid, #0c1611) 100%);
             border-color: var(--green-hover, #10B981) !important;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 20px var(--green-glow, rgba(8, 183, 79, 0.38));
             transform: translateY(-1px);
@@ -888,7 +953,7 @@
                     </button>
                     {% endif %}
                     <!-- Pinned Mobile Install Button (Never hidden in hamburger menu) -->
-                    <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center text-success" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
+                    <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center green-accent" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
                         <i class="bi bi-download"></i>
                     </button>
                     <!-- Mobile Dedicated Visual Controls & Accent Colours Button -->
@@ -1143,7 +1208,7 @@
                                 </label>
                                 <div class="input-group input-group-sm mb-3">
                                     <input type="color" class="form-control form-control-color p-1" id="fx-custom-hex-picker" value="#08B74F" title="Choose color" oninput="window.setNexusCustomHex(this.value)">
-                                    <input type="text" class="form-control font-mono" id="fx-custom-hex-input" placeholder="#08B74F" maxlength="7" onchange="window.setNexusCustomHex(this.value)">
+                                    <input type="text" class="form-control font-mono" id="fx-custom-hex-input" placeholder="#08B74F" maxlength="7" oninput="if (/^#?[0-9a-fA-F]{6}$/.test(this.value.trim())) window.setNexusCustomHex(this.value)" onchange="window.setNexusCustomHex(this.value)">
                                     <button class="btn btn-outline-green btn-sm px-2" type="button" onclick="window.setNexusCustomHex(document.getElementById('fx-custom-hex-input').value)">Set</button>
                                 </div>
                             </div>
@@ -1431,7 +1496,7 @@
     <!-- Desktop & Android PWA Installation Modal (Fallback when beforeinstallprompt is not directly triggered) -->
     <div class="modal fade" id="pwaGenericInstallModal" tabindex="-1" aria-labelledby="pwaGenericInstallModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content glass border-secondary text-white shadow-lg" style="background: rgba(15, 23, 42, 0.96); border: 1.5px solid var(--green, #08B74F);">
+            <div class="modal-content glass border-secondary text-white shadow-lg" style="background: var(--surface-solid, #0c1611); border: 1.5px solid var(--green, #08B74F);">
                 <div class="modal-header border-bottom border-secondary border-opacity-25">
                     <h5 class="modal-title d-flex align-items-center gap-2" id="pwaGenericInstallModalLabel">
                         <i class="bi bi-download green-accent"></i> Install Campus Nexus
@@ -1540,22 +1605,14 @@
         </button>
     </div>
 
-    <!-- Global Notification Toasts Container -->
-    <div id="nexus-toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1095; pointer-events: none;" aria-live="polite" aria-atomic="true">
+    <!-- Global Notification Banners Container -->
+    <div id="nexus-toast-container" class="nexus-banner-container" aria-live="polite" aria-atomic="true">
     </div>
 
     <!-- Bootstrap Bundle JS with Subresource Integrity (SRI) -->
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- Clockwork Watermark Engine (Desktop viewports only) -->
-    <script>
-    if (window.innerWidth >= 992) {
-        var wmScript = document.createElement('script');
-        wmScript.src = "{% static 'js/watermark.min.js' %}?v=3.2.0";
-        wmScript.defer = true;
-        wmScript.setAttribute('data-asset', 'watermark.js');
-        document.head.appendChild(wmScript);
-    }
-    </script>
+    <!-- Clockwork Watermark & Theme Customization Engine (All Viewports) -->
+    <script defer src="{% static 'js/watermark.min.js' %}?v=3.2.2" data-asset="watermark.js"></script>
 
     <!-- Universal Password Visibility Engine -->
     <script>
@@ -1689,9 +1746,18 @@
             } catch (e) {}
         }
 
+        function triggerHapticAlert() {
+            try {
+                if (navigator && typeof navigator.vibrate === 'function') {
+                    navigator.vibrate([120, 60, 120]);
+                }
+            } catch (e) {}
+        }
+
         function showIncomingMessageToast(data) {
-            const currentPath = window.location.pathname.replace(/\/+$/, '');
-            if (currentPath === '/messages/' + data.sender) {
+            const currentPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+            const senderLower = (data.sender || '').toLowerCase();
+            if (!document.hidden && senderLower && currentPath === '/messages/' + senderLower) {
                 return;
             }
 
@@ -1701,9 +1767,17 @@
             }
 
             playMessageChime();
+            triggerHapticAlert();
 
-            const container = document.getElementById('nexus-toast-container');
-            if (!container) return;
+            let container = document.getElementById('nexus-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'nexus-toast-container';
+                container.className = 'nexus-banner-container';
+                container.setAttribute('aria-live', 'polite');
+                container.setAttribute('aria-atomic', 'true');
+                document.body.appendChild(container);
+            }
 
             const toastId = 'toast-msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
             const avatarHtml = data.sender_avatar
@@ -1712,23 +1786,11 @@
 
             const toastEl = document.createElement('div');
             toastEl.id = toastId;
-            toastEl.className = 'toast show border-0 mb-2 glass-toast';
+            toastEl.className = 'toast show mb-0 nexus-popdown-banner';
             toastEl.setAttribute('role', 'alert');
             toastEl.setAttribute('aria-live', 'assertive');
             toastEl.setAttribute('aria-atomic', 'true');
-            toastEl.style.pointerEvents = 'auto';
-            toastEl.style.minWidth = '290px';
-            toastEl.style.maxWidth = '380px';
-            toastEl.style.boxShadow = '0 12px 32px rgba(0,0,0,0.55), 0 0 16px rgba(8,183,79,0.22)';
-            toastEl.style.borderRadius = '14px';
-            toastEl.style.overflow = 'hidden';
-            toastEl.style.border = '1px solid var(--border, rgba(255,255,255,0.14))';
-            toastEl.style.background = 'rgba(15, 23, 18, 0.96)';
-            toastEl.style.backdropFilter = 'blur(16px)';
-            toastEl.style.webkitBackdropFilter = 'blur(16px)';
-            toastEl.style.color = '#fff';
             toastEl.style.cursor = 'pointer';
-            toastEl.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
 
             toastEl.innerHTML = `
                 <div class="toast-header border-0 bg-transparent text-white pb-0 d-flex align-items-center justify-content-between pt-2 px-3">
@@ -1740,14 +1802,14 @@
                     </div>
                     <button type="button" class="btn-close btn-close-white small ms-auto" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.7rem;"></button>
                 </div>
-                <div class="toast-body d-flex align-items-center gap-3 p-3">
+                <div class="toast-body d-flex align-items-start gap-3 p-3">
                     ${avatarHtml}
                     <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                         <div class="d-flex align-items-center justify-content-between gap-1">
                             <strong class="text-truncate text-white" style="font-size: 0.88rem;">${escapeHtml(data.sender_name || data.sender)}</strong>
                             <span class="text-secondary small font-monospace flex-shrink-0" style="font-size: 0.7rem;">${escapeHtml(data.sender)}</span>
                         </div>
-                        <div class="small text-truncate mt-1 text-light" style="font-size: 0.82rem; opacity: 0.9;">
+                        <div class="small text-break mt-1 text-light" style="font-size: 0.82rem; opacity: 0.92; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
                             ${escapeHtml(data.content)}
                         </div>
                     </div>
@@ -1777,8 +1839,10 @@
 
             setTimeout(function() {
                 if (toastEl && toastEl.parentElement) {
+                    toastEl.style.animation = 'none';
+                    void toastEl.offsetWidth;
                     toastEl.style.opacity = '0';
-                    toastEl.style.transform = 'translateY(-10px)';
+                    toastEl.style.transform = 'translateY(-18px) scale(0.96)';
                     setTimeout(function() { toastEl.remove(); }, 300);
                 }
             }, 7500);
@@ -1909,9 +1973,9 @@
             let permBanner = '';
             if ('Notification' in window && Notification.permission !== 'granted') {
                 permBanner = `
-                    <div class="p-2.5 px-3 mb-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(8, 183, 79, 0.08); border: 1px solid rgba(8, 183, 79, 0.22);">
+                    <div class="p-2.5 px-3 mb-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background: var(--green-dim, rgba(8, 183, 79, 0.08)); border: 1px solid var(--glass-border, rgba(8, 183, 79, 0.22));">
                         <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-bell text-success fs-5"></i>
+                            <i class="bi bi-bell green-accent fs-5"></i>
                             <div style="line-height: 1.25;">
                                 <strong class="text-white small d-block" style="font-size: 0.8rem;">Enable Push Alerts</strong>
                                 <span class="text-secondary" style="font-size: 0.72rem;">Get notified for rides &amp; messages on this device</span>
@@ -1928,8 +1992,8 @@
                 feedEl.innerHTML = `
                     ${permBanner}
                     <div class="text-center py-5 my-2">
-                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 56px; height: 56px; background: rgba(8, 183, 79, 0.08); border: 1px solid rgba(8, 183, 79, 0.2);">
-                            <i class="bi bi-check2-circle text-success fs-3"></i>
+                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 56px; height: 56px; background: var(--green-dim, rgba(8, 183, 79, 0.08)); border: 1px solid var(--glass-border, rgba(8, 183, 79, 0.2));">
+                            <i class="bi bi-check2-circle green-accent fs-3"></i>
                         </div>
                         <h6 class="text-white fw-semibold mb-1" style="font-size: 0.92rem;">You're All Caught Up</h6>
                         <p class="text-secondary small mb-0 mx-auto" style="max-width: 260px; font-size: 0.78rem; line-height: 1.4;">
@@ -1944,7 +2008,7 @@
                 const unreadClass = item.read ? '' : 'is-unread';
                 const avatar = item.sender_avatar 
                     ? `<img src="${escapeHtml(item.sender_avatar)}" class="rounded-circle object-fit-cover flex-shrink-0" style="width: 36px; height: 36px;" alt="">`
-                    : `<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px; background: rgba(8, 183, 79, 0.12); color: var(--green, #08B74F);">
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px; background: var(--green-dim, rgba(8, 183, 79, 0.12)); color: var(--green, #08B74F);">
                          <i class="bi ${escapeHtml(item.icon || 'bi-bell-fill')} fs-5"></i>
                        </div>`;
                 return `
@@ -1986,19 +2050,41 @@
         };
 
         function showAppNotificationToast(data) {
+            const currentPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+            const targetPath = data.url ? data.url.replace(/\/+$/, '').toLowerCase() : '';
+            const isViewingSameRideChat = !document.hidden && data.category === 'ride_chat' && targetPath && currentPath === targetPath;
+
+            if (isViewingSameRideChat) {
+                addNotificationToHistory({
+                    id: data.id || ('notif_' + Date.now()),
+                    category: data.category || 'general',
+                    title: data.title || 'Notification',
+                    content: data.content || '',
+                    url: data.url || '',
+                    icon: data.icon || 'bi-bell-fill',
+                    badge: data.badge || data.title || 'Alert',
+                    badge_class: data.badge_class || 'bg-success-subtle text-success',
+                    sender_avatar: data.sender_avatar,
+                    timestamp: data.timestamp || 'Just now',
+                    read: true,
+                });
+                return;
+            }
+
             let container = document.getElementById('nexus-toast-container');
             if (!container) {
                 container = document.createElement('div');
                 container.id = 'nexus-toast-container';
-                container.className = 'toast-container position-fixed top-0 end-0 p-3';
-                container.style.zIndex = '1095';
-                container.style.pointerEvents = 'none';
+                container.className = 'nexus-banner-container';
+                container.setAttribute('aria-live', 'polite');
+                container.setAttribute('aria-atomic', 'true');
                 document.body.appendChild(container);
             }
 
             unreadNotifCount++;
             document.title = '(' + unreadNotifCount + ') ' + originalTitle.replace(/^\(\d+\)\s*/, '');
             playMessageChime();
+            triggerHapticAlert();
 
             // Persist to Notification Center History
             addNotificationToHistory({
@@ -2015,25 +2101,26 @@
                 read: false,
             });
 
+            let priorityClass = '';
+            const badgeCls = (data.badge_class || '').toLowerCase();
+            const cat = (data.category || '').toLowerCase();
+            if (badgeCls.includes('danger') || cat === 'ride_cancelled' || cat === 'ride_kicked') {
+                priorityClass = ' banner-priority-critical';
+            } else if (badgeCls.includes('warning') || cat.includes('resched') || cat.includes('standby') || cat === 'admin_application') {
+                priorityClass = ' banner-priority-warning';
+            }
+
             const toastEl = document.createElement('div');
-            toastEl.className = 'toast show border border-secondary shadow-lg glass text-white mb-2 position-relative';
+            toastEl.className = 'toast show mb-0 nexus-popdown-banner position-relative' + priorityClass;
             toastEl.setAttribute('role', 'alert');
             toastEl.setAttribute('aria-live', 'assertive');
             toastEl.setAttribute('aria-atomic', 'true');
             toastEl.style.cursor = data.url ? 'pointer' : 'default';
-            toastEl.style.minWidth = '300px';
-            toastEl.style.maxWidth = '380px';
-            toastEl.style.borderRadius = '12px';
-            toastEl.style.background = 'rgba(18, 22, 28, 0.96)';
-            toastEl.style.backdropFilter = 'blur(16px)';
-            toastEl.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)';
-            toastEl.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-            toastEl.style.pointerEvents = 'auto';
 
             const avatarHtml = data.sender_avatar
                 ? `<img src="${escapeHtml(data.sender_avatar)}" class="rounded-circle object-fit-cover shadow-sm flex-shrink-0" style="width: 40px; height: 40px;" alt="">`
                 : `<div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
-                     <i class="bi ${escapeHtml(data.icon || 'bi-bell-fill')} text-success fs-5"></i>
+                     <i class="bi ${escapeHtml(data.icon || 'bi-bell-fill')} green-accent fs-5"></i>
                    </div>`;
 
             toastEl.innerHTML = `
@@ -2046,20 +2133,20 @@
                     </div>
                     <button type="button" class="btn-close btn-close-white small ms-auto" data-bs-dismiss="toast" aria-label="Close" style="font-size: 0.7rem;"></button>
                 </div>
-                <div class="toast-body d-flex align-items-center gap-3 p-3">
+                <div class="toast-body d-flex align-items-start gap-3 p-3">
                     ${avatarHtml}
                     <div class="overflow-hidden flex-grow-1" style="min-width: 0;">
                         <div class="d-flex align-items-center justify-content-between gap-1">
                             <strong class="text-truncate text-white" style="font-size: 0.88rem;">${escapeHtml(data.title)}</strong>
                         </div>
-                        <div class="small mt-1 text-light" style="font-size: 0.82rem; opacity: 0.9; line-height: 1.35;">
+                        <div class="small text-break mt-1 text-light" style="font-size: 0.82rem; opacity: 0.92; line-height: 1.38; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">
                             ${escapeHtml(data.content)}
                         </div>
                     </div>
                 </div>
                 ${data.url ? `
                 <div class="px-3 pb-2 pt-0 d-flex justify-content-between align-items-center border-top border-secondary border-opacity-25 pt-2 mt-1">
-                    <span class="small text-secondary" style="font-size: 0.7rem;">Click to view</span>
+                    <span class="small text-secondary" style="font-size: 0.7rem;">Tap to open</span>
                     <span class="btn btn-green btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem;">
                         <i class="bi bi-arrow-right-short me-1"></i> Open
                     </span>
@@ -2085,11 +2172,13 @@
 
             setTimeout(function() {
                 if (toastEl && toastEl.parentElement) {
+                    toastEl.style.animation = 'none';
+                    void toastEl.offsetWidth;
                     toastEl.style.opacity = '0';
-                    toastEl.style.transform = 'translateY(-10px)';
+                    toastEl.style.transform = 'translateY(-18px) scale(0.96)';
                     setTimeout(function() { toastEl.remove(); }, 300);
                 }
-            }, 8000);
+            }, 8500);
         }
 
         window.isNexusNotificationsEnabled = function() {
@@ -2097,6 +2186,13 @@
             if (Notification.permission !== 'granted') return false;
             return (localStorage.getItem('nexus_notifications_enabled') !== 'false');
         };
+
+        const recentOsTags = new Map();
+        function pruneRecentOsTags(now) {
+            recentOsTags.forEach(function(ts, key) {
+                if (now - ts > 30000) recentOsTags.delete(key);
+            });
+        }
 
         // Native System Notifications for Desktop and Mobile (Android / iOS PWA)
         function triggerSystemNotification(data, force) {
@@ -2106,8 +2202,12 @@
                 return;
             }
 
-            const currentPath = window.location.pathname.replace(/\/+$/, '');
-            if (!force && !document.hidden && data.type === 'chat_notification' && currentPath === '/messages/' + data.sender) {
+            const currentPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+            const senderLower = (data.sender || '').toLowerCase();
+            const targetPath = data.url ? data.url.replace(/\/+$/, '').toLowerCase() : '';
+            const isViewingSameDm = data.type === 'chat_notification' && senderLower && currentPath === '/messages/' + senderLower;
+            const isViewingSameRideChat = data.type === 'app_notification' && data.category === 'ride_chat' && targetPath && currentPath === targetPath;
+            if (!force && !document.hidden && (isViewingSameDm || isViewingSameRideChat)) {
                 return;
             }
 
@@ -2121,13 +2221,23 @@
                 title = '💬 Message from ' + (data.sender_name || data.sender);
                 body = data.content || '';
                 url = data.url || ('/messages/' + data.sender + '/');
-                tag = 'chat-' + data.sender;
+                tag = data.tag || (data.message_id ? ('dm-msg-' + data.message_id) : ('chat-' + (data.sender || 'user')));
                 if (data.sender_avatar) icon = data.sender_avatar;
             } else if (data.type === 'app_notification') {
                 title = data.title || 'Campus Nexus';
                 body = data.content || '';
-                tag = data.category || 'general';
+                tag = data.tag || data.id || ('nexus-' + (data.category || 'general') + '-' + Date.now());
                 if (data.sender_avatar) icon = data.sender_avatar;
+            }
+
+            if (!force && tag) {
+                const now = Date.now();
+                pruneRecentOsTags(now);
+                const prevTs = recentOsTags.get(tag);
+                if (prevTs && (now - prevTs) < 15000) {
+                    return;
+                }
+                recentOsTags.set(tag, now);
             }
 
             const origin = window.location.origin;
@@ -2143,13 +2253,26 @@
                 renotify: true,
                 requireInteraction: true,
                 silent: false,
-                data: { url: url }
+                data: { url: url, tag: tag }
+            };
+
+            const showViaSw = function(reg) {
+                if (!force && tag && typeof reg.getNotifications === 'function') {
+                    return reg.getNotifications({ tag: tag }).then(function(existing) {
+                        const now = Date.now();
+                        if (existing && existing.some(function(n) { return !n.timestamp || (now - n.timestamp) < 15000; })) {
+                            return;
+                        }
+                        return reg.showNotification(title, options);
+                    }).catch(function() {
+                        return reg.showNotification(title, options);
+                    });
+                }
+                return reg.showNotification(title, options);
             };
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(function(reg) {
-                    return reg.showNotification(title, options);
-                }).catch(function(err) {
+                navigator.serviceWorker.ready.then(showViaSw).catch(function(err) {
                     console.debug('SW showNotification error, trying fallbackNotification:', err);
                     fallbackNotification(title, options);
                 });
@@ -2331,21 +2454,23 @@
             return match ? match[1] : '{{ csrf_token }}';
         }
 
+        const wpCacheKey = 'nexus_webpush_endpoint_{{ user.enrollment_number|escapejs }}';
+
         function registerBackgroundPushSubscription() {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 return;
             }
-            if (Notification.permission !== 'granted') {
+            if (Notification.permission !== 'granted' || (window.isNexusNotificationsEnabled && !window.isNexusNotificationsEnabled())) {
                 return;
             }
             navigator.serviceWorker.ready.then(function(reg) {
                 return reg.pushManager.getSubscription().then(function(existingSub) {
-                    const cachedEndpoint = sessionStorage.getItem('nexus_webpush_endpoint');
+                    const cachedEndpoint = sessionStorage.getItem(wpCacheKey);
                     if (existingSub && cachedEndpoint === existingSub.endpoint) {
-                        return; // Already registered and synchronized
+                        return; // Already registered and synchronized for this account
                     }
                     if (existingSub) {
-                        sessionStorage.setItem('nexus_webpush_endpoint', existingSub.endpoint);
+                        sessionStorage.setItem(wpCacheKey, existingSub.endpoint);
                         return fetch('/api/v1/notifications/push/subscribe/', {
                             method: 'POST',
                             headers: {
@@ -2368,7 +2493,7 @@
                         })
                         .then(function(newSub) {
                             if (!newSub) return;
-                            sessionStorage.setItem('nexus_webpush_endpoint', newSub.endpoint);
+                            sessionStorage.setItem(wpCacheKey, newSub.endpoint);
                             return fetch('/api/v1/notifications/push/subscribe/', {
                                 method: 'POST',
                                 headers: {
@@ -2385,6 +2510,7 @@
         }
 
         function unsubscribeBackgroundPush() {
+            sessionStorage.removeItem(wpCacheKey);
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 return;
             }
@@ -2538,18 +2664,6 @@
 
         window.updateNotifBellUI = updateAllNotificationControlsUI;
 
-        // Register Service Worker for background phone/desktop notifications & cross-tab navigation
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(function(e) {
-                console.debug('ServiceWorker registration omitted:', e);
-            });
-            navigator.serviceWorker.addEventListener('message', function(event) {
-                if (event.data && event.data.action === 'navigate' && event.data.url) {
-                    window.location.href = event.data.url;
-                }
-            });
-        }
-
         // Attach modal event listener for Notification Center
         const notifModalEl = document.getElementById('notificationsModal');
         if (notifModalEl) {
@@ -2620,6 +2734,24 @@
         // Fetch initial server notifications & connect socket
         window.fetchServerNotifications();
         connectNotifSocket();
+
+        let lastVisibilitySync = 0;
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden || isNavigatingAway) return;
+            updateAllNotificationControlsUI();
+            if (!notifSocket || notifSocket.readyState === WebSocket.CLOSED) {
+                reconnectDelay = 2000;
+                connectNotifSocket();
+            }
+            const now = Date.now();
+            if (now - lastVisibilitySync >= 30000) {
+                lastVisibilitySync = now;
+                window.fetchServerNotifications();
+                if (window.isNexusNotificationsEnabled()) {
+                    registerBackgroundPushSubscription();
+                }
+            }
+        });
     })();
     </script>
     {% endif %}
@@ -2664,12 +2796,71 @@
     <!-- Progressive Web App (PWA) Universal Install & Offline Engine -->
     <script>
     (function() {
-        // Register Service Worker for all visitors (standalone, desktop, and mobile)
+        // Register Service Worker for all visitors with aggressive update-on-foreground for installed PWAs
         if ('serviceWorker' in navigator) {
+            let hadController = Boolean(navigator.serviceWorker.controller);
+            let swRefreshing = false;
+            let swPendingReload = false;
+
+            function isUserActivelyEditing() {
+                const el = document.activeElement;
+                if (!el) return false;
+                const tag = (el.tagName || '').toUpperCase();
+                return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+            }
+
+            function triggerSafeSwReload() {
+                if (swRefreshing) return;
+                swRefreshing = true;
+                window.location.reload();
+            }
+
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+                if (!hadController) {
+                    hadController = true;
+                    return;
+                }
+                if (swRefreshing) return;
+                if (isUserActivelyEditing()) {
+                    if (!swPendingReload) {
+                        swPendingReload = true;
+                        document.addEventListener('focusout', function onFocusOut() {
+                            setTimeout(function() {
+                                if (!isUserActivelyEditing()) {
+                                    document.removeEventListener('focusout', onFocusOut, true);
+                                    triggerSafeSwReload();
+                                }
+                            }, 150);
+                        }, true);
+                    }
+                    return;
+                }
+                triggerSafeSwReload();
+            });
+
+            let lastSwUpdateCheck = 0;
+            let activeSwReg = null;
+            function checkSwUpdate(force) {
+                if (!activeSwReg || typeof activeSwReg.update !== 'function') return;
+                const now = Date.now();
+                if (!force && (now - lastSwUpdateCheck) < 60000) return;
+                lastSwUpdateCheck = now;
+                activeSwReg.update().catch(function() {});
+            }
+
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function(e) {
+                navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).then(function(reg) {
+                    activeSwReg = reg;
+                    checkSwUpdate(true);
+                }).catch(function(e) {
                     console.debug('[PWA] ServiceWorker registration omitted:', e);
                 });
+            });
+
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    checkSwUpdate(false);
+                }
             });
 
             // Handle cross-tab navigation messages from Service Worker notification clicks
@@ -2824,12 +3015,12 @@
     <!-- Campus Nexus Notification Center (Modern Slide/Modal Tray) -->
     <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-            <div class="modal-content glass border shadow-2xl text-white notif-modal-surface" style="background: rgba(12, 16, 22, 0.98); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; border-color: rgba(255, 255, 255, 0.08); overflow: hidden;">
+            <div class="modal-content glass border shadow-2xl text-white notif-modal-surface" style="border-radius: 20px; border-color: rgba(255, 255, 255, 0.08); overflow: hidden;">
                 
                 <!-- Sleek Header -->
                 <div class="modal-header border-0 pb-2 pt-3 px-3 px-sm-4 d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-2.5">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background: rgba(8, 183, 79, 0.12); color: var(--green, #08B74F);">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background: var(--green-dim, rgba(8, 183, 79, 0.12)); color: var(--green, #08B74F);">
                             <i class="bi bi-bell-fill fs-5"></i>
                         </div>
                         <div>
@@ -2893,7 +3084,7 @@
             <div class="modal-content glass border-secondary shadow-lg">
                 <div class="modal-header border-bottom border-secondary border-opacity-25 py-3">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: rgba(8, 183, 79, 0.2); color: var(--green, #08B74F);">
+                        <div class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
                             <i class="bi bi-palette2"></i>
                         </div>
                         <div>
@@ -2982,8 +3173,8 @@
                         <div class="p-2.5 rounded bg-black bg-opacity-40 border border-secondary mt-2">
                             <div class="d-flex align-items-center justify-content-between gap-3">
                                 <div class="d-flex align-items-center gap-2">
-                                    <input type="color" id="modal-fx-hex-picker" class="form-control form-control-color border-0 p-0" style="width: 32px; height: 32px; cursor: pointer;"
-                                           onchange="setCustomHexFromModal(this.value)">
+                                    <input type="color" id="modal-fx-hex-picker" class="form-control form-control-color border-0 p-0" style="width: 32px; height: 32px; cursor: pointer;" value="#08B74F"
+                                           oninput="setCustomHexFromModal(this.value)" onchange="setCustomHexFromModal(this.value)">
                                     <div>
                                         <div class="small fw-semibold text-white">Custom Brand Hex</div>
                                         <div class="text-secondary font-monospace" style="font-size: 0.75rem;" id="modal-fx-hex-display">#08B74F</div>
@@ -2992,6 +3183,7 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <input type="text" id="modal-fx-hex-input" class="form-control form-control-sm font-monospace bg-dark border-secondary text-light text-center"
                                            style="width: 95px;" placeholder="#08B74F" maxlength="7"
+                                           oninput="if (/^#?[0-9a-fA-F]{6}$/.test(this.value.trim())) setCustomHexFromModal(this.value)"
                                            onchange="setCustomHexFromModal(this.value)">
                                     <button type="button" class="btn btn-sm btn-green" onclick="setCustomHexFromModal(document.getElementById('modal-fx-hex-input').value)">
                                         Apply
@@ -3066,25 +3258,36 @@
     }
 
     function syncAccentUIElements(accent, customHex) {
+        const presetHexMap = {
+            emerald: '#08B74F', cyan: '#00D2FF', indigo: '#818CF8', amber: '#F59E0B',
+            rose: '#FB7185', purple: '#A855F7', teal: '#14B8A6', orange: '#FF6B2B'
+        };
         const acc = accent || localStorage.getItem('nexus_accent') || 'emerald';
-        const hex = customHex || localStorage.getItem('nexus_custom_hex') || '#08B74F';
+        let rawHex = (acc === 'custom')
+            ? (customHex || localStorage.getItem('nexus_custom_hex') || '#08B74F')
+            : (presetHexMap[acc] || '#08B74F');
+        rawHex = (rawHex || '#08B74F').trim();
+        if (rawHex && rawHex.charAt(0) !== '#') rawHex = '#' + rawHex;
+        const hex = /^#[0-9a-fA-F]{6}$/.test(rawHex) ? rawHex.toUpperCase() : '#08B74F';
 
         const badge = document.getElementById('activeModalAccentBadge');
         if (badge) badge.textContent = 'Active: ' + (acc === 'custom' ? hex : (acc.charAt(0).toUpperCase() + acc.slice(1)));
 
-        const drawerDot = document.getElementById('mobileDrawerAccentDot');
-        if (drawerDot) drawerDot.style.background = (acc === 'custom' ? hex : 'var(--green, #08B74F)');
+        document.querySelectorAll('.mobile-drawer-accent-dot, #mobileDrawerAccentDot').forEach(function(dot) {
+            dot.style.background = (acc === 'custom' ? hex : 'var(--green, #08B74F)');
+        });
 
         const drawerName = document.getElementById('mobileDrawerAccentName');
         if (drawerName) drawerName.textContent = (acc === 'custom' ? hex : (acc.charAt(0).toUpperCase() + acc.slice(1)));
 
         const hexPicker = document.getElementById('modal-fx-hex-picker');
-        if (hexPicker && hex) hexPicker.value = hex;
+        if (hexPicker && /^#[0-9a-fA-F]{6}$/.test(hex)) hexPicker.value = hex;
         const hexInput = document.getElementById('modal-fx-hex-input');
-        if (hexInput && hex) hexInput.value = hex;
+        if (hexInput && /^#[0-9a-fA-F]{6}$/.test(hex)) hexInput.value = hex;
         const hexDisplay = document.getElementById('modal-fx-hex-display');
         if (hexDisplay && hex) hexDisplay.textContent = hex;
     }
+    window.syncAccentUIElements = syncAccentUIElements;
 
     document.addEventListener('DOMContentLoaded', function() {
         syncAccentUIElements();
@@ -3099,15 +3302,17 @@
             localStorage.setItem('nexus_standalone_app', '1');
         }
 
-        const wmMode = localStorage.getItem('nexus_watermark_mode') || 'both';
+        const isMobileViewport = (window.innerWidth <= 768) || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+        const wmMode = localStorage.getItem('nexus_watermark_mode') || (isMobileViewport ? 'off' : 'both');
         const wmSelect = document.getElementById('modal-fx-watermark-mode');
         if (wmSelect) wmSelect.value = wmMode;
 
-        const opacity = localStorage.getItem('nexus_watermark_opacity') || '22';
+        const rawOpacity = parseFloat(localStorage.getItem('nexus_watermark_opacity'));
+        const opacityPct = isNaN(rawOpacity) ? 22 : (rawOpacity <= 1 ? Math.round(rawOpacity * 100) : Math.round(rawOpacity));
         const opSlider = document.getElementById('modal-fx-opacity-slider');
         const opVal = document.getElementById('modal-fx-opacity-val');
-        if (opSlider) opSlider.value = opacity;
-        if (opVal) opVal.textContent = opacity + '%';
+        if (opSlider) opSlider.value = opacityPct;
+        if (opVal) opVal.textContent = opacityPct + '%';
 
         const complexity = localStorage.getItem('nexus_gear_complexity') || 'high';
         const compSelect = document.getElementById('modal-fx-gear-complexity');

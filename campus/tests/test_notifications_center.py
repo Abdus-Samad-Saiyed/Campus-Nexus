@@ -79,6 +79,7 @@ class NotificationCenterTests(TransactionTestCase):
         self.assertTrue(any(n['category'] == 'social' for n in data['notifications']))
         social_notif = next(n for n in data['notifications'] if n['category'] == 'social')
         self.assertIn("2024BCSE801", social_notif['title'])
+        self.assertEqual(social_notif['url'], '/profile/2024BCSE801/')
 
     def test_ride_application_in_notifications_feed(self):
         """Ride host sees pending passenger join requests in the notification feed."""
@@ -100,6 +101,7 @@ class NotificationCenterTests(TransactionTestCase):
         self.assertTrue(any(n['category'] == 'ride' for n in data['notifications']))
         ride_notif = next(n for n in data['notifications'] if n['category'] == 'ride')
         self.assertIn("2024BCSE802", ride_notif['content'])
+        self.assertEqual(ride_notif['url'], f'/coordinate/{ride.id}/')
 
     def test_channels_multi_platform_session_key_resolution(self):
         """Channels get_user_from_token resolves user when user.current_session_key has multiple comma-separated keys."""

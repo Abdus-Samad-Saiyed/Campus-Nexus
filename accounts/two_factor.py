@@ -402,8 +402,7 @@ def dispatch_sms(phone_number: str, message: str) -> bool:
             logger.error("Failed to send real SMS via Twilio: %s", exc)
             return False
 
-    import sys
-    is_testing = is_test_environment() or 'test' in sys.argv or getattr(settings, 'TESTING', False)
+    is_testing = is_test_environment()
     if getattr(settings, 'DEBUG', False) or is_testing:
         logger.info("[SMS DISPATCH] To: %s (dev/test simulation)", phone_number)
         if getattr(settings, 'DEBUG', False):

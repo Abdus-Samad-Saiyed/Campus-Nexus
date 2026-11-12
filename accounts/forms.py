@@ -119,8 +119,10 @@ class AccountApplicationForm(forms.ModelForm):
             )
 
         from django.db import connections
+        from accounts.utils import is_test_environment
         is_distinct_perm = (
-            'permanent' in connections
+            not is_test_environment()
+            and 'permanent' in connections
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         perm_db = 'permanent' if is_distinct_perm else 'default'
@@ -172,8 +174,10 @@ class AccountApplicationForm(forms.ModelForm):
             raise forms.ValidationError('Email address is required.')
 
         from django.db import connections
+        from accounts.utils import is_test_environment
         is_distinct_perm = (
-            'permanent' in connections
+            not is_test_environment()
+            and 'permanent' in connections
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         perm_db = 'permanent' if is_distinct_perm else 'default'

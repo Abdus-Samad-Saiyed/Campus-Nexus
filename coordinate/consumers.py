@@ -359,6 +359,8 @@ class RideChatConsumer(AsyncWebsocketConsumer):
                     badge="Ride Message",
                     badge_class="bg-info-subtle text-info border border-info-subtle",
                     icon="bi-chat-dots-fill",
+                    tag=f"rchat-{message.id}",
+                    notif_id=f"rchat_{message.id}",
                 )
         except Exception as e:
             logger.debug(f"Failed to dispatch ride chat notifications: {e}")

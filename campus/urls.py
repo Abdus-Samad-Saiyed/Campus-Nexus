@@ -165,7 +165,7 @@ def manifest_view(request):
     manifest_path = os.path.join(settings.BASE_DIR, 'static', 'manifest.json')
     if os.path.exists(manifest_path):
         response = FileResponse(open(manifest_path, 'rb'), content_type='application/manifest+json')
-        response['Cache-Control'] = 'public, max-age=3600'
+        response['Cache-Control'] = 'no-cache, must-revalidate'
         return response
     raise Http404("Manifest not found")
 

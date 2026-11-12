@@ -966,6 +966,7 @@ def reschedule_ride(request, ride_id):
 
     try:
         from accounts.notifications import send_user_notification
+        resched_ts = int(timezone.now().timestamp())
         for p in ride.participants.exclude(user=request.user):
             send_user_notification(
                 user_id=p.user_id,
@@ -977,6 +978,8 @@ def reschedule_ride(request, ride_id):
                 badge='Ride Rescheduled',
                 badge_class='bg-info-subtle text-info border border-info-subtle',
                 icon='bi-clock-history',
+                tag=f'ride-resched-{ride.id}-{resched_ts}',
+                notif_id=f'ride_resched_{ride.id}_{resched_ts}',
             )
     except Exception:
         pass
@@ -1315,6 +1318,27 @@ def complete_ride(request, ride_id):
                 else:
                     user_obj.save(update_fields=['rides_completed'])
 
+    try:
+        from accounts.notifications import send_user_notification
+        host_name = request.user.get_full_name() or request.user.enrollment_number
+        for rp in participant_users:
+            if rp.user_id != request.user.id:
+                send_user_notification(
+                    user_id=rp.user_id,
+                    title='Ride Completed',
+                    content=f'{host_name} marked ride ({ride.route_display}) as completed. Tap to rate your co-passengers!',
+                    url=f'/coordinate/{ride.id}/',
+                    category='ride_completed',
+                    sender_user=request.user,
+                    badge='Ride Completed',
+                    badge_class='bg-success-subtle text-success border border-success-subtle',
+                    icon='bi-check2-all',
+                    tag=f'ride-complete-{ride.id}',
+                    notif_id=f'ride_complete_{ride.id}',
+                )
+    except Exception:
+        pass
+
     messages.success(request, 'Ride marked as completed. You can now review your fellow passengers.')
     return redirect('ride_detail', ride_id=ride_id)
 
@@ -1460,6 +1484,34 @@ def send_message(request, ride_id):
                         'content': msg.content,
                         'timestamp': date_filter(timezone.localtime(msg.created_at), 'M j, H:i'),
                     }
+                )
+        except Exception:
+            pass
+
+        # Notify confirmed co-passengers via notification WS + high-urgency WebPush
+        try:
+            from accounts.notifications import send_user_notification
+            participant_ids = list(
+                RideParticipant.objects
+                .filter(ride=ride, status=ParticipantStatus.CONFIRMED)
+                .exclude(user_id=request.user.id)
+                .values_list('user_id', flat=True)
+            )
+            sender_name = request.user.get_full_name() or request.user.enrollment_number
+            route = ride.route_display or f"Ride #{ride.id}"
+            for uid in participant_ids:
+                send_user_notification(
+                    user_id=uid,
+                    title=f"Ride Chat ({route})",
+                    content=f"{sender_name}: {msg.content[:100]}",
+                    url=f"/coordinate/{ride.id}/",
+                    category="ride_chat",
+                    sender_user=request.user,
+                    badge="Ride Message",
+                    badge_class="bg-info-subtle text-info border border-info-subtle",
+                    icon="bi-chat-dots-fill",
+                    tag=f"rchat-{msg.id}",
+                    notif_id=f"rchat_{msg.id}",
                 )
         except Exception:
             pass

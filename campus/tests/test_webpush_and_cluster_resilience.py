@@ -129,11 +129,13 @@ class WebPushAndClusterResilienceTests(TransactionTestCase):
             args, kwargs = mock_webpush.call_args
             sub_info = kwargs.get('subscription_info')
             self.assertEqual(sub_info['endpoint'], 'https://fcm.googleapis.com/fcm/send/test_dispatch_token')
+            self.assertEqual(kwargs.get('headers'), {'Urgency': 'high'})
+            self.assertEqual(kwargs.get('ttl'), 86400)
             data = json.loads(kwargs.get('data'))
             self.assertEqual(data.get('title'), 'Test Alert')
 
     def test_base_template_has_notification_socket_and_exports(self):
-        """base.html contains function connectNotifSocket and window exports."""
+        """base.html contains function connectNotifSocket, pop-down banner classes, dedup, and window exports."""
         with open('templates/base.html', 'r', encoding='utf-8') as f:
             html = f.read()
         self.assertIn('function connectNotifSocket()', html)
@@ -141,13 +143,31 @@ class WebPushAndClusterResilienceTests(TransactionTestCase):
         self.assertIn('window.unsubscribeBackgroundPush = unsubscribeBackgroundPush', html)
         self.assertIn('window.isNexusNotificationsEnabled = function()', html)
         self.assertIn('requireInteraction: true', html)
+        self.assertIn('nexus-banner-container', html)
+        self.assertIn('nexus-popdown-banner', html)
+        self.assertIn('banner-priority-critical', html)
+        self.assertIn('recentOsTags', html)
+        self.assertIn('reg.getNotifications', html)
 
     def test_sw_uses_require_interaction_and_absolute_urls(self):
-        """sw.js sets requireInteraction: true and resolves URLs with self.location.origin."""
+        """sw.js sets requireInteraction: true, event-tag dedup, and resolves URLs with self.location.origin."""
         with open('static/sw.js', 'r', encoding='utf-8') as f:
             content = f.read()
         self.assertIn('requireInteraction: true', content)
         self.assertIn('self.location.origin', content)
+        self.assertIn('getNotifications', content)
+        self.assertIn('isLiveChatTag', content)
+
+    def test_css_and_ride_detail_popdown_notification_assets(self):
+        """main.min.css defines pop-down banner animation and ride_detail.html renders notification prompt pill."""
+        with open('static/css/main.min.css', 'r', encoding='utf-8') as f:
+            css = f.read()
+        self.assertIn('.nexus-banner-container', css)
+        self.assertIn('@keyframes nexusBannerPopDown', css)
+        self.assertIn('.nexus-popdown-banner', css)
+        with open('templates/coordinate/ride_detail.html', 'r', encoding='utf-8') as f:
+            ride_html = f.read()
+        self.assertIn('id="ride-notif-prompt-pill"', ride_html)
 
     def test_dispatch_web_push_safe_from_async_context(self):
         """dispatch_web_push must not throw SynchronousOnlyOperation when called inside an asyncio event loop."""

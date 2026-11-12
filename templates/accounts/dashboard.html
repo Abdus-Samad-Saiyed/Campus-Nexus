@@ -104,10 +104,10 @@
     {% endif %}
 
     <!-- Desktop & Mobile Notifications Activation Banner (Shown when not yet enabled) -->
-    <div id="notif-permission-banner" class="glass p-3 mb-4 border-success-subtle d-none" style="background: rgba(8, 183, 79, 0.08); border-left: 4px solid var(--green,#08B74F);">
+    <div id="notif-permission-banner" class="glass p-3 mb-4 border-success-subtle d-none" style="background: var(--green-dim, rgba(8, 183, 79, 0.08)); border-left: 4px solid var(--green,#08B74F);">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
-                <div class="rounded-circle bg-success bg-opacity-20 p-2 text-success d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                <div class="rounded-circle p-2 green-accent d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; background: var(--green-dim, rgba(8, 183, 79, 0.2));">
                     <i class="bi bi-bell-fill fs-5"></i>
                 </div>
                 <div>
@@ -151,7 +151,7 @@
 
     <!-- Post-Login PWA Install Hero Prompt (Visible in browser on desktop & mobile, hidden in standalone app or if dismissed) -->
     <div id="postLoginPwaPrompt" class="position-relative mb-4 rounded-4 overflow-hidden shadow-lg"
-         style="display: none; background: linear-gradient(135deg, rgba(8, 183, 79, 0.14) 0%, rgba(15, 23, 42, 0.94) 100%);
+         style="display: none; background: linear-gradient(135deg, var(--green-dim, rgba(8, 183, 79, 0.14)) 0%, var(--surface-solid, #0c1611) 100%);
                 border: 1.5px solid var(--green, #08B74F);
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 24px var(--green-glow, rgba(8, 183, 79, 0.22));">
         
@@ -170,7 +170,7 @@
                     <div>
                         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                             <span class="badge rounded-pill fw-bold" 
-                                  style="background: rgba(8, 183, 79, 0.2); color: var(--green, #08B74F); border: 1px solid var(--green, #08B74F); font-size: 0.72rem; letter-spacing: 0.04em;">
+                                  style="background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F); border: 1px solid var(--green, #08B74F); font-size: 0.72rem; letter-spacing: 0.04em;">
                                 <i class="bi bi-stars me-1"></i> RECOMMENDED APP EXPERIENCE
                             </span>
                             <span class="badge bg-black bg-opacity-40 text-light border border-secondary border-opacity-50 rounded-pill" style="font-size: 0.7rem;">

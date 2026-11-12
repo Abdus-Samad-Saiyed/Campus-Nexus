@@ -332,6 +332,18 @@
         <!-- Real-Time Chat Column -->
         <div class="col-lg-7">
             <div class="glass p-4">
+                {% if is_participant or is_creator %}
+                <!-- Notification Permission Prompt Pill for Ride Chat & Status -->
+                <div id="ride-notif-prompt-pill" class="d-none alert alert-dark border border-secondary border-opacity-50 py-1 px-3 d-flex align-items-center justify-content-between mb-2 small" style="background: var(--glass-bg, rgba(12,20,15,0.85)); border-radius: 20px;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-bell text-warning"></i>
+                        <span class="text-secondary small">Enable alerts to get instant notifications for ride messages &amp; updates.</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-green py-0 px-2 fw-semibold" style="font-size: 0.72rem;" onclick="if (window.toggleNexusNotifications) { window.toggleNexusNotifications(this); } const p = document.getElementById('ride-notif-prompt-pill'); if (p) p.remove();">
+                        Enable
+                    </button>
+                </div>
+                {% endif %}
                 <div class="chat-container" id="ride-chat-box" data-ride-id="{{ ride.id }}" data-current-user="{{ request.user.enrollment_number }}">
                     <div class="chat-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -775,9 +787,13 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{% static 'js/chat.js' %}"></script>
+<script src="{% static 'js/chat.js' %}?v=3.2.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    if ('Notification' in window && Notification.permission === 'default') {
+        const rideNotifPill = document.getElementById('ride-notif-prompt-pill');
+        if (rideNotifPill) rideNotifPill.classList.remove('d-none');
+    }
     const reportModal = document.getElementById('reportIncidentModal');
     if (reportModal) {
         reportModal.addEventListener('show.bs.modal', function (event) {

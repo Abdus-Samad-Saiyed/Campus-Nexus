@@ -10,7 +10,9 @@ Covers:
 """
 
 import json
+import os
 import time
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -83,6 +85,50 @@ class MobileAccentAndUISettingsTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'Appearance & Theme')
         self.assertContains(res, 'Customize')
+
+    def test_customization_engine_loaded_unconditionally_across_viewports(self):
+        """Customization script & styles load on all viewports (no desktop-only innerWidth gating)."""
+        res = self.client.get(reverse('dashboard'))
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+
+        # Must load watermark.min.js & watermark.min.css unconditionally (contains setNexusAccent / setNexusCustomHex)
+        self.assertIn('data-asset="watermark.js"', html)
+        self.assertIn('data-asset="watermark.css"', html)
+        self.assertNotIn('if (window.innerWidth >= 992)', html)
+
+        # Pre-paint restoration and mobile PWA edge-to-edge surface styling
+        self.assertIn('viewport-fit=cover', html)
+        self.assertIn('id="nexus-theme-color-meta" name="theme-color" content="#050B08"', html)
+        self.assertIn('--surface-solid', html)
+        self.assertIn('window.syncAccentUIElements = syncAccentUIElements', html)
+        self.assertIn('modal-fx-hex-picker', html)
+        self.assertIn('setCustomHexFromModal(this.value)', html)
+        self.assertIn('rawOpacity <= 1 ? Math.round(rawOpacity * 100)', html)
+
+    def test_paired_static_assets_are_in_sync_and_css_prevents_bottom_strip(self):
+        """Paired CSS/JS assets stay byte-identical and CSS propagates dynamic --bg cleanly on mobile PWA."""
+        static_dir = os.path.join(settings.BASE_DIR, 'static')
+        pairs = [
+            (os.path.join(static_dir, 'css', 'main.css'), os.path.join(static_dir, 'css', 'main.min.css')),
+            (os.path.join(static_dir, 'css', 'watermark.css'), os.path.join(static_dir, 'css', 'watermark.min.css')),
+            (os.path.join(static_dir, 'js', 'watermark.js'), os.path.join(static_dir, 'js', 'watermark.min.js')),
+        ]
+        for src, minified in pairs:
+            with open(src, 'rb') as f_src, open(minified, 'rb') as f_min:
+                self.assertEqual(f_src.read(), f_min.read(), f"{minified} is out of sync with {src}")
+
+        with open(os.path.join(static_dir, 'css', 'main.css'), 'r', encoding='utf-8') as f:
+            main_css = f.read()
+
+        self.assertIn('min-height:100dvh', main_css)
+        self.assertIn('background-attachment:scroll !important', main_css)
+        self.assertIn('--surface-solid', main_css)
+        self.assertIn('overflow-x: clip;', main_css)
+        self.assertIn('background-color: var(--bg, #050B08);', main_css)
+        self.assertNotIn('background:rgba(14,23,18,0.98)', main_css)
+        self.assertNotIn('background: #0b140f !important', main_css)
+        self.assertNotIn('background-color: #0c1611 !important', main_css)
 
 
 class DownloadedAppTwoWeekSessionTests(TestCase):

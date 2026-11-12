@@ -143,8 +143,15 @@ def flush_telemetry_to_db(fail_silently: bool = True):
             _BUFFER['peak_rps'] = max(_BUFFER['peak_rps'], delta_peak_rps)
 
 
+def _flush_on_shutdown():
+    """Flush buffered telemetry at process exit unless running under an automated test runner."""
+    if _is_testing():
+        return
+    flush_telemetry_to_db(fail_silently=True)
+
+
 # Register clean shutdown flush
-atexit.register(flush_telemetry_to_db)
+atexit.register(_flush_on_shutdown)
 
 
 class _FlushWorker(threading.Thread):
@@ -171,7 +178,13 @@ _WORKER_LOCK = threading.Lock()
 def _is_testing() -> bool:
     import sys
     from django.conf import settings
-    return bool(getattr(settings, 'TESTING', False) or ('test' in sys.argv))
+    try:
+        testing_setting = getattr(settings, 'TESTING', None)
+    except Exception:
+        testing_setting = None
+    if testing_setting is not None:
+        return bool(testing_setting)
+    return 'test' in sys.argv
 
 
 def _ensure_flush_worker():

@@ -262,7 +262,8 @@ def custom_login_view(request, extra_context=None):
             if not getattr(settings, 'EARLY_LAUNCH_MODE', False):
                 try:
                     from django.db import connections
-                    if 'temp_early_access' in connections:
+                    from accounts.utils import is_test_environment
+                    if not is_test_environment() and 'temp_early_access' in connections:
                         from accounts.models import User as UserModel
                         if UserModel.objects.using('temp_early_access').filter(enrollment_number=login_username).exists():
                             messages.info(
@@ -1280,9 +1281,11 @@ def apply_account(request):
                             user.is_active = True
                             user.save()
 
-                        # Mirror application and temporary user to permanent DB ONLY if running with an isolated secondary temporary DB
+                        # Mirror application and temporary user to permanent DB ONLY if running live with an isolated secondary temporary DB
+                        from accounts.utils import is_test_environment
                         is_distinct_permanent = (
-                            'permanent' in connections
+                            not is_test_environment()
+                            and 'permanent' in connections
                             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
                         )
                         if is_distinct_permanent:
@@ -1334,60 +1337,94 @@ def apply_account(request):
                     app_gender = application.get_gender_display()
                     app_first_name = first_name
 
-                    import threading
-                    def _post_submission_bg():
-                        try:
-                            from channels.layers import get_channel_layer
-                            from asgiref.sync import async_to_sync
-                            import zoneinfo
-                            layer = get_channel_layer()
-                            if layer:
-                                ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
-                                ts_str = timezone.now().astimezone(ist_tz).strftime("%b %d, %H:%M")
-                                async_to_sync(layer.group_send)(
-                                    'staff_applications',
-                                    {
-                                        'type': 'application_created',
-                                        'id': app_id,
-                                        'application_number': app_num,
-                                        'enrollment_number': enrollment,
-                                        'full_name': app_full_name,
-                                        'email': app_email or '',
-                                        'phone_number': app_phone,
-                                        'gender': app_gender,
-                                        'is_temp_upgrade': is_temp_user_upgrade,
-                                        'created_at': ts_str,
-                                    }
-                                )
-                        except Exception as exc:
-                            logger.warning("Staff application broadcast failed: %s", exc)
-
-                        if app_email:
-                            def _send_signup_email():
-                                try:
-                                    send_mail(
-                                        subject='Campus Nexus — Student Verification Application Received',
-                                        message=(
-                                            f'Hi {app_first_name},\n\n'
-                                            f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
-                                            f'Application Reference: #{app_num}\n'
-                                            f'Status: Under Review\n\n'
-                                            f'Your account has been activated immediately. '
-                                            f'You can coordinate rides, browse campus activities, and connect with peers right away '
-                                            f'at https://dev.campus-nexus.online/ while your permanent verification is pending review.\n\n'
-                                            f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
-                                            f'— The Campus Nexus Team, NIT Srinagar'
-                                        ),
-                                        from_email=None,
-                                        recipient_list=[app_email],
-                                        fail_silently=True,
-                                    )
-                                except Exception as exc:
-                                    logger.warning("Application confirmation email failed: %s", exc)
-                            threading.Thread(target=_send_signup_email, daemon=True).start()
-
                     from accounts.utils import is_test_environment
-                    if is_test_environment():
+                    import threading
+                    running_inline = is_test_environment()
+
+                    def _post_submission_bg():
+                        from django.db import close_old_connections
+                        try:
+                            try:
+                                from channels.layers import get_channel_layer
+                                from asgiref.sync import async_to_sync
+                                import zoneinfo
+                                layer = get_channel_layer()
+                                if layer:
+                                    ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+                                    ts_str = timezone.now().astimezone(ist_tz).strftime("%b %d, %H:%M")
+                                    async_to_sync(layer.group_send)(
+                                        'staff_applications',
+                                        {
+                                            'type': 'application_created',
+                                            'id': app_id,
+                                            'application_number': app_num,
+                                            'enrollment_number': enrollment,
+                                            'full_name': app_full_name,
+                                            'email': app_email or '',
+                                            'phone_number': app_phone,
+                                            'gender': app_gender,
+                                            'is_temp_upgrade': is_temp_user_upgrade,
+                                            'created_at': ts_str,
+                                        }
+                                    )
+                            except Exception as exc:
+                                logger.warning("Staff application broadcast failed: %s", exc)
+
+                            try:
+                                staff_ids = list(
+                                    User.objects.filter(
+                                        Q(is_staff=True) | Q(is_superuser=True),
+                                        is_active=True,
+                                        is_deleted=False,
+                                    ).exclude(enrollment_number=enrollment).values_list('id', flat=True)
+                                )
+                                for sid in staff_ids:
+                                    send_user_notification(
+                                        user_id=sid,
+                                        title='New Student Application',
+                                        content=f'{app_full_name} ({enrollment}) submitted verification application #{app_num}.',
+                                        url='/applications/',
+                                        category='admin_application',
+                                        badge='Pending Review',
+                                        badge_class='bg-warning-subtle text-warning border border-warning-subtle',
+                                        icon='bi-card-checklist',
+                                        tag=f'app-{app_id}',
+                                        notif_id=f'app_{app_id}',
+                                    )
+                            except Exception as exc:
+                                logger.warning("Staff application push notification failed: %s", exc)
+
+                            if app_email:
+                                def _send_signup_email():
+                                    try:
+                                        send_mail(
+                                            subject='Campus Nexus — Student Verification Application Received',
+                                            message=(
+                                                f'Hi {app_first_name},\n\n'
+                                                f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
+                                                f'Application Reference: #{app_num}\n'
+                                                f'Status: Under Review\n\n'
+                                                f'Your account has been activated immediately. '
+                                                f'You can coordinate rides, browse campus activities, and connect with peers right away '
+                                                f'at https://dev.campus-nexus.online/ while your permanent verification is pending review.\n\n'
+                                                f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
+                                                f'— The Campus Nexus Team, NIT Srinagar'
+                                            ),
+                                            from_email=None,
+                                            recipient_list=[app_email],
+                                            fail_silently=True,
+                                        )
+                                    except Exception as exc:
+                                        logger.warning("Application confirmation email failed: %s", exc)
+                                if running_inline:
+                                    _send_signup_email()
+                                else:
+                                    threading.Thread(target=_send_signup_email, daemon=True).start()
+                        finally:
+                            if not running_inline:
+                                close_old_connections()
+
+                    if running_inline:
                         _post_submission_bg()
                     else:
                         threading.Thread(target=_post_submission_bg, daemon=True).start()
@@ -2005,6 +2042,7 @@ def direct_chat_view(request, enrollment_number):
                         {
                             'type': 'chat.notification',
                             'message_id': msg.id,
+                            'tag': f'dm-msg-{msg.id}',
                             'sender': request.user.enrollment_number,
                             'sender_name': request.user.get_full_name() or request.user.enrollment_number,
                             'sender_avatar': request.user.profile_photo.url if request.user.profile_photo else '',
@@ -2022,7 +2060,8 @@ def direct_chat_view(request, enrollment_number):
                         'url': f'/messages/{request.user.enrollment_number}/',
                         'icon': request.user.profile_photo.url if request.user.profile_photo else '/static/img/pwa/icon-192x192.png',
                         'badge': '/static/img/pwa/icon-192x192.png',
-                        'tag': f'dm-{request.user.pk}',
+                        'tag': f'dm-msg-{msg.id}',
+                        'category': 'direct_message',
                     }
                     dispatch_web_push(friend.pk, dm_push_payload)
                 except Exception:
@@ -2294,9 +2333,11 @@ def approve_application(request, application_id):
         return redirect('application_list')
 
     with transaction.atomic():
+        from accounts.utils import is_test_environment
         application = get_object_or_404(AccountApplication, id=application_id, approved=False)
         is_distinct_permanent = (
-            'permanent' in connections
+            not is_test_environment()
+            and 'permanent' in connections
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         if application.enrollment_number == 'GUEST_DEMO':
@@ -2360,9 +2401,10 @@ def approve_application(request, application_id):
 
         application.delete()
 
-        # Mirror approved user to permanent DB ONLY if running with an isolated secondary temporary DB
+        # Mirror approved user to permanent DB ONLY if running live with an isolated secondary temporary DB
         is_distinct_permanent = (
-            'permanent' in connections
+            not is_test_environment()
+            and 'permanent' in connections
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         if is_distinct_permanent:
@@ -2387,8 +2429,8 @@ def approve_application(request, application_id):
             except Exception as e:
                 logger.warning("Could not sync approved user to permanent DB: %s", e)
 
-        # Also sync to temp_early_access if running with permanent as default DB
-        if 'temp_early_access' in connections:
+        # Also sync to temp_early_access if running live with permanent as default DB
+        if not is_test_environment() and 'temp_early_access' in connections:
             try:
                 temp_u = User.objects.using('temp_early_access').filter(enrollment_number=user.enrollment_number).first()
                 if temp_u:
@@ -2489,8 +2531,10 @@ def reject_application(request, application_id):
         applicant_name = application.full_name
         applicant_email = application.email
         application.delete()
+        from accounts.utils import is_test_environment
         is_distinct_permanent = (
-            'permanent' in connections
+            not is_test_environment()
+            and 'permanent' in connections
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         if is_distinct_permanent:
@@ -2655,6 +2699,20 @@ def send_friend_request(request, enrollment_number):
                 FriendRequest.objects.filter(
                     Q(sender=request.user, receiver=target) | Q(sender=target, receiver=request.user)
                 ).delete()
+            sender_name = request.user.get_full_name() or request.user.enrollment_number
+            send_user_notification(
+                user_id=target.id,
+                title='Friend Request Accepted',
+                content=f'{sender_name} accepted your friend request! You can now send direct messages.',
+                url=f'/messages/{request.user.enrollment_number}/',
+                category='friend_accepted',
+                sender_user=request.user,
+                badge='Friend Request Accepted',
+                badge_class='bg-success-subtle text-success border border-success-subtle',
+                icon='bi-person-check-fill',
+                tag=f'fr-acc-{request.user.id}-{target.id}',
+                notif_id=f'fr_acc_{request.user.id}_{target.id}',
+            )
             messages.success(request, f'You are now friends with {enrollment_number}.')
             return redirect('profile', enrollment_number=enrollment_number)
         except IntegrityError:
@@ -2671,12 +2729,14 @@ def send_friend_request(request, enrollment_number):
             user_id=target.id,
             title='New Connection Request',
             content=f'{sender_name} sent you a campus friend request.',
-            url='/dashboard/',
+            url=f'/profile/{request.user.enrollment_number}/',
             category='friend_request',
             sender_user=request.user,
             badge='Connection Request',
             badge_class='bg-info-subtle text-info border border-info-subtle',
             icon='bi-person-plus-fill',
+            tag=f'fr-{fr.id}',
+            notif_id=f'fr_{fr.id}',
         )
     messages.success(request, f'Friend request sent to {enrollment_number}.')
     return redirect('profile', enrollment_number=enrollment_number)
@@ -2791,6 +2851,8 @@ def accept_friend_request(request, request_id):
             badge='Friend Request Accepted',
             badge_class='bg-success-subtle text-success border border-success-subtle',
             icon='bi-person-check-fill',
+            tag=f'fr-acc-{request.user.id}-{other_user.id}',
+            notif_id=f'fr_acc_{request.user.id}_{other_user.id}',
         )
     except IntegrityError:
         FriendRequest.objects.filter(

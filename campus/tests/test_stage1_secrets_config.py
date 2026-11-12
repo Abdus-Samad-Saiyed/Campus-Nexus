@@ -159,6 +159,8 @@ class ProductionSettingsFailSafeTest(unittest.TestCase):
             'REDIS_URL': 'redis://localhost:6379/0',
             'DJANGO_ALLOWED_HOSTS': 'campus.nitsri.ac.in',
             'EMAIL_HOST_PASSWORD': 'dummy_password_for_test',
+            'VAPID_PUBLIC_KEY': 'mock_prod_vapid_public_key_1234567890',
+            'VAPID_PRIVATE_KEY': 'mock_prod_vapid_private_key_1234567890',
         }
         mod = self._import_prod(env_vars)
         self.assertEqual(mod.DATABASES['default']['ENGINE'], 'django.db.backends.sqlite3')
@@ -204,6 +206,18 @@ class ProductionSettingsFailSafeTest(unittest.TestCase):
                     importlib.import_module('campus.settings.prod')
                 self.assertIn('secrets_local', str(ctx.exception))
 
+    def test_prod_fails_on_missing_vapid_keys(self):
+        env_vars = {
+            'DJANGO_SECRET_KEY': 'production-safe-high-entropy-secret-key-at-least-50-characters-long',
+            'DATABASE_URL': 'postgres://user:pass@localhost:5432/campus_db',
+            'REDIS_URL': 'redis://localhost:6379/0',
+            'DJANGO_ALLOWED_HOSTS': 'campus.nitsri.ac.in,api.campus.nitsri.ac.in',
+            'EMAIL_HOST_PASSWORD': 'dummy_password_for_test',
+        }
+        with self.assertRaises(Exception) as ctx:
+            self._import_prod(env_vars)
+        self.assertIn('VAPID', str(ctx.exception))
+
     def test_prod_succeeds_with_complete_secure_configuration(self):
         env_vars = {
             'DJANGO_SECRET_KEY': 'production-safe-high-entropy-secret-key-at-least-50-characters-long',
@@ -211,6 +225,8 @@ class ProductionSettingsFailSafeTest(unittest.TestCase):
             'REDIS_URL': 'redis://localhost:6379/0',
             'DJANGO_ALLOWED_HOSTS': 'campus.nitsri.ac.in,api.campus.nitsri.ac.in',
             'EMAIL_HOST_PASSWORD': 'dummy_password_for_test',
+            'VAPID_PUBLIC_KEY': 'mock_prod_vapid_public_key_1234567890',
+            'VAPID_PRIVATE_KEY': 'mock_prod_vapid_private_key_1234567890',
         }
         mod = self._import_prod(env_vars)
         self.assertFalse(mod.DEBUG)

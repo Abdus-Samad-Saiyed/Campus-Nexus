@@ -223,6 +223,7 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'chat.notification',
                     'message_id': msg.id,
+                    'tag': f'dm-msg-{msg.id}',
                     'sender': self.user.enrollment_number,
                     'sender_name': sender_name,
                     'sender_avatar': avatar_url,
@@ -241,7 +242,8 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                     'url': f'/messages/{self.user.enrollment_number}/',
                     'icon': avatar_url or '/static/img/pwa/icon-192x192.png',
                     'badge': '/static/img/pwa/icon-192x192.png',
-                    'tag': f'dm-{self.user.id}',
+                    'tag': f'dm-msg-{msg.id}',
+                    'category': 'direct_message',
                 }
                 dispatch_web_push(self.friend.id, dm_push_payload)
             except Exception as push_err:
@@ -537,6 +539,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'chat_notification',
             'message_id': event.get('message_id'),
+            'tag': event.get('tag', ''),
             'sender': event['sender'],
             'sender_name': event.get('sender_name', event['sender']),
             'sender_avatar': event.get('sender_avatar', ''),
@@ -549,6 +552,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         """Receive general application notification (friend requests, ride joins, approvals, etc.)."""
         await self.send(text_data=json.dumps({
             'type': 'app_notification',
+            'id': event.get('id', ''),
+            'tag': event.get('tag', ''),
             'category': event.get('category', 'general'),
             'title': event.get('title', 'Notification'),
             'content': event.get('content', ''),

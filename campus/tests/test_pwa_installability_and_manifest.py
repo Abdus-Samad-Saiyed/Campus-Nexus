@@ -17,6 +17,9 @@ class PwaInstallabilityTests(TestCase):
         response = self.client.get('/manifest.json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue('application/manifest+json' in response.headers.get('Content-Type', ''))
+        cache_ctrl = response.headers.get('Cache-Control', '')
+        self.assertIn('no-cache', cache_ctrl)
+        self.assertIn('must-revalidate', cache_ctrl)
 
         content = b"".join(response.streaming_content) if response.streaming else response.content
         data = json.loads(content.decode('utf-8'))
@@ -26,7 +29,8 @@ class PwaInstallabilityTests(TestCase):
         self.assertEqual(data.get('short_name'), 'Campus Nexus')
         self.assertEqual(data.get('display'), 'standalone')
         self.assertEqual(data.get('start_url'), '/dashboard/?source=pwa')
-        self.assertEqual(data.get('theme_color'), '#08B74F')
+        self.assertEqual(data.get('background_color'), '#050B08')
+        self.assertEqual(data.get('theme_color'), '#050B08')
 
         # Icon validation
         icons = data.get('icons', [])
@@ -71,9 +75,11 @@ class PwaInstallabilityTests(TestCase):
 
         content = b"".join(response.streaming_content) if response.streaming else response.content
         sw_text = content.decode('utf-8')
-        self.assertIn('campus-nexus-v1', sw_text)
+        self.assertIn('campus-nexus-v2', sw_text)
         self.assertIn('/offline/', sw_text)
         self.assertIn('navigate', sw_text)
+        self.assertIn("url.pathname === '/manifest.json'", sw_text)
+        self.assertIn("url.pathname.startsWith('/static/')", sw_text)
 
     def test_base_template_pwa_tags_and_controls(self):
         """Verify base template renders manifest link, install buttons, and iOS modal."""
@@ -85,6 +91,8 @@ class PwaInstallabilityTests(TestCase):
         self.assertIn('<link rel="manifest" href="/manifest.json">', content)
         self.assertIn('name="apple-mobile-web-app-capable"', content)
         self.assertIn('name="theme-color"', content)
+        self.assertIn('content="#050B08"', content)
+        self.assertIn('viewport-fit=cover', content)
 
         # Buttons and Modals
         self.assertIn('id="btn-pwa-install"', content)
@@ -93,6 +101,9 @@ class PwaInstallabilityTests(TestCase):
         self.assertIn('id="pwaGenericInstallModal"', content)
         self.assertIn('window.triggerNexusPwaInstall', content)
         self.assertIn('window.isNexusRunningStandalone', content)
+        self.assertEqual(content.count("serviceWorker.register('/sw.js'"), 1)
+        self.assertIn("updateViaCache: 'none'", content)
+        self.assertIn('v=3.2.2', content)
 
     def test_dashboard_post_login_pwa_prompt_elements(self):
         """Dashboard renders #postLoginPwaPrompt with install & dismiss CTAs, feature badges, and standalone check."""

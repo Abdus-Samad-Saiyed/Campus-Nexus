@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#050B08",
-  "theme_color": "#08B74F",
+  "theme_color": "#050B08",
   "description": "Centralized student mobility, verified cab shares, peer communication, and digital identity for university students.",
   "categories": [
     "education",

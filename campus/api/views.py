@@ -757,7 +757,7 @@ def api_recent_notifications(request: HttpRequest) -> JsonResponse:
                         )
                     )
                 ),
-                'url': '/dashboard/',
+                'url': ann.action_url if (ann.action_url and ann.action_url.startswith('/')) else '/dashboard/',
                 'timestamp': ann.created_at.strftime('%d %b, %H:%M') if ann.created_at else '',
                 'read': ann.id in seen_ids,
             })
@@ -778,7 +778,7 @@ def api_recent_notifications(request: HttpRequest) -> JsonResponse:
                 'icon': 'bi-person-plus-fill',
                 'badge': 'Friend Request',
                 'badge_class': 'bg-info-subtle text-info border border-info-subtle',
-                'url': f'/profile/?friend_req={fr.id}',
+                'url': f'/profile/{sender.enrollment_number}/',
                 'timestamp': fr.created_at.strftime('%d %b, %H:%M') if hasattr(fr, 'created_at') and fr.created_at else '',
                 'read': False,
             })
@@ -802,7 +802,7 @@ def api_recent_notifications(request: HttpRequest) -> JsonResponse:
                 'icon': 'bi-car-front-fill',
                 'badge': 'Pending Approval',
                 'badge_class': 'bg-warning-subtle text-warning border border-warning-subtle',
-                'url': f'/coordinate/ride/{req.ride_id}/',
+                'url': f'/coordinate/{req.ride_id}/',
                 'timestamp': req.created_at.strftime('%d %b, %H:%M') if hasattr(req, 'created_at') and req.created_at else '',
                 'read': False,
             })
