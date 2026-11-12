@@ -97,6 +97,11 @@ class PwaInstallabilityTests(TestCase):
         # Buttons and Modals
         self.assertIn('id="btn-pwa-install"', content)
         self.assertIn('id="btn-pwa-install-mobile"', content)
+        self.assertIn('id="btn-pwa-install-pinned"', content)
+        self.assertIn('id="btn-pwa-install-pinned" type="button"', content)
+        self.assertIn('pwa-install-pinned-btn', content)
+        self.assertIn('window.__nexusDeferredInstallPrompt', content)
+        self.assertIn('window.isNexusIosSafari', content)
         self.assertIn('id="pwaIosInstallModal"', content)
         self.assertIn('id="pwaGenericInstallModal"', content)
         self.assertIn('window.triggerNexusPwaInstall', content)

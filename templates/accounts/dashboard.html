@@ -923,12 +923,24 @@ function acknowledgeAnnouncement(announcementId, btnElem) {
         return;
     }
 
-    // Reveal prompt
-    promptEl.style.display = 'block';
-    promptEl.classList.add('animate__animated', 'animate__fadeIn');
+    function revealPromptNow() {
+        if (!promptEl || promptEl.dataset.revealed) return;
+        promptEl.dataset.revealed = 'true';
+        promptEl.style.display = 'block';
+        promptEl.classList.add('animate__animated', 'animate__fadeIn');
+        if (justSignedIn) {
+            promptEl.style.boxShadow = '0 0 35px var(--green-glow, rgba(8, 183, 79, 0.45)), 0 8px 32px rgba(0,0,0,0.4)';
+        }
+    }
 
-    if (justSignedIn) {
-        promptEl.style.boxShadow = '0 0 35px var(--green-glow, rgba(8, 183, 79, 0.45)), 0 8px 32px rgba(0,0,0,0.4)';
+    const hasDirectPrompt = Boolean(window.getNexusDeferredPrompt && window.getNexusDeferredPrompt());
+    const isIos = (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
+    const isIosSafari = isIos && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+
+    if (hasDirectPrompt || isIosSafari) {
+        revealPromptNow();
+    } else {
+        document.addEventListener('nexus:pwa-prompt-ready', revealPromptNow, { once: true });
     }
 
     window.addEventListener('appinstalled', function() {
@@ -942,12 +954,6 @@ function acknowledgeAnnouncement(announcementId, btnElem) {
 function triggerPwaInstallFromPrompt() {
     if (typeof window.triggerNexusPwaInstall === 'function') {
         window.triggerNexusPwaInstall();
-    } else {
-        const modalEl = document.getElementById('pwaGenericInstallModal');
-        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modal.show();
-        }
     }
 }
 

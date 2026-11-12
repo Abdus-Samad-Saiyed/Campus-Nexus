@@ -461,6 +461,16 @@
     <link rel="stylesheet" href="{% static 'css/watermark.min.css' %}?v=3.2.2" data-asset="watermark.css">
 
     <!-- PWA Installation Button Dynamic Accent Styles -->
+    <script>
+    (function() {
+        window.__nexusDeferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__nexusDeferredInstallPrompt = e;
+            document.dispatchEvent(new CustomEvent('nexus:pwa-prompt-ready'));
+        });
+    })();
+    </script>
     <style id="pwa-install-styles">
         .btn-pwa-install {
             height: 34px;
@@ -952,9 +962,9 @@
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark notif-badge d-none" style="font-size: 0.65rem; padding: 0.25em 0.45em;">0</span>
                     </button>
                     {% endif %}
-                    <!-- Pinned Mobile Install Button (Never hidden in hamburger menu) -->
-                    <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center green-accent" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
-                        <i class="bi bi-download"></i>
+                    <!-- Pinned Mobile Install Button (Direct Native Install on Android; Share Sheet on iOS) -->
+                    <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center green-accent d-none" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
+                        <i class="bi bi-download" id="pwa-pinned-icon"></i>
                     </button>
                     <!-- Mobile Dedicated Visual Controls & Accent Colours Button -->
                     <button class="btn btn-icon-nav" type="button" data-bs-toggle="modal" data-bs-target="#uiSettingsModal" title="Visual Controls & Accent Colours" aria-label="Visual Controls & Accent Colours">
@@ -2871,7 +2881,7 @@
             });
         }
 
-        let deferredPrompt = null;
+        let deferredPrompt = window.__nexusDeferredInstallPrompt || null;
         const desktopInstallBtn = document.getElementById('btn-pwa-install');
         const mobileInstallBtn = document.getElementById('btn-pwa-install-mobile');
         const pinnedInstallBtn = document.getElementById('btn-pwa-install-pinned');
@@ -2882,10 +2892,15 @@
                    document.referrer.includes('android-app://');
         }
 
+        function isIosDevice() {
+            const ua = window.navigator.userAgent;
+            return (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
+        }
+
         function isIosSafari() {
             const ua = window.navigator.userAgent;
-            const isIos = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-            const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+            const isIos = isIosDevice();
+            const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS|Instagram|FBAN|FBAV/.test(ua);
             return isIos && isSafari;
         }
 
@@ -2893,7 +2908,7 @@
             const ua = window.navigator.userAgent;
             const isMac = /Macintosh|Mac OS X/.test(ua);
             const isSafari = /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR|Brave/.test(ua);
-            return isMac && isSafari;
+            return isMac && isSafari && !isIosDevice();
         }
 
         function showInstallUI() {
@@ -2909,6 +2924,12 @@
             if (pinnedInstallBtn) {
                 pinnedInstallBtn.classList.remove('d-none');
                 pinnedInstallBtn.classList.add('d-inline-flex');
+                pinnedInstallBtn.title = 'Install Campus Nexus App';
+                pinnedInstallBtn.setAttribute('aria-label', 'Install Campus Nexus App');
+                const icon = pinnedInstallBtn.querySelector('i');
+                if (icon) {
+                    icon.className = 'bi bi-download';
+                }
             }
         }
 
@@ -2927,15 +2948,47 @@
             }
         }
 
-        // Capture standard beforeinstallprompt (Windows, Mac, Linux, Android)
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            deferredPrompt = e;
+        function onPromptReady(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            deferredPrompt = e || window.__nexusDeferredInstallPrompt;
             showInstallUI();
             document.dispatchEvent(new CustomEvent('nexus:pwa-prompt-ready'));
+        }
+
+        // Capture standard beforeinstallprompt (Windows, Mac, Linux, Android)
+        window.addEventListener('beforeinstallprompt', onPromptReady);
+        document.addEventListener('nexus:pwa-prompt-ready', function() {
+            if (window.__nexusDeferredInstallPrompt && !deferredPrompt) {
+                deferredPrompt = window.__nexusDeferredInstallPrompt;
+                showInstallUI();
+            }
         });
 
+        if (deferredPrompt) {
+            showInstallUI();
+        }
+
+        function showIosInstallBanner() {
+            if (typeof showAppNotificationToast === 'function') {
+                showAppNotificationToast({
+                    title: 'Add to iPhone / iPad Home Screen',
+                    content: 'Tap Safari\'s Share button [↑] at the bottom of your screen, then choose "Add to Home Screen" 📲',
+                    category: 'system',
+                    badge: 'iOS Setup',
+                    badge_class: 'bg-primary-subtle text-primary border border-primary-subtle',
+                    icon: 'bi-box-arrow-up',
+                });
+            } else {
+                const modalEl = document.getElementById('pwaIosInstallModal');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            }
+        }
+
         async function handleInstallClick() {
+            // 1. Direct native 1-tap install on Android & Desktop Chromium
             if (deferredPrompt) {
                 try {
                     deferredPrompt.prompt();
@@ -2948,26 +3001,27 @@
                     console.warn('[PWA] Installation prompt error:', err);
                 }
                 deferredPrompt = null;
+                window.__nexusDeferredInstallPrompt = null;
                 hideInstallUI();
-            } else if (isIosSafari()) {
-                const modalEl = document.getElementById('pwaIosInstallModal');
-                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                    modal.show();
-                }
-            } else {
-                const modalEl = document.getElementById('pwaGenericInstallModal');
-                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                    modal.show();
-                }
+                return;
             }
+
+            // 2. Separate dedicated iOS handling (Share Sheet Banner)
+            if (isIosSafari()) {
+                showIosInstallBanner();
+                return;
+            }
+
+            // 3. In Incognito, in-app WebViews, or unsupported browsers:
+            // Do NOT pop up a generic 3-dot modal; keep silent/graceful
+            console.debug('[PWA] Direct install prompt unavailable in current browser context.');
         }
 
         // Expose globally for other templates (e.g. post-login dashboard prompt)
         window.triggerNexusPwaInstall = handleInstallClick;
         window.isNexusRunningStandalone = isRunningStandalone;
         window.getNexusDeferredPrompt = function() { return deferredPrompt; };
+        window.isNexusIosSafari = isIosSafari;
 
         if (desktopInstallBtn) {
             desktopInstallBtn.addEventListener('click', handleInstallClick);
@@ -2982,15 +3036,23 @@
             pinnedInstallBtn.classList.add('d-none');
         }
 
-        // On iOS Safari, reveal mobile install button which opens the instruction modal on tap
+        // On iOS Safari, adapt mobile install button with Apple Share icon & title
         if (isIosSafari() && !isRunningStandalone()) {
             if (mobileInstallBtn) {
                 mobileInstallBtn.classList.remove('d-none');
                 mobileInstallBtn.classList.add('d-flex');
+                const label = mobileInstallBtn.querySelector('.pwa-mobile-install-title');
+                if (label) label.textContent = 'Add to Home Screen (iOS)';
             }
             if (pinnedInstallBtn) {
                 pinnedInstallBtn.classList.remove('d-none');
                 pinnedInstallBtn.classList.add('d-inline-flex');
+                pinnedInstallBtn.title = 'Add Campus Nexus to Home Screen';
+                pinnedInstallBtn.setAttribute('aria-label', 'Add Campus Nexus to Home Screen');
+                const icon = pinnedInstallBtn.querySelector('i');
+                if (icon) {
+                    icon.className = 'bi bi-box-arrow-up';
+                }
             }
         }
 
@@ -3005,6 +3067,7 @@
         window.addEventListener('appinstalled', function() {
             console.log('[PWA] Campus Nexus installed successfully');
             deferredPrompt = null;
+            window.__nexusDeferredInstallPrompt = null;
             hideInstallUI();
             document.dispatchEvent(new CustomEvent('nexus:pwa-installed'));
         });
