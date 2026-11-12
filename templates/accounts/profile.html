@@ -81,9 +81,9 @@
                 {% endif %}
 
                 {% if is_self %}
-                    <button type="button" class="btn btn-outline-green btn-sm mb-3 w-100" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-                        <i class="bi bi-pencil-square me-1"></i> Edit Profile & Privacy
-                    </button>
+                    <a href="{% url 'account_settings' %}" class="btn btn-outline-green btn-sm mb-3 w-100 d-flex align-items-center justify-content-center gap-1.5">
+                        <i class="bi bi-gear-fill"></i> Account Settings
+                    </a>
                 {% endif %}
 
                 <hr class="my-3">

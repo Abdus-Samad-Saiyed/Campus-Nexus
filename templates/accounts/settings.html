@@ -1,0 +1,1311 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if section == 'personal' %}Personal Information — Account Settings
+    {% elif section == 'privacy' %}Privacy & Visibility — Account Settings
+    {% elif section == 'security' %}Security & Sign-in — Account Settings
+    {% elif section == 'notifications' %}Notifications — Account Settings
+    {% else %}Account Settings — Campus Nexus
+    {% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Account Settings Design System */
+.settings-shell {
+    max-width: 1140px;
+    margin: 0 auto;
+}
+.settings-nav-card {
+    background: rgba(22, 27, 34, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+}
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    color: var(--text-muted, #94a3b8);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.92rem;
+    transition: all 0.15s ease-in-out;
+}
+.settings-nav-item:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+.settings-nav-item.active {
+    color: #fff;
+    background: rgba(8, 183, 79, 0.15);
+    border: 1px solid rgba(8, 183, 79, 0.35);
+    font-weight: 600;
+}
+.settings-nav-item.active .settings-nav-icon {
+    color: var(--green, #08B74F);
+}
+
+.settings-card {
+    background: rgba(22, 27, 34, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    transition: border-color 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+a.settings-card-clickable {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+a.settings-card-clickable:hover .settings-card {
+    border-color: rgba(8, 183, 79, 0.45);
+    transform: translateY(-2px);
+}
+
+.settings-panel {
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+}
+
+.settings-field-group {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.read-only-badge {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 py-md-4 settings-shell">
+
+    <!-- Top Breadcrumb & Mobile Back Action -->
+    <div class="d-flex align-items-center justify-content-between mb-3 mb-md-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            {% if section != 'overview' %}
+                <a href="{% url 'account_settings' %}" class="btn btn-sm btn-dark-custom py-1.5 px-3 d-flex align-items-center gap-2" title="Back to Settings Overview">
+                    <i class="bi bi-arrow-left"></i>
+                    <span class="d-none d-sm-inline">All Settings</span>
+                </a>
+            {% else %}
+                <a href="{% url 'profile' profile_user.enrollment_number %}" class="btn btn-sm btn-dark-custom py-1.5 px-3 d-flex align-items-center gap-2" title="Back to Public Profile">
+                    <i class="bi bi-person-circle"></i>
+                    <span class="d-none d-sm-inline">My Profile</span>
+                </a>
+            {% endif %}
+            <div class="d-flex align-items-center gap-1.5 text-secondary small">
+                <a href="{% url 'account_settings' %}" class="text-secondary text-decoration-none hover-white">Account settings</a>
+                {% if section != 'overview' %}
+                    <span class="opacity-50">/</span>
+                    <span class="text-white fw-semibold text-capitalize">
+                        {% if section == 'personal' %}Personal information
+                        {% elif section == 'privacy' %}Privacy & visibility
+                        {% elif section == 'security' %}Security & sign-in
+                        {% elif section == 'notifications' %}Notifications
+                        {% endif %}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="small text-secondary font-monospace d-none d-md-inline">{{ profile_user.enrollment_number }}</span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2.5 rounded-pill small">
+                <i class="bi bi-check-circle-fill me-1"></i> Verified Account
+            </span>
+        </div>
+    </div>
+
+    <!-- Alert / Django Messages -->
+    {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if message.tags == 'error' %}
+                            <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+                        {% elif message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill fs-5"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill fs-5"></i>
+                        {% endif %}
+                        <div class="flex-grow-1">{{ message }}</div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row g-3 g-md-4">
+        <!-- Desktop Sidebar Navigation (Hidden on Overview and Phones) -->
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="settings-nav-card p-2.5 sticky-top" style="top: 80px; z-index: 10;">
+                <div class="px-3 py-2.5 mb-2 border-bottom border-secondary border-opacity-25">
+                    <div class="fw-bold text-white fs-6">Account Settings</div>
+                    <div class="text-secondary small" style="font-size: 0.78rem;">Manage your identity & preferences</div>
+                </div>
+                <nav class="d-flex flex-column gap-1">
+                    <a href="{% url 'account_settings' %}" class="settings-nav-item {% if section == 'overview' %}active{% endif %}">
+                        <i class="bi bi-grid-fill settings-nav-icon"></i>
+                        <span>Overview</span>
+                    </a>
+                    <a href="{% url 'account_settings_section' section='personal' %}" class="settings-nav-item {% if section == 'personal' %}active{% endif %}">
+                        <i class="bi bi-person-vcard-fill settings-nav-icon"></i>
+                        <span>Personal info</span>
+                    </a>
+                    <a href="{% url 'account_settings_section' section='privacy' %}" class="settings-nav-item {% if section == 'privacy' %}active{% endif %}">
+                        <i class="bi bi-shield-lock-fill settings-nav-icon"></i>
+                        <span>Privacy & visibility</span>
+                    </a>
+                    <a href="{% url 'account_settings_section' section='security' %}" class="settings-nav-item {% if section == 'security' %}active{% endif %}">
+                        <i class="bi bi-key-fill settings-nav-icon"></i>
+                        <span>Security & sign-in</span>
+                    </a>
+                    <a href="{% url 'account_settings_section' section='notifications' %}" class="settings-nav-item {% if section == 'notifications' %}active{% endif %}">
+                        <i class="bi bi-bell-fill settings-nav-icon"></i>
+                        <span>Notifications</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="{% if section == 'overview' %}col-12{% else %}col-12 col-lg-9{% endif %}">
+
+            <!-- ============================================================= -->
+            <!-- 1. LANDING PAGE OVERVIEW                                      -->
+            <!-- ============================================================= -->
+            {% if section == 'overview' %}
+            <div>
+                <div class="mb-4">
+                    <h2 class="h3 fw-bold text-white mb-1">Account settings</h2>
+                    <p class="text-secondary mb-0">Manage your profile details, privacy preferences, sign-in security, and device notifications.</p>
+                </div>
+
+                <!-- Two columns on desktop for Personal Info and Privacy/Visibility -->
+                <div class="row g-3 g-md-4 mb-3 mb-md-4">
+                    <!-- Card 1: Personal Information -->
+                    <div class="col-12 col-md-6">
+                        <a href="{% url 'account_settings_section' section='personal' %}" class="settings-card-clickable h-100">
+                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 38px; height: 38px;">
+                                                <i class="bi bi-person-fill fs-5"></i>
+                                            </div>
+                                            <h3 class="h5 fw-bold text-white mb-0">Personal information</h3>
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary small mb-3">Update your photo and contact details.</p>
+
+                                    <!-- Current state summary -->
+                                    <div class="settings-panel p-2.5 mb-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            {% if profile_user.profile_photo %}
+                                                <img src="{{ profile_user.profile_photo.url }}" alt="{{ profile_user.get_full_name }}" class="rounded-circle border border-secondary" style="width: 44px; height: 44px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="rounded-circle bg-secondary bg-opacity-25 text-white d-flex align-items-center justify-content-center fw-bold" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                                                    {{ profile_user.first_name|first|default:profile_user.enrollment_number|first|upper }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="min-w-0 flex-grow-1">
+                                                <div class="fw-semibold text-white text-truncate">{{ profile_user.get_full_name|default:profile_user.enrollment_number }}</div>
+                                                <div class="text-secondary small text-truncate">{{ profile_user.email }}</div>
+                                                <div class="text-secondary small text-truncate">{{ profile_user.phone_number|default:"No phone configured" }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-success fw-semibold small">
+                                    <span>Manage personal info</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Card 2: Privacy & Visibility -->
+                    <div class="col-12 col-md-6">
+                        <a href="{% url 'account_settings_section' section='privacy' %}" class="settings-card-clickable h-100">
+                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info" style="width: 38px; height: 38px;">
+                                                <i class="bi bi-eye-fill fs-5"></i>
+                                            </div>
+                                            <h3 class="h5 fw-bold text-white mb-0">Privacy & visibility</h3>
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary small mb-3">Choose what other students can see.</p>
+
+                                    <!-- Current state summary -->
+                                    <div class="settings-panel p-2.5 mb-3 d-flex flex-column gap-1.5 small">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Student Directory</span>
+                                            <span class="badge {% if profile_user.hide_from_search %}bg-warning-subtle text-warning{% else %}bg-success-subtle text-success{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
+                                                {% if profile_user.hide_from_search %}Hidden{% else %}Discoverable{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Active & Online Status</span>
+                                            <span class="badge {% if profile_user.hide_online_status %}bg-secondary-subtle text-secondary{% else %}bg-success-subtle text-success{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
+                                                {% if profile_user.hide_online_status %}Concealed{% else %}Visible{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Friends List</span>
+                                            <span class="badge {% if profile_user.show_friends_publicly %}bg-info-subtle text-info{% else %}bg-secondary-subtle text-secondary{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
+                                                {% if profile_user.show_friends_publicly %}Public{% else %}Only Friends{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-info fw-semibold small">
+                                    <span>Manage privacy</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Distinct Separate Destinations: Security & Notifications -->
+                <div class="row g-3 g-md-4">
+                    <!-- Card 3: Security & Sign-in -->
+                    <div class="col-12 col-md-6">
+                        <a href="{% url 'account_settings_section' section='security' %}" class="settings-card-clickable h-100">
+                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 38px; height: 38px;">
+                                                <i class="bi bi-shield-lock-fill fs-5"></i>
+                                            </div>
+                                            <h3 class="h5 fw-bold text-white mb-0">Security & sign-in</h3>
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary small mb-3">Password, passkeys, two-step verification, and active sessions.</p>
+
+                                    <!-- Current state summary -->
+                                    <div class="settings-panel p-2.5 mb-3 d-flex flex-column gap-1.5 small">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Two-Step Verification</span>
+                                            <span class="badge {% if profile_user.two_factor_enabled %}bg-success-subtle text-success border-success-subtle{% else %}bg-secondary-subtle text-secondary{% endif %} border py-0.5 px-2">
+                                                {% if profile_user.two_factor_enabled %}Enabled{% else %}Disabled{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Biometric Passkeys</span>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-0.5 px-2">
+                                                {{ passkeys_count }} registered
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Active Platform Sessions</span>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-0.5 px-2">
+                                                {{ active_platform_sessions|length }}/3 active
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-warning fw-semibold small">
+                                    <span>Manage security & sign-in</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Card 4: Notifications -->
+                    <div class="col-12 col-md-6">
+                        <a href="{% url 'account_settings_section' section='notifications' %}" class="settings-card-clickable h-100">
+                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 38px; height: 38px;">
+                                                <i class="bi bi-bell-fill fs-5"></i>
+                                            </div>
+                                            <h3 class="h5 fw-bold text-white mb-0">Notifications</h3>
+                                        </div>
+                                    </div>
+                                    <p class="text-secondary small mb-3">Push alert preferences, browser permissions, and test dispatch.</p>
+
+                                    <!-- Current state summary -->
+                                    <div class="settings-panel p-2.5 mb-3 d-flex flex-column gap-1.5 small">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Device Push Alerts</span>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-0.5 px-2" id="settings-overview-notif-badge">
+                                                Checking...
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Sound & Vibration Chime</span>
+                                            <span class="text-secondary">Enabled</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-secondary">Scope</span>
+                                            <span class="text-secondary">Rides, DMs, & Requests</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-primary fw-semibold small">
+                                    <span>Manage notifications</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- 2. PERSONAL INFORMATION DESTINATION                          -->
+            <!-- ============================================================= -->
+            {% elif section == 'personal' %}
+            <div class="settings-card p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                    <div>
+                        <h2 class="h4 fw-bold text-white mb-1">Personal information</h2>
+                        <p class="text-secondary small mb-0">Update your photo, public display name, and contact details.</p>
+                    </div>
+                </div>
+
+                <form action="{% url 'account_settings_section' section='personal' %}" method="POST" enctype="multipart/form-data" id="personalInfoForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="settings_action" value="personal">
+
+                    <!-- Profile Photo Group -->
+                    <div class="settings-field-group mb-3">
+                        <label class="form-label small fw-bold text-white d-block mb-2">Profile Photo</label>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            {% if profile_user.profile_photo %}
+                                <img src="{{ profile_user.profile_photo.url }}" alt="{{ profile_user.get_full_name }}" class="rounded-circle border border-secondary" style="width: 72px; height: 72px; object-fit: cover;" id="photoPreview">
+                            {% else %}
+                                <div class="rounded-circle bg-secondary bg-opacity-25 text-white d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 72px; height: 72px;" id="photoPreview">
+                                    {{ profile_user.first_name|first|default:profile_user.enrollment_number|first|upper }}
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1 min-w-0" style="max-width: 420px;">
+                                <input type="file" name="profile_photo" class="form-control form-control-sm" accept="image/jpeg,image/png,image/webp">
+                                <div class="form-text text-secondary small">Upload a clear photo (JPG, PNG, or WebP). Maximum file size: 5MB.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Display Name & Bio Group -->
+                    <div class="settings-field-group mb-3">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-white">Display Name</label>
+                            <input type="text" class="form-control" value="{{ profile_user.get_full_name }}" disabled readonly>
+                            <div class="form-text text-secondary small">Full name is officially bound to your verified institute student enrollment record.</div>
+                        </div>
+                        <div>
+                            <label class="form-label small fw-bold text-white">Short Bio / About You</label>
+                            <textarea name="bio" class="form-control" rows="3" maxlength="500" placeholder="Tell fellow students about your courses, daily commute, or frequent routes...">{{ profile_user.bio|default:"" }}</textarea>
+                            <div class="form-text text-secondary small">Up to 500 characters. Visible on your campus profile.</div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Details Group -->
+                    <div class="settings-field-group mb-3">
+                        <label class="form-label small fw-bold text-white d-block mb-2">Contact Details</label>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-secondary">Phone Number</label>
+                                <input type="tel" name="phone_number" class="form-control" value="{{ profile_user.phone_number }}" required>
+                                <div class="form-text text-secondary small">
+                                    Used for ride coordination and SMS verification. Visible only to confirmed friends and co-passengers.
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small text-secondary">Email Address</label>
+                                <input type="email" name="email" class="form-control" value="{{ profile_user.email }}" required>
+                                <div class="form-text text-secondary small">
+                                    Used for dual-channel OTPs, security alerts, and ride notifications.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step-up Verification Notice for Contact Changes -->
+                    {% if not profile_user.is_debug_account and not grace_active %}
+                    <div class="p-3 rounded border border-warning bg-warning bg-opacity-10 mb-3" id="contactVerificationNotice" style="display: none;">
+                        <div class="d-flex align-items-center gap-2 mb-2 text-warning fw-semibold small">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span>Verification Required for Contact Update</span>
+                        </div>
+                        <p class="text-light small mb-2" style="font-size: 0.85rem;">
+                            Updating your phone number or email modifies your recovery channel. Please dispatch and enter a 6-digit verification code below to authorize this change:
+                        </p>
+                        <div class="input-group input-group-sm" style="max-width: 380px;">
+                            <input type="text" name="security_otp_code" id="contactSecurityOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="Enter 6-digit OTP">
+                            <button type="button" class="btn btn-outline-warning" onclick="requestContactSecurityOtp(this)">
+                                <i class="bi bi-send me-1"></i> Send OTP
+                            </button>
+                        </div>
+                        <div id="contactOtpFeedback" class="small mt-1 font-monospace" style="display: none;"></div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Fixed Account Identifiers (Read-Only) -->
+                    <div class="settings-field-group mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label small fw-bold text-white mb-0">Fixed Academic Identifiers</label>
+                            <span class="read-only-badge"><i class="bi bi-lock-fill me-1"></i> Read-only</span>
+                        </div>
+                        <div class="row g-2 text-secondary small">
+                            <div class="col-6 col-md-3">
+                                <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                    <div class="text-muted" style="font-size: 0.72rem;">Enrollment No.</div>
+                                    <div class="fw-semibold text-light font-monospace">{{ profile_user.enrollment_number }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                    <div class="text-muted" style="font-size: 0.72rem;">Roll Number</div>
+                                    <div class="fw-semibold text-light">{{ profile_user.roll_number|default:"-" }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                    <div class="text-muted" style="font-size: 0.72rem;">Department</div>
+                                    <div class="fw-semibold text-light">{{ profile_user.branch|default:"General" }}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="p-2 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                    <div class="text-muted" style="font-size: 0.72rem;">Degree &amp; Batch</div>
+                                    <div class="fw-semibold text-light">{{ profile_user.degree|default:"Bachelors" }} ({{ profile_user.joining_year|default:"-" }})</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Action -->
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top border-secondary border-opacity-25 flex-wrap gap-2">
+                        <span class="text-secondary small">Changes take effect immediately on saving.</span>
+                        <button type="submit" class="btn btn-green px-4 fw-semibold">
+                            <i class="bi bi-check2 me-1"></i> Save changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- 3. PRIVACY & VISIBILITY DESTINATION                           -->
+            <!-- ============================================================= -->
+            {% elif section == 'privacy' %}
+            <div class="settings-card p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                    <div>
+                        <h2 class="h4 fw-bold text-white mb-1">Privacy & visibility</h2>
+                        <p class="text-secondary small mb-0">Control what information other students can see and when your presence is visible.</p>
+                    </div>
+                </div>
+
+                <form action="{% url 'account_settings_section' section='privacy' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="settings_action" value="privacy">
+
+                    <!-- Group 1: Profile Visibility -->
+                    <div class="settings-field-group mb-3">
+                        <div class="fw-bold text-white small mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-person-badge text-success"></i>
+                            <span>Profile visibility</span>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="hideSearchSwitch" name="hide_from_search" {% if profile_user.hide_from_search %}checked{% endif %}>
+                            <label class="form-check-label small" for="hideSearchSwitch">
+                                <strong class="text-white">Hide profile from student search directory</strong><br>
+                                <span class="text-secondary">When turned on, your profile will not appear in student search queries or autocomplete.</span>
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="hidePhotoSwitch" name="hide_profile_photo" {% if profile_user.hide_profile_photo %}checked{% endif %}>
+                            <label class="form-check-label small" for="hidePhotoSwitch">
+                                <strong class="text-white">Hide profile photo from directory searches</strong><br>
+                                <span class="text-secondary">When turned on, strangers see a generic monogram instead of your photo in search results and ride cards.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Group 2: Activity -->
+                    <div class="settings-field-group mb-3">
+                        <div class="fw-bold text-white small mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-activity text-info"></i>
+                            <span>Activity</span>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="showOnlineSwitch" name="show_online_status" {% if not profile_user.hide_online_status %}checked{% endif %}>
+                            <label class="form-check-label small" for="showOnlineSwitch">
+                                <strong class="text-white">Show online status and last-seen activity</strong><br>
+                                <span class="text-secondary">Allow fellow students to see when you are active now or when you were last online across the directory and direct messages.</span>
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="dmReadReceiptsSwitch" name="dm_read_receipts" {% if profile_user.dm_read_receipts %}checked{% endif %}>
+                            <label class="form-check-label small" for="dmReadReceiptsSwitch">
+                                <strong class="text-white">Send direct message read receipts</strong><br>
+                                <span class="text-secondary">Show double blue checkmarks when you read direct messages. (Read receipts remain active in ride coordination channels for commuter safety).</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Group 3: People & Contact -->
+                    <div class="settings-field-group mb-4">
+                        <div class="fw-bold text-white small mb-2 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-people text-warning"></i>
+                            <span>People & contact</span>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" role="switch" id="showFriendsSwitch" name="show_friends_publicly" {% if profile_user.show_friends_publicly %}checked{% endif %}>
+                            <label class="form-check-label small" for="showFriendsSwitch">
+                                <strong class="text-white">Make friend list public to all students</strong><br>
+                                <span class="text-secondary">Allow any verified student who visits your profile to view your confirmed friends.</span>
+                            </label>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="showContactSwitch" name="show_contact_on_profile" {% if profile_user.show_contact_on_profile %}checked{% endif %}>
+                            <label class="form-check-label small" for="showContactSwitch">
+                                <strong class="text-white">Show my phone and email to confirmed friends</strong><br>
+                                <span class="text-secondary">Allow confirmed friends to view your direct mobile number and institute email on your profile card.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Save Action -->
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top border-secondary border-opacity-25 flex-wrap gap-2">
+                        <span class="text-secondary small">Applies immediately after saving. No security re-authentication required.</span>
+                        <button type="submit" class="btn btn-green px-4 fw-semibold">
+                            <i class="bi bi-check2 me-1"></i> Save changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- 4. SECURITY & SIGN-IN DESTINATION                            -->
+            <!-- ============================================================= -->
+            {% elif section == 'security' %}
+            <div class="settings-card p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3 flex-wrap gap-2">
+                    <div>
+                        <h2 class="h4 fw-bold text-white mb-1">Security & sign-in</h2>
+                        <p class="text-secondary small mb-0">Protect your account with password changes, passkeys, two-step verification, and active session controls.</p>
+                    </div>
+
+                    <!-- Security Status Calm Summary Badge -->
+                    <div class="d-flex align-items-center gap-2">
+                        {% if grace_active %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle py-1.5 px-3 rounded-pill small">
+                                <i class="bi bi-shield-check me-1"></i> Identity confirmed (10m grace active)
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-1.5 px-3 rounded-pill small">
+                                <i class="bi bi-shield-lock me-1"></i> Standard protection
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Recent Verification Panel (Grace Window & Step-Up) -->
+                {% if not profile_user.is_debug_account %}
+                <div class="settings-field-group mb-3" id="securityVerificationBox"
+                     style="background: rgba({% if grace_active %}8, 183, 79, 0.08{% else %}245, 158, 11, 0.08{% endif %}) !important; border: 1px solid rgba({% if grace_active %}8, 183, 79, 0.35{% else %}245, 158, 11, 0.35{% endif %}) !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small {% if grace_active %}text-success{% else %}text-warning{% endif %}">
+                            <i class="bi bi-shield-lock-fill me-1"></i> Recent Verification
+                        </strong>
+                        {% if grace_active %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle small">10m Grace Active</span>
+                        {% endif %}
+                    </div>
+                    {% if grace_active %}
+                        <div class="small text-light text-opacity-75" style="font-size: 0.85rem; line-height: 1.4;">
+                            Your session has been recently authenticated. Sensitive security operations (password change, passkey enrollment, and 2FA toggles) are unlocked without re-entering an OTP.
+                        </div>
+                    {% else %}
+                        <div class="small text-secondary mb-2" id="securityOtpPrompt">
+                            Sensitive account actions require identity verification. Request a one-time code or touch your biometric passkey to unlock changes.
+                        </div>
+                        <div class="input-group input-group-sm mb-1" id="securityOtpInputGroup" style="max-width: 480px;">
+                            <input type="text" name="security_otp_code" id="securityOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="Enter 6-digit OTP">
+                            <button type="button" class="btn btn-outline-warning" id="sendSecurityOtpBtn" onclick="requestSecurityOtp()">
+                                <i class="bi bi-send me-1"></i> Send OTP
+                            </button>
+                            <button type="button" class="btn btn-outline-success" id="verifySecurityOtpBtn" onclick="verifySecurityOtpInline()">
+                                <i class="bi bi-check2-circle me-1"></i> Verify OTP
+                            </button>
+                            {% if registered_passkeys %}
+                            <button type="button" class="btn btn-outline-info" id="verifyPasskeyStepUpBtn" onclick="verifyPasskeyForStepUp()">
+                                <i class="bi bi-fingerprint me-1"></i> Passkey
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div id="securityOtpFeedback" class="small mt-1 font-monospace" style="display: none;"></div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Panel 1: Password & Recovery -->
+                <div class="settings-field-group mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-bold text-white small d-flex align-items-center gap-1.5">
+                            <i class="bi bi-key-fill text-warning"></i>
+                            <span>Password &amp; recovery</span>
+                        </div>
+                        <a href="{% url 'forgot_password' %}" class="small text-info text-decoration-none">
+                            Forgot current password? <i class="bi bi-arrow-up-right small"></i>
+                        </a>
+                    </div>
+                    <p class="text-secondary small mb-3">Change your account password. Requires your current password to prevent unauthorized takeover.</p>
+
+                    <form action="{% url 'account_settings_section' section='security' %}" method="POST" id="passwordChangeForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="settings_action" value="security">
+                        <input type="hidden" name="security_action" value="change_password">
+
+                        <div class="mb-2" style="max-width: 480px;">
+                            <label class="form-label small text-secondary">Current Password</label>
+                            <div class="input-group input-group-sm">
+                                <input type="password" name="current_password" class="form-control" placeholder="Current password" autocomplete="current-password" required>
+                                <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-2" style="max-width: 480px;">
+                            <div class="col-6">
+                                <label class="form-label small text-secondary">New Password</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" name="new_password" class="form-control" placeholder="New password" autocomplete="new-password" required>
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-secondary">Confirm New</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" autocomplete="new-password" required>
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+                            <span class="text-secondary small">Changing password signs out all other browser sessions immediately.</span>
+                            <button type="submit" class="btn btn-outline-warning btn-sm px-3 fw-semibold">
+                                <i class="bi bi-key me-1"></i> Update password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Panel 2: Two-Step Verification -->
+                <div class="settings-field-group mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-bold text-white small d-flex align-items-center gap-1.5">
+                            <i class="bi bi-shield-check text-success"></i>
+                            <span>Two-step verification (2FA)</span>
+                        </div>
+                        <span class="badge {% if profile_user.two_factor_enabled %}bg-success-subtle text-success{% else %}bg-secondary-subtle text-secondary{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
+                            {% if profile_user.two_factor_enabled %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        When enabled, sign-ins mandate a 6-digit verification code dispatched to your phone/email or biometric confirmation via your registered passkey.
+                    </p>
+
+                    <form action="{% url 'account_settings_section' section='security' %}" method="POST" class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="settings_action" value="security">
+                        <input type="hidden" name="security_action" value="toggle_2fa">
+
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="twoFactorSwitch" name="two_factor_enabled" {% if profile_user.two_factor_enabled %}checked{% endif %} onchange="this.form.submit()">
+                            <label class="form-check-label small text-white fw-semibold" for="twoFactorSwitch">
+                                {% if profile_user.two_factor_enabled %}Two-step verification is turned on{% else %}Turn on two-step verification{% endif %}
+                            </label>
+                        </div>
+                        <span class="text-secondary small">Verification methods: SMS OTP, Email OTP, Passkeys</span>
+                    </form>
+                </div>
+
+                <!-- Panel 3: Passkeys -->
+                <div class="settings-field-group mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-bold text-white small d-flex align-items-center gap-1.5">
+                            <i class="bi bi-fingerprint text-info"></i>
+                            <span>Passkeys &amp; Biometrics</span>
+                        </div>
+                        <button type="button" class="btn btn-outline-light btn-sm py-1 px-2.5 small" onclick="registerWebAuthnPasskey()">
+                            <i class="bi bi-plus-circle me-1"></i> Add passkey
+                        </button>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        Sign in instantly and authorize step-up challenges using Touch ID, Face ID, or Windows Hello.
+                    </p>
+
+                    {% if registered_passkeys %}
+                        <div class="d-flex flex-column gap-2 mb-2">
+                            {% for pk in registered_passkeys %}
+                            <div class="d-flex justify-content-between align-items-center small py-2 px-3 bg-dark bg-opacity-60 rounded border border-secondary border-opacity-40">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi {{ pk.device_icon|default:'bi-key' }} fs-5 text-info"></i>
+                                    <div>
+                                        <div class="fw-semibold text-white">{{ pk.name|default:"Biometric Key" }}</div>
+                                        <div class="text-secondary" style="font-size: 0.75rem;">
+                                            Enrolled {{ pk.created_at|date:"M j, Y" }}
+                                            {% if pk.last_used_at %} &middot; Last used {{ pk.last_used_at|timesince }} ago{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2" onclick="deletePasskey({{ pk.id }})" title="Remove passkey">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="settings-panel p-3 text-center text-secondary small fst-italic mb-2">
+                            No biometric passkeys registered on this account yet. Click "Add passkey" to set up Touch ID or Windows Hello.
+                        </div>
+                    {% endif %}
+                    <div id="passkeyRegStatus" class="small mt-2 font-monospace" style="display: none;"></div>
+                </div>
+
+                <!-- Panel 4: Active Platform Sessions -->
+                <div class="settings-field-group mb-0">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-bold text-white small d-flex align-items-center gap-1.5">
+                            <i class="bi bi-devices text-info"></i>
+                            <span>Active platform sessions</span>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary small">
+                            {{ active_platform_sessions|length }}/3 active
+                        </span>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        Simultaneous sign-in is allowed across up to 3 distinct platforms (e.g. Windows, Android, iOS).
+                    </p>
+
+                    <div class="d-flex flex-column gap-2">
+                        {% for ps in active_platform_sessions %}
+                        <div class="d-flex justify-content-between align-items-center p-2.5 rounded bg-dark bg-opacity-60 border border-secondary border-opacity-30 small">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <span class="fs-5 text-secondary">
+                                    {% if ps.platform == 'windows' %}<i class="bi bi-windows text-primary"></i>
+                                    {% elif ps.platform == 'android' %}<i class="bi bi-android2 text-success"></i>
+                                    {% elif ps.platform == 'ios' %}<i class="bi bi-apple text-info"></i>
+                                    {% elif ps.platform == 'macos' %}<i class="bi bi-apple text-light"></i>
+                                    {% elif ps.platform == 'linux' %}<i class="bi bi-display text-warning"></i>
+                                    {% else %}<i class="bi bi-laptop text-secondary"></i>
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <div class="fw-semibold text-white text-capitalize">
+                                        {{ ps.get_platform_display|default:ps.platform }}
+                                        {% if ps.session_key == request.session.session_key %}
+                                            <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle rounded-pill ms-1" style="font-size: 0.65rem;">Current Device</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-secondary" style="font-size: 0.72rem;">
+                                        Active since {{ ps.created_at|date:"M d, H:i" }} &middot; Last active {{ ps.last_activity|timesince }} ago
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="settings-panel p-2.5 text-secondary small fst-italic">Current session active.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- 5. NOTIFICATIONS PREFERENCES DESTINATION                      -->
+            <!-- ============================================================= -->
+            {% elif section == 'notifications' %}
+            <div class="settings-card p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                    <div>
+                        <h2 class="h4 fw-bold text-white mb-1">Notifications</h2>
+                        <p class="text-secondary small mb-0">Preferences for push notifications, browser alerts, and device sound chimes.</p>
+                    </div>
+                </div>
+
+                <!-- Notification Controls Box -->
+                <div class="settings-field-group mb-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <div>
+                            <strong class="d-block text-white small">
+                                <i class="bi bi-bell-fill me-1 text-success" id="profile-notif-title-icon"></i> Desktop &amp; Phone Notifications
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle py-0.5 px-2 small ms-1" id="profile-notif-status-badge">Checking...</span>
+                            </strong>
+                            <span class="text-secondary small d-block" id="profile-notif-desc">
+                                Receive instant push notifications for ride updates, instant messages, and friend requests.
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-green" id="btn-profile-notifs" onclick="window.toggleNexusNotifications(this)">
+                                <i class="bi bi-bell me-1"></i> Enable
+                            </button>
+                            <button type="button" class="btn btn-sm btn-dark-custom d-none" id="btn-profile-test-notif" onclick="window.sendTestNotification(this)" title="Test push alert and chime">
+                                <i class="bi bi-play-circle me-1"></i> Test
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 small text-secondary">
+                        <i class="bi bi-info-circle text-info me-1"></i> Notifications are device preferences. They do not alter your profile data or require security verification.
+                    </div>
+                </div>
+
+                <!-- Guidance for Blocked / Browser Settings -->
+                <div class="settings-panel p-3">
+                    <h3 class="h6 fw-bold text-white mb-2">Browser site permissions</h3>
+                    <p class="text-secondary small mb-2">
+                        If notifications were denied previously, your web browser prevents sites from showing them automatically.
+                    </p>
+                    <ol class="text-secondary small mb-0 ps-3">
+                        <li class="mb-1">Click the padlock or site settings icon on the left edge of your browser's address bar.</li>
+                        <li class="mb-1">Locate <strong>Notifications</strong> and change the setting to <strong>Allow</strong>.</li>
+                        <li>Refresh the page and click <strong>Enable</strong> above.</li>
+                    </ol>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- WebAuthn, Step-up, and Password Script Helpers -->
+<script>
+// Show/Hide password toggles
+document.querySelectorAll('.password-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = this.closest('.input-group')?.querySelector('input');
+        if (!input) return;
+        const icon = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            if (icon) icon.className = 'bi bi-eye';
+        }
+    });
+});
+
+// Photo upload preview
+const photoInput = document.querySelector('input[name="profile_photo"]');
+if (photoInput) {
+    photoInput.addEventListener('change', function(e) {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const preview = document.getElementById('photoPreview');
+                if (preview) {
+                    if (preview.tagName === 'IMG') {
+                        preview.src = evt.target.result;
+                    } else {
+                        preview.outerHTML = `<img src="${evt.target.result}" class="rounded-circle border border-secondary" style="width: 72px; height: 72px; object-fit: cover;" id="photoPreview">`;
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Contact details change detector: reveals verification notice if unverified
+const personalForm = document.getElementById('personalInfoForm');
+if (personalForm) {
+    const origPhone = "{{ profile_user.phone_number }}";
+    const origEmail = "{{ profile_user.email }}";
+    const phoneInput = personalForm.querySelector('input[name="phone_number"]');
+    const emailInput = personalForm.querySelector('input[name="email"]');
+    const notice = document.getElementById('contactVerificationNotice');
+
+    function checkContactChanges() {
+        if (!notice) return;
+        const phoneChanged = phoneInput && phoneInput.value.trim() !== origPhone;
+        const emailChanged = emailInput && emailInput.value.trim().toLowerCase() !== origEmail.toLowerCase();
+        notice.style.display = (phoneChanged || emailChanged) ? 'block' : 'none';
+    }
+
+    if (phoneInput) phoneInput.addEventListener('input', checkContactChanges);
+    if (emailInput) emailInput.addEventListener('input', checkContactChanges);
+}
+
+async function requestContactSecurityOtp(btn) {
+    const feedback = document.getElementById('contactOtpFeedback');
+    if (!btn || !feedback) return;
+    btn.disabled = true;
+    feedback.style.display = 'block';
+    feedback.className = 'small mt-1 text-info font-monospace';
+    feedback.textContent = 'Sending OTP to registered contact channels...';
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+        const res = await fetch("{% url 'send_security_otp' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({})
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            feedback.className = 'small mt-1 text-success font-monospace';
+            feedback.textContent = data.message || 'OTP sent! Please check your email and phone.';
+            const inp = document.getElementById('contactSecurityOtpInput');
+            if (inp) inp.focus();
+            let cd = 15;
+            const timer = setInterval(() => {
+                cd--;
+                if (cd <= 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send me-1"></i> Resend OTP';
+                } else {
+                    btn.innerHTML = `<i class="bi bi-clock me-1"></i> Wait ${cd}s`;
+                }
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Failed to send verification code.');
+        }
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
+        feedback.className = 'small mt-1 text-danger font-monospace';
+        feedback.textContent = err.message || 'Request failed.';
+    }
+}
+
+// Passkey Registration & Verification
+async function registerWebAuthnPasskey() {
+    const statusDiv = document.getElementById('passkeyRegStatus');
+    if (!statusDiv) return;
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'small mt-2 text-info font-monospace';
+    statusDiv.textContent = 'Requesting challenge...';
+
+    if (!window.PublicKeyCredential) {
+        statusDiv.className = 'small mt-2 text-danger font-monospace';
+        statusDiv.textContent = 'WebAuthn is not supported on this device/browser.';
+        return;
+    }
+
+    try {
+        const chalRes = await fetch("{% url 'passkey_reg_challenge' %}");
+        if (!chalRes.ok) {
+            const errData = await chalRes.json().catch(() => ({}));
+            if (chalRes.status === 403) {
+                statusDiv.className = 'small mt-2 text-warning font-monospace';
+                statusDiv.textContent = errData.error || 'Recent re-authentication required. Enter OTP below first.';
+                const secOtpInput = document.getElementById('securityOtpInput');
+                if (secOtpInput) secOtpInput.focus();
+                return;
+            }
+            throw new Error(errData.error || 'Challenge request failed.');
+        }
+        const chalData = await chalRes.json();
+        const challengeBytes = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        const userIdBytes = new TextEncoder().encode(chalData.user_id);
+
+        const isMac = /Macintosh|Mac OS X/i.test(navigator.userAgent);
+        const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        statusDiv.textContent = isMac
+            ? 'Touch Touch ID sensor on your Mac keyboard...'
+            : (isIos ? 'Verify using Face ID or Touch ID...' : 'Touch fingerprint sensor or verify with Windows Hello...');
+
+        const rpConfig = { name: 'Campus Nexus' };
+        if (chalData.rp_id && !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(chalData.rp_id)) {
+            rpConfig.id = chalData.rp_id;
+        }
+
+        const isPlatformAvailable = window.PublicKeyCredential &&
+            typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
+            ? await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false)
+            : false;
+
+        const authSelection = { residentKey: 'preferred', userVerification: 'preferred' };
+        if (isPlatformAvailable || isMac || isIos) {
+            authSelection.authenticatorAttachment = 'platform';
+        }
+
+        const credential = await navigator.credentials.create({
+            publicKey: {
+                challenge: challengeBytes,
+                rp: rpConfig,
+                user: { id: userIdBytes, name: chalData.user_name, displayName: chalData.display_name },
+                pubKeyCredParams: [
+                    { type: 'public-key', alg: -7 },
+                    { type: 'public-key', alg: -257 },
+                    { type: 'public-key', alg: -8 },
+                ],
+                authenticatorSelection: authSelection,
+                attestation: 'none',
+                timeout: 60000,
+            }
+        });
+
+        if (!credential) throw new Error('Passkey creation cancelled.');
+
+        statusDiv.textContent = 'Registering passkey...';
+
+        function bufferToBase64url(buffer) {
+            if (!buffer) return '';
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+        const verifyRes = await fetch("{% url 'passkey_reg_verify' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                type: credential.type,
+                response: {
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    attestationObject: bufferToBase64url(credential.response.attestationObject),
+                    transports: credential.response.getTransports ? credential.response.getTransports() : []
+                },
+                device: navigator.userAgent.includes('Windows') ? 'Windows PC' : 'Device',
+                name: `Passkey — ${new Date().toLocaleDateString()}`
+            })
+        });
+
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        if (verifyData.success) {
+            statusDiv.className = 'small mt-2 text-success font-monospace';
+            statusDiv.textContent = 'Passkey registered successfully!';
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            throw new Error(verifyData.error || 'Failed to register passkey.');
+        }
+    } catch (err) {
+        statusDiv.className = 'small mt-2 text-danger font-monospace';
+        statusDiv.textContent = err.message || 'Passkey setup failed.';
+    }
+}
+
+async function verifySecurityOtpInline() {
+    const otpInput = document.getElementById('securityOtpInput');
+    const feedback = document.getElementById('securityOtpFeedback');
+    const verifyBtn = document.getElementById('verifySecurityOtpBtn');
+    if (!otpInput) return;
+    const code = otpInput.value.trim();
+    if (!code) {
+        if (feedback) {
+            feedback.style.display = 'block';
+            feedback.className = 'small mt-1 text-warning font-monospace';
+            feedback.textContent = 'Enter the 6-digit verification code first.';
+        }
+        otpInput.focus();
+        return;
+    }
+    if (verifyBtn) {
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
+    }
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+        const res = await fetch("{% url 'verify_security_otp' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ otp_code: code })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            location.reload();
+        } else {
+            throw new Error(data.error || 'Invalid OTP code.');
+        }
+    } catch (err) {
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Verify OTP';
+        }
+        if (feedback) {
+            feedback.style.display = 'block';
+            feedback.className = 'small mt-1 text-danger font-monospace';
+            feedback.textContent = err.message || 'Verification failed.';
+        }
+    }
+}
+
+async function requestSecurityOtp() {
+    const feedback = document.getElementById('securityOtpFeedback');
+    const btn = document.getElementById('sendSecurityOtpBtn');
+    if (!btn || !feedback) return;
+    btn.disabled = true;
+    feedback.style.display = 'block';
+    feedback.className = 'small mt-1 text-info font-monospace';
+    feedback.textContent = 'Sending verification code...';
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+        const res = await fetch("{% url 'send_security_otp' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({})
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            feedback.className = 'small mt-1 text-success font-monospace';
+            feedback.textContent = data.message || 'Code dispatched!';
+            const inp = document.getElementById('securityOtpInput');
+            if (inp) inp.focus();
+        } else {
+            throw new Error(data.error || 'Failed to send code.');
+        }
+    } catch (err) {
+        btn.disabled = false;
+        feedback.className = 'small mt-1 text-danger font-monospace';
+        feedback.textContent = err.message || 'Request failed.';
+    }
+}
+
+async function verifyPasskeyForStepUp() {
+    const feedback = document.getElementById('securityOtpFeedback');
+    if (feedback) {
+        feedback.style.display = 'block';
+        feedback.className = 'small mt-1 text-info font-monospace';
+        feedback.textContent = 'Touch fingerprint sensor or scan face...';
+    }
+    try {
+        const chalRes = await fetch("{% url 'passkey_auth_challenge' %}");
+        if (!chalRes.ok) throw new Error('Failed to get authentication challenge.');
+        const chalData = await chalRes.json();
+        const challengeBuf = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        const allowCredentials = (chalData.credential_ids || []).map(cid => ({
+            id: Uint8Array.from(atob(cid.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+            type: 'public-key',
+        }));
+
+        const assertion = await navigator.credentials.get({
+            publicKey: {
+                challenge: challengeBuf,
+                allowCredentials: allowCredentials,
+                userVerification: 'preferred',
+                rpId: chalData.rp_id || window.location.hostname,
+                timeout: 60000,
+            }
+        });
+        if (!assertion) throw new Error('Biometric verification cancelled.');
+
+        function bufToB64(buf) {
+            if (!buf) return '';
+            const bytes = new Uint8Array(buf);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        const verifyRes = await fetch("{% url 'passkey_step_up_verify' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({
+                id: assertion.id,
+                credential_id: assertion.id,
+                rawId: assertion.rawId ? bufToB64(assertion.rawId) : assertion.id,
+                type: assertion.type || 'public-key',
+                client_data_json: bufToB64(assertion.response.clientDataJSON),
+                response: {
+                    clientDataJSON: bufToB64(assertion.response.clientDataJSON),
+                    authenticatorData: bufToB64(assertion.response.authenticatorData),
+                    signature: bufToB64(assertion.response.signature),
+                    userHandle: assertion.response.userHandle ? bufToB64(assertion.response.userHandle) : null,
+                }
+            }),
+        });
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        if (verifyRes.ok && verifyData.success) {
+            location.reload();
+        } else {
+            throw new Error(verifyData.error || 'Passkey verification failed.');
+        }
+    } catch (err) {
+        if (feedback) {
+            feedback.className = 'small mt-1 text-danger font-monospace';
+            feedback.textContent = err.message || 'Biometric verification failed.';
+        }
+    }
+}
+
+async function deletePasskey(pkId) {
+    if (!confirm('Are you sure you want to remove this passkey?')) return;
+    try {
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        const res = await fetch(`/auth/passkey/${pkId}/delete/`, {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to remove passkey. Re-authentication may be required.');
+        }
+    } catch (err) {
+        alert('Network error removing passkey.');
+    }
+}
+
+// Sync overview notification badge if present
+document.addEventListener('DOMContentLoaded', function() {
+    const ovBadge = document.getElementById('settings-overview-notif-badge');
+    if (ovBadge && 'Notification' in window) {
+        const perm = Notification.permission;
+        const userPref = localStorage.getItem('nexus_notifications_enabled');
+        if (perm === 'granted') {
+            ovBadge.className = 'badge bg-success-subtle text-success border border-success-subtle py-0.5 px-2';
+            ovBadge.textContent = (userPref === 'false') ? 'Muted' : 'Active';
+        } else if (perm === 'denied') {
+            ovBadge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle py-0.5 px-2';
+            ovBadge.textContent = 'Blocked';
+        } else {
+            ovBadge.className = 'badge bg-warning-subtle text-warning border border-warning-subtle py-0.5 px-2';
+            ovBadge.textContent = 'Not Configured';
+        }
+    }
+});
+</script>
+{% endblock %}

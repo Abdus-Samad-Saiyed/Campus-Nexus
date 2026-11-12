@@ -1808,6 +1808,243 @@ def profile_view(request, enrollment_number):
 
 
 @login_required
+def account_settings_view(request, section=None):
+    """Account Settings experience with distinct destinations:
+    - Overview (landing page)
+    - Personal information
+    - Privacy & visibility
+    - Security & sign-in
+    - Notifications
+    """
+    profile_user = request.user
+    if section is None:
+        section = request.GET.get('section', 'overview').strip().lower()
+    else:
+        section = section.strip().lower()
+
+    valid_sections = ('overview', 'personal', 'privacy', 'security', 'notifications')
+    if section not in valid_sections:
+        section = 'overview'
+
+    # Check 10-minute session grace window for security changes
+    grace_str = request.session.get('security_otp_verified_until')
+    grace_active = False
+    if grace_str:
+        try:
+            from datetime import datetime as dt_cls
+            grace_dt = dt_cls.fromisoformat(grace_str)
+            if timezone.now() < grace_dt:
+                grace_active = True
+        except Exception:
+            pass
+
+    if request.method == 'POST':
+        action = request.POST.get('settings_action', section).strip().lower()
+
+        # ----------------------------------------------------
+        # 1. PERSONAL INFORMATION ACTION
+        # ----------------------------------------------------
+        if action == 'personal':
+            new_phone = request.POST.get('phone_number', '').strip()
+            new_email = request.POST.get('email', '').strip().lower()
+            new_bio = request.POST.get('bio', '').strip()[:500]
+
+            phone_changed = bool(new_phone and new_phone != profile_user.phone_number)
+            email_changed = bool(new_email and new_email != profile_user.email)
+
+            if phone_changed or email_changed:
+                if not profile_user.is_debug_account and not grace_active:
+                    sec_otp = request.POST.get('security_otp_code', '').strip()
+                    otp_valid, otp_msg = verify_phone_otp(profile_user, submitted_code=sec_otp, purpose='SECURITY_CHANGE')
+                    if not otp_valid:
+                        messages.error(request, f"Security verification required to update contact details: {otp_msg}")
+                        return redirect(f"{reverse('account_settings_section', args=['personal'])}")
+                    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+                    grace_active = True
+
+            if email_changed:
+                if User.objects.filter(email=new_email, is_deleted=False).exclude(pk=profile_user.pk).exists():
+                    messages.error(request, "This email address is already registered to another active account.")
+                    return redirect('account_settings_section', section='personal')
+                profile_user.email = new_email
+
+            if phone_changed:
+                norm_phone = normalize_phone_number(new_phone)
+                if len(norm_phone) > 15:
+                    messages.error(request, "Phone number exceeds maximum length of 15 digits.")
+                    return redirect('account_settings_section', section='personal')
+                profile_user.phone_number = norm_phone
+
+            if 'bio' in request.POST:
+                profile_user.bio = new_bio
+
+            # Profile photo upload
+            if 'profile_photo' in request.FILES:
+                photo = request.FILES['profile_photo']
+                if photo.size > 5 * 1024 * 1024:
+                    messages.error(request, "Profile photo file size exceeds 5MB limit.")
+                    return redirect('account_settings_section', section='personal')
+
+                ext = os.path.splitext(photo.name)[1].lower()
+                if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+                    messages.error(request, "Only JPG, PNG, and WebP image formats are allowed.")
+                    return redirect('account_settings_section', section='personal')
+
+                try:
+                    img = Image.open(photo)
+                    img.verify()
+                    photo.seek(0)
+                    img = Image.open(photo)
+                    img_format = (img.format or '').lower()
+                    if img_format not in ('jpeg', 'png', 'webp'):
+                        messages.error(request, "Invalid or unsupported image format.")
+                        return redirect('account_settings_section', section='personal')
+                except Exception:
+                    messages.error(request, "Uploaded file is not a valid image.")
+                    return redirect('account_settings_section', section='personal')
+
+                from io import BytesIO
+                from django.core.files.uploadedfile import InMemoryUploadedFile
+                buffer = BytesIO()
+                img = img.convert('RGB')
+                img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                img.save(buffer, format='JPEG', quality=85, optimize=True)
+                buffer.seek(0)
+                clean_filename = f"{uuid.uuid4().hex}.jpg"
+                clean_photo = InMemoryUploadedFile(
+                    file=buffer,
+                    field_name='profile_photo',
+                    name=clean_filename,
+                    content_type='image/jpeg',
+                    size=buffer.getbuffer().nbytes,
+                    charset=None,
+                )
+                setattr(profile_user, 'profile_photo', clean_photo)
+
+            profile_user.save()
+            messages.success(request, 'Personal details updated successfully.')
+            return redirect('account_settings_section', section='personal')
+
+        # ----------------------------------------------------
+        # 2. PRIVACY & VISIBILITY ACTION
+        # ----------------------------------------------------
+        elif action == 'privacy':
+            profile_user.show_friends_publicly = (request.POST.get('show_friends_publicly') == 'on')
+            if 'show_online_status' in request.POST:
+                profile_user.hide_online_status = (request.POST.get('show_online_status') != 'on')
+            elif 'hide_online_status' in request.POST:
+                profile_user.hide_online_status = (request.POST.get('hide_online_status') == 'on')
+            profile_user.hide_from_search = (request.POST.get('hide_from_search') == 'on')
+            profile_user.hide_profile_photo = (request.POST.get('hide_profile_photo') == 'on')
+            profile_user.show_contact_on_profile = (request.POST.get('show_contact_on_profile') == 'on')
+            profile_user.dm_read_receipts = (request.POST.get('dm_read_receipts') == 'on')
+            profile_user.save()
+            messages.success(request, 'Privacy & visibility preferences saved.')
+            return redirect('account_settings_section', section='privacy')
+
+        # ----------------------------------------------------
+        # 3. SECURITY & SIGN-IN ACTION
+        # ----------------------------------------------------
+        elif action == 'security':
+            sub_action = request.POST.get('security_action', 'update').strip().lower()
+
+            if sub_action == 'change_password':
+                current_password = request.POST.get('current_password', '').strip()
+                new_password = request.POST.get('new_password', '').strip()
+                confirm_password = request.POST.get('confirm_password', '').strip()
+
+                if not current_password or not profile_user.check_password(current_password):
+                    messages.error(request, "Current password is required and must be correct.")
+                    return redirect('account_settings_section', section='security')
+
+                if not new_password:
+                    messages.error(request, "Please enter a new password.")
+                    return redirect('account_settings_section', section='security')
+
+                if new_password != confirm_password:
+                    messages.error(request, "New passwords do not match. Please re-enter.")
+                    return redirect('account_settings_section', section='security')
+
+                try:
+                    validate_password(new_password, profile_user)
+                except ValidationError as e:
+                    for error in e.messages:
+                        messages.error(request, error)
+                    return redirect('account_settings_section', section='security')
+
+                if not profile_user.is_debug_account and not grace_active:
+                    sec_otp = request.POST.get('security_otp_code', '').strip()
+                    otp_valid, otp_msg = verify_phone_otp(profile_user, submitted_code=sec_otp, purpose='SECURITY_CHANGE')
+                    if not otp_valid:
+                        messages.error(request, f"Security verification required: {otp_msg}")
+                        return redirect('account_settings_section', section='security')
+                    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+                    grace_active = True
+
+                profile_user.set_password(new_password)
+                profile_user.save()
+
+                current_key = request.session.session_key
+                for s in Session.objects.filter(expire_date__gt=timezone.now()):
+                    try:
+                        if s.session_key != current_key:
+                            data = s.get_decoded()
+                            if str(data.get('_auth_user_id')) == str(profile_user.pk):
+                                s.delete()
+                    except Exception:
+                        pass
+                update_session_auth_hash(request, profile_user)
+                enforce_single_session_login(request, profile_user)
+
+                log_audit_event(
+                    event_type='SECURITY_SETTINGS_UPDATED',
+                    actor_enrollment=profile_user.enrollment_number,
+                    description='User updated password in security settings',
+                )
+                messages.success(request, 'Password changed successfully. Other sessions have been revoked.')
+                return redirect('account_settings_section', section='security')
+
+            elif sub_action == 'toggle_2fa':
+                new_2fa = (request.POST.get('two_factor_enabled') == 'on')
+                if new_2fa != profile_user.two_factor_enabled:
+                    if not profile_user.is_debug_account and not grace_active:
+                        sec_otp = request.POST.get('security_otp_code', '').strip()
+                        otp_valid, otp_msg = verify_phone_otp(profile_user, submitted_code=sec_otp, purpose='SECURITY_CHANGE')
+                        if not otp_valid:
+                            messages.error(request, f"Security verification required to toggle 2FA: {otp_msg}")
+                            return redirect('account_settings_section', section='security')
+                        request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+                        grace_active = True
+
+                    profile_user.two_factor_enabled = new_2fa
+                    profile_user.save()
+                    status_text = "enabled" if new_2fa else "disabled"
+                    log_audit_event(
+                        event_type='SECURITY_SETTINGS_UPDATED',
+                        actor_enrollment=profile_user.enrollment_number,
+                        description=f'User {status_text} 2-Factor Authentication',
+                    )
+                    messages.success(request, f"Two-factor authentication has been {status_text}.")
+                return redirect('account_settings_section', section='security')
+
+        # Fallback for unexpected actions
+        return redirect('account_settings_section', section=section)
+
+    registered_passkeys = list(PasskeyCredential.objects.filter(user=profile_user))
+    active_platform_sessions = list(profile_user.platform_sessions.all())
+
+    return render(request, 'accounts/settings.html', {
+        'profile_user': profile_user,
+        'user': profile_user,
+        'section': section,
+        'registered_passkeys': registered_passkeys,
+        'passkeys_count': len(registered_passkeys),
+        'active_platform_sessions': active_platform_sessions,
+        'grace_active': grace_active,
+    })
+
+
+@login_required
 def user_search(request):
     """Search for students by enrollment number or name with privacy filtering."""
     from accounts.demo import is_guest_demo
