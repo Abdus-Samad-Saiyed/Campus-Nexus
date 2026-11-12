@@ -220,3 +220,12 @@ CORS_ALLOWED_ORIGINS = env.list(
     'CORS_ALLOWED_ORIGINS',
     default=[f'https://{h}' for h in valid_hosts if not h.startswith('.')]
 )
+
+# --- 11. Web Push (VAPID) Production Configuration ---------------------------
+VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')
+if not IS_BUILD_PHASE:
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        raise ImproperlyConfigured(
+            'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be configured in production environment.'
+        )

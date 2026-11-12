@@ -55,30 +55,49 @@
         tr.style.backgroundColor = 'rgba(8, 183, 79, 0.2)';
         tr.style.transition = 'background-color 3s ease';
 
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        const safeId = parseInt(app.id, 10) || 0;
+        const safeAppNum = escapeHtml(app.application_number);
+        const safeEnrollment = escapeHtml(app.enrollment_number);
+        const safeFullName = escapeHtml(app.full_name);
+        const safeEmail = escapeHtml(app.email);
+        const safePhone = escapeHtml(app.phone_number);
+        const safeGender = escapeHtml(app.gender);
+        const safeCreatedAt = escapeHtml(app.created_at);
+
         const upgradeBadge = app.is_temp_upgrade 
             ? '<span class="badge bg-warning text-dark small ms-1" title="Active temporary user applying for permanent verified ID"><i class="bi bi-arrow-up-circle-fill me-1"></i>Elevate Temp User</span>' 
             : '';
 
-        const emailCol = app.email 
-            ? `<a href="mailto:${app.email}" class="small font-monospace text-secondary text-decoration-none" title="Send email to ${app.email}"><i class="bi bi-envelope me-1 text-success"></i>${app.email}</a>`
+        const emailCol = safeEmail 
+            ? `<a href="mailto:${safeEmail}" class="small font-monospace text-secondary text-decoration-none" title="Send email to ${safeEmail}"><i class="bi bi-envelope me-1 text-success"></i>${safeEmail}</a>`
             : '<span class="text-muted small">—</span>';
 
         const csrfToken = getCsrfToken();
 
         tr.innerHTML = `
-            <td><code>${app.application_number}</code></td>
-            <td><strong>${app.enrollment_number}</strong>${upgradeBadge}</td>
-            <td>${app.full_name}</td>
+            <td><code>${safeAppNum}</code></td>
+            <td><strong>${safeEnrollment}</strong>${upgradeBadge}</td>
+            <td>${safeFullName}</td>
             <td>${emailCol}</td>
-            <td>${app.phone_number}</td>
-            <td><span class="badge bg-secondary">${app.gender}</span></td>
-            <td class="text-secondary small">${app.created_at}</td>
+            <td>${safePhone}</td>
+            <td><span class="badge bg-secondary">${safeGender}</span></td>
+            <td class="text-secondary small">${safeCreatedAt}</td>
             <td class="text-end">
                 <div class="d-flex gap-2 justify-content-end">
                     <form method="POST"
-                          action="/applications/${app.id}/approve/"
-                          hx-post="/applications/${app.id}/approve/"
-                          hx-target="#app-row-${app.id}"
+                          action="/applications/${safeId}/approve/"
+                          hx-post="/applications/${safeId}/approve/"
+                          hx-target="#app-row-${safeId}"
                           hx-swap="outerHTML"
                           class="d-inline m-0">
                         <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
@@ -90,8 +109,8 @@
                             class="btn btn-outline-danger btn-sm px-3"
                             data-bs-toggle="modal"
                             data-bs-target="#rejectModal"
-                            data-app-id="${app.id}"
-                            data-app-enrollment="${app.enrollment_number}">
+                            data-app-id="${safeId}"
+                            data-app-enrollment="${safeEnrollment}">
                         <i class="bi bi-x-lg me-1"></i>Reject
                     </button>
                 </div>

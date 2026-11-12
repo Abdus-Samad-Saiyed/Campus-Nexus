@@ -4,7 +4,7 @@ import datetime
 from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
-from django.test import TestCase
+from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -15,7 +15,7 @@ from coordinate.models import ParticipantStatus, RideJoinRequest, RideParticipan
 User = get_user_model()
 
 
-class NotificationCenterTests(TestCase):
+class NotificationCenterTests(TransactionTestCase):
 
     def setUp(self):
         self.user_a = User.objects.create_user(

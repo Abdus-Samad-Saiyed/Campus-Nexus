@@ -126,7 +126,7 @@ def rate_limit(key_prefix: str, limit: int, period_seconds: int, message: str = 
 
                         active_code = get_active_otp(user=target_user, phone_number=t_phone, email=t_email, purpose=purpose)
                         if active_code:
-                            request._active_otp_info = f"[OTP: {active_code} (Rate Limit 429)]"
+                            request._active_otp_info = "[Rate Limit 429: OTP Resend Throttled]"
                             emit_otp_console_log(
                                 raw_code=active_code,
                                 target=target_user or t_phone or t_email or ip,

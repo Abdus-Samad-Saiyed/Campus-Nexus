@@ -6,7 +6,8 @@ from django.conf import settings
 
 def is_test_environment() -> bool:
     """Return True if running under automated Django test runner."""
-    return bool(getattr(settings, 'TESTING', False))
+    import sys
+    return bool(getattr(settings, 'TESTING', False) or 'test' in sys.argv)
 
 
 def is_alpha_environment() -> bool:

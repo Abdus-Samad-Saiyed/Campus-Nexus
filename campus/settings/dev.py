@@ -178,3 +178,8 @@ if (
 # Allow local HTTP testing without dropping CSRF / Session cookies
 CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=False)
 SESSION_COOKIE_SECURE = env.bool('DJANGO_SESSION_COOKIE_SECURE', default=False)
+
+
+# Development VAPID credentials for local push simulation
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', 'BLkZl62TuGdb1K6tKpBU7LRwlwSQ3I8xmSYphqq1jgqf6h2dIjF8Twv9T27OKuVKrxH6eAwiBUYheP661CgMjH8')
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', 'MyaX72FdKRmmV46dUl7BUQ2WMe5ey3rIUwoB4usXxdI')

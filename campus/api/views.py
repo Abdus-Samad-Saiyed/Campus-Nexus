@@ -304,11 +304,21 @@ def api_ride_list(request: HttpRequest) -> JsonResponse:
 
     now = timezone.now()
 
+    from django.db.models import Prefetch, Count
+    from coordinate.models import RideParticipant, ParticipantStatus
+
+    confirmed_prefetch = Prefetch(
+        'participants',
+        queryset=RideParticipant.objects.filter(status=ParticipantStatus.CONFIRMED).select_related('user'),
+        to_attr='confirmed_participants_list'
+    )
+
     rides = (
         RideRequest.objects
         .filter(status="OPEN", departure_time__gt=now)
         .select_related("creator")
-        .prefetch_related("participants__user")
+        .prefetch_related(confirmed_prefetch)
+        .annotate(participants_total=Count('participants', filter=Q(participants__status=ParticipantStatus.CONFIRMED)))
         .order_by("departure_time")
     )
 
@@ -364,14 +374,31 @@ def api_ride_list(request: HttpRequest) -> JsonResponse:
         rides = rides.filter(departure_time__lte=end_dt)
 
     # Server-authoritative audience comfort gating
+    try:
+        limit = min(max(int(request.GET.get("limit", 25)), 1), 100)
+    except (ValueError, TypeError):
+        limit = 25
+    try:
+        page = max(int(request.GET.get("page", 1)), 1)
+    except (ValueError, TypeError):
+        page = 1
+
     visible_rides = []
     for ride in rides:
         if _user_can_see_ride(user, ride):
             visible_rides.append(serialize_ride(ride, request_user=user))
 
+    total_count = len(visible_rides)
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_rides = visible_rides[start_idx:end_idx]
+
     return json_success({
-        "count": len(visible_rides),
-        "rides": visible_rides,
+        "count": total_count,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_count + limit - 1) // limit if total_count > 0 else 1,
+        "rides": paginated_rides,
     })
 
 

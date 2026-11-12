@@ -1546,8 +1546,16 @@
 
     <!-- Bootstrap Bundle JS with Subresource Integrity (SRI) -->
     <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- Clockwork Watermark Engine -->
-    <script defer src="{% static 'js/watermark.min.js' %}?v=3.2.0" data-asset="watermark.js"></script>
+    <!-- Clockwork Watermark Engine (Desktop viewports only) -->
+    <script>
+    if (window.innerWidth >= 992) {
+        var wmScript = document.createElement('script');
+        wmScript.src = "{% static 'js/watermark.min.js' %}?v=3.2.0";
+        wmScript.defer = true;
+        wmScript.setAttribute('data-asset', 'watermark.js');
+        document.head.appendChild(wmScript);
+    }
+    </script>
 
     <!-- Universal Password Visibility Engine -->
     <script>
@@ -1856,11 +1864,11 @@
         window.currentNotifFilter = 'all';
         window.filterNotificationList = function(category, btnEl) {
             window.currentNotifFilter = category;
-            document.querySelectorAll('.notif-filter-btn').forEach(btn => {
-                btn.className = 'btn btn-sm btn-dark-custom py-0.5 px-2.5 rounded-pill notif-filter-btn';
+            document.querySelectorAll('.notif-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
             if (btnEl) {
-                btnEl.className = 'btn btn-sm btn-green py-0.5 px-2.5 rounded-pill notif-filter-btn';
+                btnEl.classList.add('active');
             }
             window.loadNotificationsFeed(category);
         };
@@ -1871,9 +1879,21 @@
             const cat = filterCategory || window.currentNotifFilter || 'all';
             const allItems = getNotificationHistory();
 
-            const countAll = allItems.length;
-            const filterCountEl = document.getElementById('notif-filter-count-all');
-            if (filterCountEl) filterCountEl.textContent = countAll;
+            const unreadCount = allItems.filter(n => !n.read).length;
+            const unreadPill = document.getElementById('notif-unread-pill');
+            if (unreadPill) {
+                if (unreadCount > 0) {
+                    unreadPill.textContent = unreadCount + ' new';
+                    unreadPill.classList.remove('d-none');
+                } else {
+                    unreadPill.classList.add('d-none');
+                }
+            }
+
+            const subtext = document.getElementById('notif-modal-subtext');
+            if (subtext) {
+                subtext.textContent = unreadCount > 0 ? `${unreadCount} unread alert${unreadCount === 1 ? '' : 's'}` : 'Your campus activity & alerts';
+            }
 
             const filtered = allItems.filter(item => {
                 if (cat === 'all') return true;
@@ -1886,49 +1906,63 @@
             const summaryEl = document.getElementById('notif-footer-summary');
             if (summaryEl) summaryEl.textContent = `${filtered.length} notification${filtered.length === 1 ? '' : 's'}`;
 
+            let permBanner = '';
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                permBanner = `
+                    <div class="p-2.5 px-3 mb-2.5 rounded-3 d-flex align-items-center justify-content-between" style="background: rgba(8, 183, 79, 0.08); border: 1px solid rgba(8, 183, 79, 0.22);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-bell text-success fs-5"></i>
+                            <div style="line-height: 1.25;">
+                                <strong class="text-white small d-block" style="font-size: 0.8rem;">Enable Push Alerts</strong>
+                                <span class="text-secondary" style="font-size: 0.72rem;">Get notified for rides &amp; messages on this device</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-green py-0.5 px-2.5 fw-semibold" style="font-size: 0.74rem;" onclick="window.toggleNexusNotifications(this)">
+                            Turn On
+                        </button>
+                    </div>
+                `;
+            }
+
             if (filtered.length === 0) {
                 feedEl.innerHTML = `
-                    <div class="text-center py-5">
-                        <div class="rounded-circle bg-dark border border-secondary mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 54px; height: 54px;">
-                            <i class="bi bi-bell-slash text-secondary fs-4"></i>
+                    ${permBanner}
+                    <div class="text-center py-5 my-2">
+                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 56px; height: 56px; background: rgba(8, 183, 79, 0.08); border: 1px solid rgba(8, 183, 79, 0.2);">
+                            <i class="bi bi-check2-circle text-success fs-3"></i>
                         </div>
-                        <h6 class="text-white fw-semibold mb-1">No Notifications in this View</h6>
-                        <p class="text-secondary small mb-0">You're completely caught up. New ride updates, messages, and announcements will appear here.</p>
+                        <h6 class="text-white fw-semibold mb-1" style="font-size: 0.92rem;">You're All Caught Up</h6>
+                        <p class="text-secondary small mb-0 mx-auto" style="max-width: 260px; font-size: 0.78rem; line-height: 1.4;">
+                            No new notifications. Alerts for your rides, direct messages, and campus updates will appear here.
+                        </p>
                     </div>
                 `;
                 return;
             }
 
-            feedEl.innerHTML = filtered.map(item => {
-                const unreadClass = item.read ? 'opacity-75' : 'border-success border-opacity-50';
-                const unreadDot = item.read ? '' : '<span class="badge bg-success rounded-pill p-1 me-1" style="font-size:0.5rem;" title="Unread">•</span>';
+            feedEl.innerHTML = permBanner + filtered.map(item => {
+                const unreadClass = item.read ? '' : 'is-unread';
                 const avatar = item.sender_avatar 
-                    ? `<img src="${escapeHtml(item.sender_avatar)}" class="rounded-circle object-fit-cover shadow-sm flex-shrink-0" style="width: 38px; height: 38px;" alt="">`
-                    : `<div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
-                         <i class="bi ${escapeHtml(item.icon || 'bi-bell-fill')} green-accent fs-5"></i>
+                    ? `<img src="${escapeHtml(item.sender_avatar)}" class="rounded-circle object-fit-cover flex-shrink-0" style="width: 36px; height: 36px;" alt="">`
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px; background: rgba(8, 183, 79, 0.12); color: var(--green, #08B74F);">
+                         <i class="bi ${escapeHtml(item.icon || 'bi-bell-fill')} fs-5"></i>
                        </div>`;
                 return `
-                    <div class="p-3 mb-2 rounded glass border border-secondary border-opacity-25 d-flex align-items-start gap-3 position-relative ${unreadClass}" style="background: rgba(255,255,255,0.03);">
+                    <div class="p-3 mb-2 notif-item-card ${unreadClass} d-flex align-items-start gap-3" ${item.url ? `onclick="window.location.href='${escapeHtml(item.url)}'"` : ''}>
                         ${avatar}
                         <div class="flex-grow-1 overflow-hidden" style="min-width: 0;">
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                                <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                    ${unreadDot}
-                                    <span class="badge ${escapeHtml(item.badge_class || 'bg-success-subtle text-success')} py-0 px-1.5" style="font-size: 0.68rem;">
-                                        ${escapeHtml(item.badge || 'Alert')}
-                                    </span>
-                                    <strong class="text-white small text-truncate">${escapeHtml(item.title)}</strong>
-                                </div>
+                                <strong class="text-white small text-truncate" style="font-size: 0.85rem;">${escapeHtml(item.title)}</strong>
                                 <small class="text-secondary text-nowrap" style="font-size: 0.7rem;">${escapeHtml(item.timestamp || '')}</small>
                             </div>
-                            <div class="text-secondary small text-break mb-2" style="font-size: 0.8rem; line-height: 1.35;">
+                            <div class="text-secondary small text-break mb-1" style="font-size: 0.8rem; line-height: 1.35; color: #94a3b8;">
                                 ${escapeHtml(item.content)}
                             </div>
                             ${item.url ? `
-                                <div class="d-flex align-items-center gap-2">
-                                    <a href="${escapeHtml(item.url)}" class="btn btn-sm btn-green py-0.5 px-2.5 fw-semibold" style="font-size: 0.72rem;">
-                                        <i class="bi bi-box-arrow-up-right me-1"></i> View
-                                    </a>
+                                <div class="d-flex align-items-center justify-content-end mt-1">
+                                    <span class="text-success fw-semibold" style="font-size: 0.72rem;">
+                                        View <i class="bi bi-arrow-right ms-0.5"></i>
+                                    </span>
                                 </div>
                             ` : ''}
                         </div>
@@ -2058,6 +2092,12 @@
             }, 8000);
         }
 
+        window.isNexusNotificationsEnabled = function() {
+            if (!('Notification' in window)) return false;
+            if (Notification.permission !== 'granted') return false;
+            return (localStorage.getItem('nexus_notifications_enabled') !== 'false');
+        };
+
         // Native System Notifications for Desktop and Mobile (Android / iOS PWA)
         function triggerSystemNotification(data, force) {
             if (!('Notification' in window)) return;
@@ -2066,11 +2106,16 @@
                 return;
             }
 
+            const currentPath = window.location.pathname.replace(/\/+$/, '');
+            if (!force && !document.hidden && data.type === 'chat_notification' && currentPath === '/messages/' + data.sender) {
+                return;
+            }
+
             let title = 'Campus Nexus';
             let body = '';
             let url = data.url || '/dashboard/';
             let tag = 'nexus-notif';
-            let icon = '/static/favicon.ico';
+            let icon = '/static/img/pwa/icon-192x192.png';
 
             if (data.type === 'chat_notification') {
                 title = '💬 Message from ' + (data.sender_name || data.sender);
@@ -2085,24 +2130,27 @@
                 if (data.sender_avatar) icon = data.sender_avatar;
             }
 
+            const origin = window.location.origin;
+            const resolvedIcon = new URL(icon, origin).href;
+            const resolvedBadge = new URL('/static/img/pwa/icon-192x192.png', origin).href;
+
             const options = {
                 body: body,
-                icon: icon,
-                badge: '/static/favicon.ico',
+                icon: resolvedIcon,
+                badge: resolvedBadge,
                 vibrate: [200, 100, 200],
                 tag: tag,
                 renotify: true,
+                requireInteraction: true,
+                silent: false,
                 data: { url: url }
             };
 
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                const swPromise = navigator.serviceWorker.ready.then(function(reg) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(function(reg) {
                     return reg.showNotification(title, options);
-                });
-                const timeoutPromise = new Promise(function(_, reject) {
-                    setTimeout(function() { reject(new Error('SW timeout')); }, 800);
-                });
-                Promise.race([swPromise, timeoutPromise]).catch(function() {
+                }).catch(function(err) {
+                    console.debug('SW showNotification error, trying fallbackNotification:', err);
                     fallbackNotification(title, options);
                 });
             } else {
@@ -2174,25 +2222,21 @@
             });
 
             // 1b. Notification Modal Toolbar Switch & Badge
-            const modalSwitch = document.getElementById('notif-sound-switch');
-            const modalBadge = document.getElementById('modal-notif-status-badge');
-            if (modalSwitch) {
-                modalSwitch.checked = (state === 'enabled');
-                modalSwitch.disabled = (state === 'denied' || state === 'unsupported');
-            }
-            if (modalBadge) {
+            const footerDot = document.getElementById('notif-footer-status-dot');
+            const footerText = document.getElementById('notif-footer-status-text');
+            if (footerDot && footerText) {
                 if (state === 'enabled') {
-                    modalBadge.className = 'badge bg-success-subtle text-success border border-success-subtle py-0 px-2 small';
-                    modalBadge.textContent = 'Active';
+                    footerDot.style.background = '#10B981';
+                    footerText.textContent = 'Push alerts active';
                 } else if (state === 'disabled') {
-                    modalBadge.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle py-0 px-2 small';
-                    modalBadge.textContent = 'Muted';
+                    footerDot.style.background = '#94a3b8';
+                    footerText.textContent = 'Alerts muted';
                 } else if (state === 'denied') {
-                    modalBadge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle py-0 px-2 small';
-                    modalBadge.textContent = 'Blocked';
+                    footerDot.style.background = '#ef4444';
+                    footerText.textContent = 'Alerts blocked by browser';
                 } else {
-                    modalBadge.className = 'badge bg-warning-subtle text-warning border border-warning-subtle py-0 px-2 small';
-                    modalBadge.textContent = 'Default';
+                    footerDot.style.background = '#f59e0b';
+                    footerText.textContent = 'Alerts not configured';
                 }
             }
 
@@ -2291,28 +2335,50 @@
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 return;
             }
+            if (Notification.permission !== 'granted') {
+                return;
+            }
             navigator.serviceWorker.ready.then(function(reg) {
-                return fetch('/api/v1/notifications/push/vapid-key/')
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data || !data.publicKey) return;
-                        const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
-                        return reg.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: applicationServerKey
-                        });
-                    })
-                    .then(function(sub) {
-                        if (!sub) return;
+                return reg.pushManager.getSubscription().then(function(existingSub) {
+                    const cachedEndpoint = sessionStorage.getItem('nexus_webpush_endpoint');
+                    if (existingSub && cachedEndpoint === existingSub.endpoint) {
+                        return; // Already registered and synchronized
+                    }
+                    if (existingSub) {
+                        sessionStorage.setItem('nexus_webpush_endpoint', existingSub.endpoint);
                         return fetch('/api/v1/notifications/push/subscribe/', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRFToken': getNexusCsrfToken(),
                             },
-                            body: JSON.stringify(sub.toJSON())
+                            body: JSON.stringify(existingSub.toJSON())
                         });
-                    });
+                    }
+
+                    return fetch('/api/v1/notifications/push/vapid-key/')
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data || !data.publicKey) return;
+                            const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
+                            return reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: applicationServerKey
+                            });
+                        })
+                        .then(function(newSub) {
+                            if (!newSub) return;
+                            sessionStorage.setItem('nexus_webpush_endpoint', newSub.endpoint);
+                            return fetch('/api/v1/notifications/push/subscribe/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getNexusCsrfToken(),
+                                },
+                                body: JSON.stringify(newSub.toJSON())
+                            });
+                        });
+                });
             }).catch(function(err) {
                 console.debug('[WebPush] Registration notice:', err);
             });
@@ -2342,6 +2408,9 @@
             });
         }
 
+        window.registerBackgroundPushSubscription = registerBackgroundPushSubscription;
+        window.unsubscribeBackgroundPush = unsubscribeBackgroundPush;
+
         window.toggleNexusNotifications = function(triggerEl) {
             if (!('Notification' in window)) {
                 alert('Your browser environment does not support web push/system notifications.');
@@ -2369,6 +2438,7 @@
                     if (perm === 'granted') {
                         localStorage.setItem('nexus_notifications_enabled', 'true');
                         updateAllNotificationControlsUI();
+                        registerBackgroundPushSubscription();
                         showAppNotificationToast({
                             title: 'Notifications Enabled 🎉',
                             content: 'Desktop and mobile push alerts are now active for ride updates, messages, and requests.',
@@ -2496,6 +2566,56 @@
 
         updateNotifBellUI();
         window.addEventListener('focus', updateAllNotificationControlsUI);
+
+        let isNavigatingAway = false;
+        window.addEventListener('beforeunload', function() {
+            isNavigatingAway = true;
+            if (notifSocket && notifSocket.readyState === WebSocket.OPEN) {
+                notifSocket.close(1000, 'Page navigating');
+            }
+        });
+
+        function connectNotifSocket() {
+            if (!window.WebSocket) return;
+            const proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const url = proto + window.location.host + '/ws/notifications/';
+
+            try {
+                notifSocket = new WebSocket(url);
+            } catch (err) {
+                console.debug('Notification socket initialization failed:', err);
+                return;
+            }
+
+            notifSocket.onopen = function() {
+                reconnectDelay = 2000;
+            };
+
+            notifSocket.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'chat_notification') {
+                        showIncomingMessageToast(data);
+                        triggerSystemNotification(data);
+                    } else if (data.type === 'app_notification') {
+                        showAppNotificationToast(data);
+                        triggerSystemNotification(data);
+                    }
+                } catch (err) {
+                    console.debug('Error handling notification payload:', err);
+                }
+            };
+
+            notifSocket.onclose = function(e) {
+                if (isNavigatingAway || e.code === 1000 || e.code === 4001 || e.code === 4003) return;
+                setTimeout(connectNotifSocket, reconnectDelay);
+                reconnectDelay = Math.min(reconnectDelay * 1.5, maxReconnectDelay);
+            };
+
+            notifSocket.onerror = function(err) {
+                console.debug('Notification socket error:', err);
+            };
+        }
 
         // Fetch initial server notifications & connect socket
         window.fetchServerNotifications();
@@ -2701,76 +2821,68 @@
     </script>
 
 
-    <!-- Campus Nexus Notification Center Modal (Accessible across Mobile, Tablet & Desktop) -->
+    <!-- Campus Nexus Notification Center (Modern Slide/Modal Tray) -->
     <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-md">
-            <div class="modal-content glass border border-secondary shadow-lg text-white" style="background: rgba(14, 18, 24, 0.96); backdrop-filter: blur(20px); border-radius: 16px;">
-                <div class="modal-header border-secondary border-opacity-25 pb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                            <i class="bi bi-bell-fill green-accent"></i>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
+            <div class="modal-content glass border shadow-2xl text-white notif-modal-surface" style="background: rgba(12, 16, 22, 0.98); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px; border-color: rgba(255, 255, 255, 0.08); overflow: hidden;">
+                
+                <!-- Sleek Header -->
+                <div class="modal-header border-0 pb-2 pt-3 px-3 px-sm-4 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background: rgba(8, 183, 79, 0.12); color: var(--green, #08B74F);">
+                            <i class="bi bi-bell-fill fs-5"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title fw-bold text-white mb-0" id="notificationsModalLabel">Notifications</h5>
-                            <small class="text-secondary" id="notif-modal-subtext">Recent activity &amp; alerts</small>
+                            <div class="d-flex align-items-center gap-2">
+                                <h5 class="modal-title fw-bold text-white mb-0 fs-6" id="notificationsModalLabel">Notifications</h5>
+                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle py-0.5 px-2 d-none" id="notif-unread-pill" style="font-size: 0.68rem;">0 new</span>
+                            </div>
+                            <small class="text-secondary" id="notif-modal-subtext" style="font-size: 0.75rem;">Your campus activity &amp; alerts</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <!-- Quick Device Push & Sound Toggle Toolbar -->
-                <div class="px-3 py-2.5 bg-black bg-opacity-25 border-bottom border-secondary border-opacity-25 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch" id="notif-sound-switch" onchange="window.toggleNexusNotifications(this)" style="cursor: pointer;">
-                            <label class="form-check-label small fw-semibold text-light" for="notif-sound-switch" id="notif-sound-switch-label" style="cursor: pointer;">
-                                Push &amp; Sound Alerts
-                            </label>
-                        </div>
-                        <span class="badge py-0 px-2 small" id="modal-notif-status-badge">Checking...</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-1.5 ms-auto">
-                        <button type="button" class="btn btn-sm btn-dark-custom py-1 px-2 small" onclick="window.sendTestNotification(this)" title="Send test chime &amp; alert">
-                            <i class="bi bi-volume-up me-1 text-warning"></i> Test Sound
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm notif-action-btn py-1 px-2" onclick="window.markAllNotificationsRead()" title="Mark all as read">
+                            <i class="bi bi-check2-all me-1"></i><span class="d-none d-sm-inline small">Mark read</span>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 small" onclick="window.clearNotificationHistory()" title="Clear notification history">
-                            <i class="bi bi-trash3"></i>
+                        <button type="button" class="btn btn-sm notif-action-btn py-1 px-2" onclick="window.clearNotificationHistory()" title="Clear history">
+                            <i class="bi bi-trash3 small"></i>
                         </button>
+                        <button type="button" class="btn-close btn-close-white ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                 </div>
 
-                <!-- Notification Filter Pills -->
-                <div class="px-3 pt-2 pb-1 border-bottom border-secondary border-opacity-25 d-flex align-items-center gap-1.5 overflow-x-auto">
-                    <button type="button" class="btn btn-sm btn-green py-0.5 px-2.5 rounded-pill notif-filter-btn" data-filter="all" onclick="window.filterNotificationList('all', this)">
-                        All <span class="badge bg-dark ms-1" id="notif-filter-count-all">0</span>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom py-0.5 px-2.5 rounded-pill notif-filter-btn" data-filter="ride" onclick="window.filterNotificationList('ride', this)">
-                        Rides
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom py-0.5 px-2.5 rounded-pill notif-filter-btn" data-filter="announcement" onclick="window.filterNotificationList('announcement', this)">
-                        Announcements
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom py-0.5 px-2.5 rounded-pill notif-filter-btn" data-filter="social" onclick="window.filterNotificationList('social', this)">
-                        Requests &amp; Chats
-                    </button>
+                <!-- Modern Segmented Filter Navigation -->
+                <div class="px-3 px-sm-4 pt-1 pb-2">
+                    <div class="notif-tab-track p-1 rounded-pill d-flex gap-1">
+                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn active" data-filter="all" onclick="window.filterNotificationList('all', this)">
+                            All
+                        </button>
+                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn" data-filter="ride" onclick="window.filterNotificationList('ride', this)">
+                            Rides
+                        </button>
+                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn" data-filter="social" onclick="window.filterNotificationList('social', this)">
+                            Messages
+                        </button>
+                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn" data-filter="announcement" onclick="window.filterNotificationList('announcement', this)">
+                            Announcements
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Notification Feed List -->
-                <div class="modal-body p-3" id="notif-modal-feed" style="max-height: 420px; overflow-y: auto;">
+                <!-- Notification Feed Body -->
+                <div class="modal-body p-3 px-sm-4 pt-1" id="notif-modal-feed" style="max-height: 440px; overflow-y: auto;">
                     <!-- Dynamically populated or empty state -->
                 </div>
 
-                <div class="modal-footer border-secondary border-opacity-25 py-2 px-3 d-flex justify-content-between align-items-center">
-                    <span class="small text-secondary" id="notif-footer-summary">0 notifications</span>
-                    <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.markAllNotificationsRead()">
-                            <i class="bi bi-check2-all me-1"></i> Mark All as Read
-                        </button>
-                        <button type="button" class="btn btn-sm btn-green" data-bs-dismiss="modal">
-                            Done
-                        </button>
+                <!-- Clean Ambient Status Footer (No Clunky Done Button) -->
+                <div class="px-3 px-sm-4 py-2.5 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(0, 0, 0, 0.2); font-size: 0.75rem;">
+                    <span class="text-secondary" id="notif-footer-summary">0 notifications</span>
+                    <div class="d-flex align-items-center gap-1.5 text-secondary" id="notif-footer-perm-indicator">
+                        <span class="d-inline-block rounded-circle" id="notif-footer-status-dot" style="width: 7px; height: 7px; background: #10B981;"></span>
+                        <span id="notif-footer-status-text">Push alerts active</span>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -3007,7 +3119,9 @@
     });
     
         if (window.Notification && Notification.permission === 'granted' && localStorage.getItem('nexus_notifications_enabled') !== 'false') {
-            registerBackgroundPushSubscription();
+            if (window.registerBackgroundPushSubscription) {
+                window.registerBackgroundPushSubscription();
+            }
         }
     </script>
 

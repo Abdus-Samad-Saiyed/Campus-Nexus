@@ -12,27 +12,33 @@ def early_launch_context(request):
     pending_apps_count = 0
     user = getattr(request, 'user', None)
     if user and user.is_authenticated:
-        if not getattr(user, 'verified', False):
+        cache_key = f"_early_launch_ctx_{user.pk}"
+        cached = getattr(request, cache_key, None)
+        if cached is not None:
+            pending_app, friend_requests_count, pending_apps_count = cached
+        else:
+            if not getattr(user, 'verified', False):
+                try:
+                    from accounts.models import AccountApplication
+                    pending_app = AccountApplication.objects.filter(
+                        enrollment_number=user.enrollment_number,
+                        approved=False,
+                    ).first()
+                except Exception:
+                    pass
             try:
-                from accounts.models import AccountApplication
-                pending_app = AccountApplication.objects.filter(
-                    enrollment_number=user.enrollment_number,
-                    approved=False,
-                ).first()
+                from accounts.models import FriendRequest
+                friend_requests_count = FriendRequest.objects.filter(receiver=user).count()
             except Exception:
                 pass
-        try:
-            from accounts.models import FriendRequest
-            friend_requests_count = FriendRequest.objects.filter(receiver=user).count()
-        except Exception:
-            pass
 
-        if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
-            try:
-                from accounts.models import AccountApplication
-                pending_apps_count = AccountApplication.objects.filter(approved=False).count()
-            except Exception:
-                pass
+            if getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False):
+                try:
+                    from accounts.models import AccountApplication
+                    pending_apps_count = AccountApplication.objects.filter(approved=False).count()
+                except Exception:
+                    pass
+            setattr(request, cache_key, (pending_app, friend_requests_count, pending_apps_count))
 
     is_app = bool(
         request.COOKIES.get('nexus_standalone_app') == '1' or

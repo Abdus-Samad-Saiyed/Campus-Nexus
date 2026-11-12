@@ -236,50 +236,8 @@ class ClientIdentityLoggingMiddleware:
                 user_type=user_type,
             )
 
-            # Determine OTP limit status to display alongside request in console
+            # OTP limit status display for explicitly flagged auth flows
             otp_info = getattr(request, '_active_otp_info', None)
-            if not otp_info and response is not None:
-                try:
-                    from accounts.two_factor import get_active_otp, can_resend_otp
-                    from accounts.models import User
-                    target_user = user if (user and getattr(user, 'is_authenticated', False)) else None
-                    if not target_user and hasattr(request, 'session'):
-                        pre_2fa_uid = request.session.get('pre_2fa_user_id')
-                        if pre_2fa_uid:
-                            target_user = User.objects.filter(pk=pre_2fa_uid).first()
-
-                    target_phone = None
-                    target_email = None
-                    if request.method == 'POST' and getattr(request, 'content_type', '') in ('application/x-www-form-urlencoded', 'multipart/form-data'):
-                        try:
-                            target_phone = request.POST.get('phone_number')
-                            target_email = request.POST.get('email')
-                        except Exception:
-                            pass
-                    if not target_phone and not target_email and hasattr(request, 'GET'):
-                        target_phone = request.GET.get('phone_number')
-                        target_email = request.GET.get('email')
-
-                    purpose = '2FA'
-                    if 'signup' in request.path_info:
-                        purpose = 'SIGNUP'
-                    elif 'security' in request.path_info:
-                        purpose = 'SECURITY_CHANGE'
-                    elif 'password' in request.path_info:
-                        purpose = 'PASSWORD_RESET'
-
-                    active_code = get_active_otp(user=target_user, phone_number=target_phone, email=target_email, purpose=purpose)
-                    if active_code:
-                        can_resend, wait_sec = can_resend_otp(user=target_user, phone_number=target_phone, email=target_email, purpose=purpose)
-                        resp_status = getattr(response, 'status_code', None)
-                        if resp_status == 429:
-                            otp_info = f"[OTP: {active_code} (Rate Limit 429)]"
-                        elif not can_resend:
-                            otp_info = f"[OTP: {active_code} (Cooldown: {wait_sec}s)]"
-                        elif any(token in request.path_info for token in ('2fa', 'two-factor', 'otp', 'forgot-password')):
-                            otp_info = f"[OTP: {active_code}]"
-                except Exception:
-                    pass
 
             update_or_record_client_request(
                 client_key,

@@ -244,8 +244,8 @@ class FriendChatConsumer(AsyncWebsocketConsumer):
                     'tag': f'dm-{self.user.id}',
                 }
                 dispatch_web_push(self.friend.id, dm_push_payload)
-            except Exception:
-                pass
+            except Exception as push_err:
+                logger.warning("Background Web Push dispatch error: %s", push_err)
 
             await self.send(text_data=json.dumps({
                 'type': 'ack',

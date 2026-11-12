@@ -104,13 +104,20 @@ self.addEventListener('push', function(event) {
     try {
         const payload = event.data.json();
         const title = payload.title || 'Campus Nexus';
+        const iconPath = payload.icon || '/static/img/pwa/icon-192x192.png';
+        const badgePath = payload.badge || '/static/img/pwa/icon-192x192.png';
+        const resolvedIcon = new URL(iconPath, self.location.origin).href;
+        const resolvedBadge = new URL(badgePath, self.location.origin).href;
+
         const options = {
             body: payload.body || payload.content || '',
-            icon: payload.icon || '/static/img/pwa/icon-192x192.png',
-            badge: '/static/img/pwa/icon-192x192.png',
+            icon: resolvedIcon,
+            badge: resolvedBadge,
             vibrate: [200, 100, 200],
             tag: payload.tag || 'nexus-notification',
             renotify: true,
+            requireInteraction: true,
+            silent: false,
             data: {
                 url: payload.url || '/dashboard/',
             },

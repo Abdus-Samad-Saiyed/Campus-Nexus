@@ -68,21 +68,32 @@ class TokenOrSessionAuthMiddleware(BaseMiddleware):
 
         token = None
 
-        # 2. Check query string: ?token=<session_token>
-        query_string = scope.get('query_string', b'').decode('utf-8')
-        if query_string:
-            parsed = parse_qs(query_string)
-            if 'token' in parsed and parsed['token']:
-                token = parsed['token'][0].strip()
-
-        # 3. Check headers: Authorization: Bearer <token>
-        if not token and 'headers' in scope:
+        # 2. Prioritize headers: Authorization: Bearer <token> or Sec-WebSocket-Protocol
+        if 'headers' in scope:
             for name, val in scope['headers']:
-                if name.lower() == b'authorization':
+                header_name = name.lower()
+                if header_name == b'authorization':
                     parts = val.decode('utf-8').split()
                     if len(parts) == 2 and parts[0].lower() in ('bearer', 'token'):
                         token = parts[1].strip()
                         break
+                elif header_name == b'sec-websocket-protocol':
+                    protocols = [p.strip() for p in val.decode('utf-8').split(',')]
+                    for i, p in enumerate(protocols):
+                        if p.lower() in ('bearer', 'token') and i + 1 < len(protocols):
+                            token = protocols[i + 1]
+                            break
+                        elif p.startswith('token.'):
+                            token = p.split('.', 1)[1]
+                            break
+
+        # 3. Fallback: query string ?token=<session_token> (deprecated for security)
+        if not token:
+            query_string = scope.get('query_string', b'').decode('utf-8')
+            if query_string:
+                parsed = parse_qs(query_string)
+                if 'token' in parsed and parsed['token']:
+                    token = parsed['token'][0].strip()
 
         # 4. Resolve user from token if found
         if token:

@@ -41,7 +41,11 @@ def serialize_user(user: User, include_stats: bool = False) -> Dict[str, Any]:
 def serialize_ride(ride: RideRequest, request_user: Optional[User] = None) -> Dict[str, Any]:
     """Serialize ride summary for lists and cards, including host and joined participants."""
     participants = []
-    for p in ride.participants.filter(status='CONFIRMED').select_related('user'):
+    # Use preloaded participants if available to prevent N+1 queries
+    p_source = getattr(ride, 'confirmed_participants_list', None)
+    if p_source is None:
+        p_source = ride.participants.filter(status='CONFIRMED').select_related('user')
+    for p in p_source:
         u = p.user
         can_see_id = not request_user or can_view_ride_identity(request_user, ride, u)
         participants.append({

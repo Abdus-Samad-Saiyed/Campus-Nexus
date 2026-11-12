@@ -3,32 +3,48 @@
 import json
 import logging
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 logger = logging.getLogger(__name__)
 
+# Bounded thread pool preventing thread exhaustion during chat or activity bursts
+_WEBPUSH_POOL = ThreadPoolExecutor(max_workers=6, thread_name_prefix="webpush-worker")
+
 
 def dispatch_web_push(user_id: int, payload: dict):
-    """Dispatch background Web Push to all registered device subscriptions for the user."""
-    try:
-        from django.conf import settings
-        from accounts.models import WebPushSubscription
+    """Dispatch background Web Push to all registered device subscriptions for the user.
 
-        subscriptions = list(WebPushSubscription.objects.filter(user_id=user_id))
-        if not subscriptions:
-            return
+    Safe for invocation from both synchronous contexts (Django views) and
+    asynchronous contexts (Channels consumers, asyncio event loops) without
+    triggering SynchronousOnlyOperation.
+    """
+    def _worker():
+        from django.db import close_old_connections
+        close_old_connections()
+        try:
+            from django.conf import settings
+            from accounts.models import WebPushSubscription
 
-        vapid_private_key = getattr(settings, 'VAPID_PRIVATE_KEY', '')
-        vapid_claims = getattr(settings, 'VAPID_CLAIMS', {'sub': 'mailto:admin@campus-nexus.online'})
-        if not vapid_private_key:
-            return
+            subscriptions = list(WebPushSubscription.objects.filter(user_id=user_id))
+            if not subscriptions:
+                logger.debug("dispatch_web_push: no subscriptions registered for user_id=%s", user_id)
+                return
 
-        def _worker():
+            vapid_private_key = getattr(settings, 'VAPID_PRIVATE_KEY', '')
+            vapid_claims = getattr(settings, 'VAPID_CLAIMS', {'sub': 'mailto:admin@campus-nexus.online'})
+            if not vapid_private_key:
+                logger.warning("dispatch_web_push: VAPID_PRIVATE_KEY is missing in settings")
+                return
+
+            logger.info("Dispatching WebPush to %d device(s) for user_id=%s", len(subscriptions), user_id)
+
             try:
                 from pywebpush import webpush, WebPushException
             except ImportError:
+                logger.warning("dispatch_web_push: pywebpush library not installed")
                 return
 
             data_str = json.dumps(payload)
@@ -48,22 +64,25 @@ def dispatch_web_push(user_id: int, payload: dict):
                         vapid_claims=vapid_claims,
                         ttl=86400,
                     )
+                    logger.info("WebPush delivered successfully to sub_id=%s (user_id=%s)", sub.id, user_id)
                 except WebPushException as ex:
                     # 404 or 410 Gone means the subscription has expired or was revoked by browser
                     if ex.response is not None and ex.response.status_code in (404, 410):
                         try:
                             WebPushSubscription.objects.filter(id=sub.id).delete()
+                            logger.info("Deleted expired/revoked WebPush subscription %s for user %s", sub.id, user_id)
                         except Exception:
                             pass
                     else:
-                        logger.debug("WebPush delivery failure for sub %s: %s", sub.id, ex)
+                        logger.warning("WebPush delivery failure for sub %s: %s", sub.id, ex)
                 except Exception as e:
-                    logger.debug("Unexpected WebPush error for sub %s: %s", sub.id, e)
+                    logger.warning("Unexpected WebPush error for sub %s: %s", sub.id, e)
+        except Exception as exc:
+            logger.warning("Error in dispatch_web_push worker: %s", exc)
+        finally:
+            close_old_connections()
 
-        t = threading.Thread(target=_worker, daemon=True)
-        t.start()
-    except Exception as e:
-        logger.debug("Error in dispatch_web_push: %s", e)
+    return _WEBPUSH_POOL.submit(_worker)
 
 
 def send_user_notification(

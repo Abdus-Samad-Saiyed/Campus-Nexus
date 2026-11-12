@@ -16,6 +16,7 @@ URL summary:
 
 import json
 import logging
+import threading
 import os
 import sys
 import time
@@ -43,6 +44,7 @@ from django.utils import timezone
 from django.template.defaultfilters import date as date_filter
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
 from coordinate.models import RideParticipant, RideRequest
 
@@ -1361,26 +1363,28 @@ def apply_account(request):
                             logger.warning("Staff application broadcast failed: %s", exc)
 
                         if app_email:
-                            try:
-                                send_mail(
-                                    subject='Campus Nexus — Student Verification Application Received',
-                                    message=(
-                                        f'Hi {app_first_name},\n\n'
-                                        f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
-                                        f'Application Reference: #{app_num}\n'
-                                        f'Status: Under Review\n\n'
-                                        f'Your account has been activated immediately. '
-                                        f'You can coordinate rides, browse campus activities, and connect with peers right away '
-                                        f'at https://dev.campus-nexus.online/ while your permanent verification is pending review.\n\n'
-                                        f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
-                                        f'— The Campus Nexus Team, NIT Srinagar'
-                                    ),
-                                    from_email=None,
-                                    recipient_list=[app_email],
-                                    fail_silently=True,
-                                )
-                            except Exception as exc:
-                                logger.warning("Application confirmation email failed: %s", exc)
+                            def _send_signup_email():
+                                try:
+                                    send_mail(
+                                        subject='Campus Nexus — Student Verification Application Received',
+                                        message=(
+                                            f'Hi {app_first_name},\n\n'
+                                            f'We have received your application for permanent student ID verification ({enrollment}).\n\n'
+                                            f'Application Reference: #{app_num}\n'
+                                            f'Status: Under Review\n\n'
+                                            f'Your account has been activated immediately. '
+                                            f'You can coordinate rides, browse campus activities, and connect with peers right away '
+                                            f'at https://dev.campus-nexus.online/ while your permanent verification is pending review.\n\n'
+                                            f'For any questions or follow-up regarding your verification, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
+                                            f'— The Campus Nexus Team, NIT Srinagar'
+                                        ),
+                                        from_email=None,
+                                        recipient_list=[app_email],
+                                        fail_silently=True,
+                                    )
+                                except Exception as exc:
+                                    logger.warning("Application confirmation email failed: %s", exc)
+                            threading.Thread(target=_send_signup_email, daemon=True).start()
 
                     from accounts.utils import is_test_environment
                     if is_test_environment():
@@ -2009,6 +2013,20 @@ def direct_chat_view(request, enrollment_number):
                             'timestamp': timezone.localtime(msg.created_at).strftime('%H:%M'),
                         }
                     )
+                # Background Native Web Push delivery to recipient
+                try:
+                    from accounts.notifications import dispatch_web_push
+                    dm_push_payload = {
+                        'title': f'Message from {request.user.get_full_name() or request.user.enrollment_number}',
+                        'body': msg.content[:150],
+                        'url': f'/messages/{request.user.enrollment_number}/',
+                        'icon': request.user.profile_photo.url if request.user.profile_photo else '/static/img/pwa/icon-192x192.png',
+                        'badge': '/static/img/pwa/icon-192x192.png',
+                        'tag': f'dm-{request.user.pk}',
+                    }
+                    dispatch_web_push(friend.pk, dm_push_payload)
+                except Exception:
+                    pass
             except Exception:
                 pass
         transaction.on_commit(_broadcast_dm)
@@ -2387,24 +2405,26 @@ def approve_application(request, application_id):
             target_id=user.enrollment_number,
         )
 
-    # Send approval email (fire-and-forget; console backend in dev, SMTP in prod)
-    try:
-        send_mail(
-            subject='Campus Nexus — Your Account Has Been Approved & Verified',
-            message=(
-                f'Hi {user.first_name},\n\n'
-                f'Your application for permanent student ID verification ({user.enrollment_number}) '
-                f'has been approved by campus administrators.\n\n'
-                f'Your profile has been elevated to permanent, verified status with full student privileges.\n\n'
-                f'You can continue using Campus Nexus at https://dev.campus-nexus.online/\n\n'
-                f'— The Campus Nexus Team, NIT Srinagar'
-            ),
-            from_email=None,   # uses DEFAULT_FROM_EMAIL
-            recipient_list=[user.email] if user.email else [],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    # Send approval email asynchronously (prevents SMTP relay timeouts from blocking the admin UI)
+    def _send_approval_email():
+        try:
+            send_mail(
+                subject='Campus Nexus — Your Account Has Been Approved & Verified',
+                message=(
+                    f'Hi {user.first_name},\n\n'
+                    f'Your application for permanent student ID verification ({user.enrollment_number}) '
+                    f'has been approved by campus administrators.\n\n'
+                    f'Your profile has been elevated to permanent, verified status with full student privileges.\n\n'
+                    f'You can continue using Campus Nexus at https://dev.campus-nexus.online/\n\n'
+                    f'— The Campus Nexus Team, NIT Srinagar'
+                ),
+                from_email=None,   # uses DEFAULT_FROM_EMAIL
+                recipient_list=[user.email] if user.email else [],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+    threading.Thread(target=_send_approval_email, daemon=True).start()
 
     try:
         from channels.layers import get_channel_layer
@@ -2485,29 +2505,31 @@ def reject_application(request, application_id):
             target_id=enrollment,
         )
 
-    # Dispatch rejection notification email with specified reason
-    try:
-        send_mail(
-            subject='Campus Nexus — Verification Application Status Update',
-            message=(
-                f'Hi {applicant_name},\n\n'
-                f'Your application for permanent student ID verification ({enrollment}) '
-                f'could not be approved at this time.\n\n'
-                f'Reason Specified by Administrator:\n'
-                f'------------------------------------------------------------\n'
-                f'{final_reason}\n'
-                f'------------------------------------------------------------\n\n'
-                f'Next Steps:\n'
-                f'• You may submit a corrected application at https://dev.campus-nexus.online/apply/\n'
-                f'• For inquiries or to clarify your credentials, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
-                f'— The Campus Nexus Team, NIT Srinagar'
-            ),
-            from_email=None,
-            recipient_list=[applicant_email] if applicant_email else [],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    # Dispatch rejection notification email asynchronously
+    def _send_rejection_email():
+        try:
+            send_mail(
+                subject='Campus Nexus — Verification Application Status Update',
+                message=(
+                    f'Hi {applicant_name},\n\n'
+                    f'Your application for permanent student ID verification ({enrollment}) '
+                    f'could not be approved at this time.\n\n'
+                    f'Reason Specified by Administrator:\n'
+                    f'------------------------------------------------------------\n'
+                    f'{final_reason}\n'
+                    f'------------------------------------------------------------\n\n'
+                    f'Next Steps:\n'
+                    f'• You may submit a corrected application at https://dev.campus-nexus.online/apply/\n'
+                    f'• For inquiries or to clarify your credentials, please contact asaiyed_2024BCSE065@nitsri.ac.in.\n\n'
+                    f'— The Campus Nexus Team, NIT Srinagar'
+                ),
+                from_email=None,
+                recipient_list=[applicant_email] if applicant_email else [],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+    threading.Thread(target=_send_rejection_email, daemon=True).start()
 
     try:
         from channels.layers import get_channel_layer
@@ -2863,6 +2885,7 @@ def vapid_public_key_view(request):
     return JsonResponse({'publicKey': key, 'status': 'success'})
 
 
+@csrf_exempt
 @login_required
 @require_POST
 def webpush_subscribe_view(request):
@@ -2894,6 +2917,7 @@ def webpush_subscribe_view(request):
     return JsonResponse({'status': 'success', 'message': 'Push subscription active.'})
 
 
+@csrf_exempt
 @login_required
 @require_POST
 def webpush_unsubscribe_view(request):

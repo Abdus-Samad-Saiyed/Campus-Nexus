@@ -9,6 +9,7 @@ from .two_factor import create_phone_otp
 
 
 class AccountWorkflowTests(TestCase):
+    databases = '__all__'
 
     def setUp(self):
 

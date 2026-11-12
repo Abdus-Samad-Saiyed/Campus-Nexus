@@ -312,7 +312,9 @@ def clean_person_name(name: str) -> str:
     """Format person names so each word has an initial capital letter (e.g. 'muhammed Farahi' -> 'Muhammed Farahi')."""
     if not name:
         return ''
-    words = str(name).strip().split()
+    from django.utils.html import strip_tags
+    sanitized = strip_tags(str(name)).replace('<', '').replace('>', '').strip()
+    words = sanitized.split()
     cleaned_words = []
     for word in words:
         if '-' in word:

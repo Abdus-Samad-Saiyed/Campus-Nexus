@@ -154,6 +154,8 @@ class AccountApplicationForm(forms.ModelForm):
         name = self.cleaned_data.get('full_name', '').strip()
         if not name:
             raise forms.ValidationError('Full name is required.')
+        if '<' in name or '>' in name:
+            raise forms.ValidationError('Name contains invalid characters.')
         from accounts.two_factor import clean_person_name
         return clean_person_name(name)
 
