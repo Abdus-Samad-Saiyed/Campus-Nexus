@@ -1,5 +1,7 @@
 # Campus Nexus — Stage 0: Initial Repository and Infrastructure Audit
 
+> Historical environment snapshot from 2026-11-07. Host, runtime, service, and security details may no longer be current. Do not treat this as a deployment review or production benchmark.
+
 **Generated:** `2026-11-07 03:20:00`  
 **Environment:** Active Self-Hosted Development Environment
 

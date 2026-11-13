@@ -10,9 +10,12 @@
             <div class="glass p-4 text-center">
                 <div class="mb-3 position-relative d-inline-block">
                     {% if can_see_photo and profile_user.profile_photo %}
-                        <img src="{{ profile_user.profile_photo.url }}" alt="{{ profile_user.enrollment_number }}"
-                             class="rounded-circle border border-2 border-success object-fit-cover shadow"
-                             style="width: 88px; height: 88px;">
+                        <button type="button" class="profile-photo-preview-trigger" data-bs-toggle="modal" data-bs-target="#profilePhotoModal"
+                                aria-label="View {{ profile_user.display_name }}’s profile photo larger" title="View larger photo">
+                            <img src="{{ profile_user.profile_photo.url }}" alt="{{ profile_user.enrollment_number }}"
+                                 class="rounded-circle border border-2 border-success object-fit-cover shadow"
+                                 style="width: 88px; height: 88px;">
+                        </button>
                     {% else %}
                         <div class="feature-icon mx-auto" style="width: 88px; height: 88px; font-size: 2.5rem;">
                             <i class="bi bi-person-fill"></i>
@@ -47,12 +50,12 @@
                         <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill">
                             <i class="bi bi-patch-check-fill me-1"></i> Verified Student
                         </span>
-                    {% elif early_launch_mode %}
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill" title="Fast-track self-declared access">
-                            <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Account
+                    {% elif pending_permanent_application %}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill">
+                            <i class="bi bi-clock-history me-1"></i> Verification pending
                         </span>
                     {% else %}
-                        <span class="badge bg-secondary-subtle text-secondary px-3 py-1 rounded-pill">Unverified</span>
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-1 rounded-pill">Account active</span>
                     {% endif %}
 
                     {% if profile_user.is_superuser %}
@@ -64,11 +67,11 @@
                     <div class="mb-3">
                         {% if pending_permanent_application %}
                             <div class="p-2 rounded border border-info border-opacity-40 text-info text-start small" style="background: rgba(14, 165, 233, 0.08);">
-                                <i class="bi bi-clock-history me-1"></i> <strong>Verified Permanent Account Application Pending:</strong> Application #{{ pending_permanent_application.application_number }} is under admin review. You can continue coordinating rides uninterrupted.
+                                <i class="bi bi-clock-history me-1"></i> <strong>Student verification is in progress:</strong> Request #{{ pending_permanent_application.application_number }} is under review.
                             </div>
                         {% else %}
-                            <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-warning btn-sm text-dark px-3 py-1 rounded-pill fw-semibold w-100">
-                                <i class="bi bi-shield-check me-1"></i> Apply for Verified Permanent Account
+                            <a href="{% url 'apply_account' %}" class="btn btn-warning btn-sm text-dark px-3 py-1 rounded-pill fw-semibold w-100">
+                                <i class="bi bi-shield-check me-1"></i> Request student verification
                             </a>
                         {% endif %}
                     </div>
@@ -170,40 +173,6 @@
             </div>
 
             {% if is_self %}
-            <!-- Appearance & UI Accent Theme Card -->
-            <div class="glass p-4 mt-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">
-                        <i class="bi bi-palette2 green-accent me-2"></i>Appearance & Theme
-                    </h5>
-                    <button type="button" class="btn btn-sm btn-green" data-bs-toggle="modal" data-bs-target="#uiSettingsModal">
-                        Customize
-                    </button>
-                </div>
-                <p class="text-secondary small mb-3">
-                    Customize your accent color palette, display theme, and ambient watermark background.
-                </p>
-                <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('emerald'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('emerald');" title="Emerald">
-                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #08B74F;"></span> Emerald
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('cyan'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('cyan');" title="Cyan">
-                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #00D2FF;"></span> Cyan
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('indigo'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('indigo');" title="Indigo">
-                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #818CF8;"></span> Indigo
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('amber'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('amber');" title="Amber">
-                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #F59E0B;"></span> Amber
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('rose'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('rose');" title="Rose">
-                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #FB7185;"></span> Rose
-                    </button>
-                    <button type="button" class="btn btn-sm btn-dark-custom" onclick="window.setNexusAccent('purple'); if(typeof syncAccentUIElements==='function') syncAccentUIElements('purple');" title="Purple">
-                        <span class="rounded-circle d-inline-block me-1" style="width: 10px; height: 10px; background: #A855F7;"></span> Purple
-                    </button>
-                </div>
-            </div>
             {% endif %}
 
             <!-- Friends List Section -->
@@ -254,22 +223,16 @@
             <div class="glass p-4 mb-4">
                 <h5 class="fw-bold mb-3"><i class="bi bi-shield-check green-accent me-2"></i>Punctuality & Reliability</h5>
                 <div class="row g-3 text-center mb-4">
-                    <div class="col-sm-4">
+                    <div class="col-sm-6">
                         <div class="glass p-3">
                             <div class="stat-value">{{ profile_user.on_time_percentage }}%</div>
                             <div class="stat-label">On-Time Rate</div>
                         </div>
                     </div>
-                    <div class="col-sm-4">
+                    <div class="col-sm-6">
                         <div class="glass p-3">
                             <div class="stat-value">{{ profile_user.rides_completed }}</div>
                             <div class="stat-label">Rides Taken</div>
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="glass p-3">
-                            <div class="stat-value text-danger">{{ profile_user.behavior_reports }}</div>
-                            <div class="stat-label">Reports</div>
                         </div>
                     </div>
                 </div>
@@ -328,813 +291,51 @@
     </div>
 </div>
 
-<!-- Modal: Edit Profile & Privacy -->
-{% if is_self %}
-<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass border-success-subtle text-white">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title fw-bold text-success d-flex align-items-center gap-2" id="editProfileModalLabel">
-                    <i class="bi bi-person-gear"></i> Edit Profile & Settings
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+{% if can_see_photo and profile_user.profile_photo %}
+<div class="modal fade" id="profilePhotoModal" tabindex="-1" aria-labelledby="profilePhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered profile-photo-preview-dialog">
+        <div class="modal-content profile-photo-preview-content">
+            <div class="modal-header border-0 p-2">
+                <h2 class="visually-hidden" id="profilePhotoModalLabel">{{ profile_user.display_name }}’s profile photo</h2>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close photo preview"></button>
             </div>
-            <form action="{% url 'profile' profile_user.enrollment_number %}" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Profile Photo</label>
-                        <input type="file" name="profile_photo" class="form-control" accept="image/*">
-                        <div class="form-text text-secondary small">Upload a clear photo (JPG, PNG). Max 5MB.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Short Bio / About You</label>
-                        <textarea name="bio" class="form-control" rows="3" maxlength="500" placeholder="Tell fellow students about yourself, your courses, or frequent routes...">{{ profile_user.bio|default:"" }}</textarea>
-                        <div class="form-text text-secondary small">Up to 500 characters. Visible on your campus profile.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Phone Number</label>
-                        <input type="text" name="phone_number" class="form-control" value="{{ profile_user.phone_number }}" required>
-                        <div class="form-text text-secondary small">Visible only to your confirmed friends, ride co-passengers, and moderators.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Email Address (Institute / Personal)</label>
-                        <input type="email" name="email" class="form-control" value="{{ profile_user.email }}" required>
-                        <div class="form-text text-secondary small">Mandatory for dual-channel OTPs, security alerts, and ride notifications.</div>
-                    </div>
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="showFriendsSwitch" name="show_friends_publicly"
-                               {% if profile_user.show_friends_publicly %}checked{% endif %}>
-                        <label class="form-check-label small" for="showFriendsSwitch">
-                            <strong>Make friend list public</strong><br>
-                            <span class="text-secondary">Allow fellow students to view your friends list on your profile.</span>
-                        </label>
-                    </div>
-
-                    <div class="p-3 rounded bg-black bg-opacity-25 border border-secondary mb-3" id="notif-settings-card">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                            <div class="flex-grow-1 min-w-0">
-                                <strong class="d-block small">
-                                    <i class="bi bi-bell-fill me-1 text-success" id="profile-notif-title-icon"></i> Desktop &amp; Phone Notifications
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle py-0 px-2 small ms-1" id="profile-notif-status-badge">Checking...</span>
-                                </strong>
-                                <span class="text-secondary small d-block" id="profile-notif-desc">
-                                    Receive instant push notifications for ride updates, instant messages, and friend requests.
-                                </span>
-                                <span class="text-secondary small d-block mt-1" style="font-size: 0.72rem; opacity: 0.85;">
-                                    <i class="bi bi-info-circle me-1"></i>Device setting &bull; No verification or security grace window required.
-                                </span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                <button type="button" class="btn btn-sm btn-green" id="btn-profile-notifs" onclick="window.toggleNexusNotifications(this)">
-                                    <i class="bi bi-bell me-1"></i> Enable
-                                </button>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="showOnlineSwitch" name="show_online_status"
-                               {% if not profile_user.hide_online_status %}checked{% endif %}>
-                        <label class="form-check-label small" for="showOnlineSwitch">
-                            <strong>Show Last Online &amp; Active Status</strong>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 small ms-1">Enabled by default</span><br>
-                            <span class="text-secondary">Shows fellow students when you are active now or last online across your profile, directory, and direct chats. Turn off if you wish to conceal your presence.</span>
-                        </label>
-                    </div>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="dmReadReceiptsSwitch" name="dm_read_receipts"
-                               {% if profile_user.dm_read_receipts %}checked{% endif %}>
-                        <label class="form-check-label small" for="dmReadReceiptsSwitch">
-                            <strong>Direct Message Read Receipts</strong><br>
-                            <span class="text-secondary">Send and view read receipts (double blue checkmarks) in direct messages. (Read receipts remain always active in ride groups for safety coordination).</span>
-                        </label>
-                    </div>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="hideSearchSwitch" name="hide_from_search"
-                               {% if profile_user.hide_from_search %}checked{% endif %}>
-                        <label class="form-check-label small" for="hideSearchSwitch">
-                            <strong>Hide profile from student search directory</strong><br>
-                            <span class="text-secondary">Your profile will be omitted from the public search bar for other students.</span>
-                        </label>
-                    </div>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="hidePhotoSwitch" name="hide_profile_photo"
-                               {% if profile_user.hide_profile_photo %}checked{% endif %}>
-                        <label class="form-check-label small" for="hidePhotoSwitch">
-                            <strong>Hide profile photo from public</strong><br>
-                            <span class="text-secondary">Restricts your photo visibility on directory searches and cards.</span>
-                        </label>
-                    </div>
-
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" role="switch" id="showContactSwitch" name="show_contact_on_profile"
-                               {% if profile_user.show_contact_on_profile %}checked{% endif %}>
-                        <label class="form-check-label small" for="showContactSwitch">
-                            <strong>Show phone &amp; email on profile to friends</strong><br>
-                            <span class="text-secondary">Permits confirmed friends to view your direct phone and email on this profile page.</span>
-                        </label>
-                    </div>
-
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3">
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" role="switch" id="twoFactorSwitch" name="two_factor_enabled"
-                                   {% if profile_user.two_factor_enabled %}checked{% endif %}>
-                            <label class="form-check-label small" for="twoFactorSwitch">
-                                <strong class="text-success"><i class="bi bi-shield-check me-1"></i> Enable 2-Factor Authentication (2FA)</strong><br>
-                                <span class="text-secondary">Mandate 6-digit SMS OTP verification or biometric/Windows Hello passkey on every sign-in.</span>
-                            </label>
-                        </div>
-                        <div class="mt-2 pt-2 border-top border-secondary d-flex justify-content-between align-items-center">
-                            <span class="small text-secondary">Biometric / Windows Hello Key:</span>
-                            <button type="button" class="btn btn-outline-light btn-sm py-0 px-2 small" onclick="registerWebAuthnPasskey()">
-                                <i class="bi bi-fingerprint me-1"></i> Register Passkey
-                            </button>
-                        </div>
-                        {% if registered_passkeys %}
-                        <div class="mt-2 pt-2 border-top border-secondary">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="small fw-semibold text-secondary">Registered Biometric Keys:</span>
-                                <span class="badge bg-secondary-subtle text-secondary small">{{ registered_passkeys|length }} Active</span>
-                            </div>
-                            {% for pk in registered_passkeys %}
-                            <div class="d-flex justify-content-between align-items-center small py-2 px-3 mb-2 bg-dark bg-opacity-60 rounded border border-secondary border-opacity-50">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="fs-6">
-                                        <i class="bi {{ pk.device_icon }}"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold text-light" style="font-size: 0.85rem;">
-                                            {{ pk.name|default:"Biometric Key" }}
-                                        </div>
-                                        <div class="text-secondary" style="font-size: 0.75rem;">
-                                            <i class="bi bi-clock-history me-1"></i>Enrolled {{ pk.created_at|date:"M j, Y — h:i A" }}
-                                            {% if pk.last_used_at %}
-                                                &middot; Last used {{ pk.last_used_at|timesince }} ago
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 small ms-2" onclick="deletePasskey({{ pk.id }})" title="Remove Passkey">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        <div id="passkeyRegStatus" class="small mt-2 font-monospace" style="display: none;"></div>
-                    </div>
-                    <!-- Active Platform Sessions (Simultaneous Multi-Platform Sessions: Max 3) -->
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label small fw-semibold text-info mb-0">
-                                <i class="bi bi-devices me-1"></i> Active Platform Sessions
-                            </label>
-                            <span class="badge bg-black bg-opacity-40 text-light border border-secondary border-opacity-50 small">
-                                {{ active_platform_sessions|length }}/3 Active
-                            </span>
-                        </div>
-                        <div class="text-secondary small mb-2" style="font-size: 0.78rem;">
-                            Simultaneous sign-in is permitted across up to <strong>3 different platforms</strong> (e.g. Windows, Android, iOS). One active session is allowed per platform at a time.
-                        </div>
-                        <div class="d-flex flex-column gap-2">
-                            {% for ps in active_platform_sessions %}
-                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-dark bg-opacity-60 border border-secondary border-opacity-40 small">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fs-5 text-secondary">
-                                        {% if ps.platform == 'windows' %}
-                                            <i class="bi bi-windows text-primary"></i>
-                                        {% elif ps.platform == 'android' %}
-                                            <i class="bi bi-android2 text-success"></i>
-                                        {% elif ps.platform == 'ios' %}
-                                            <i class="bi bi-apple text-info"></i>
-                                        {% elif ps.platform == 'macos' %}
-                                            <i class="bi bi-apple text-light"></i>
-                                        {% elif ps.platform == 'linux' %}
-                                            <i class="bi bi-display text-warning"></i>
-                                        {% else %}
-                                            <i class="bi bi-laptop text-secondary"></i>
-                                        {% endif %}
-                                    </span>
-                                    <div>
-                                        <div class="fw-semibold text-white text-capitalize">
-                                            {{ ps.get_platform_display|default:ps.platform }}
-                                            {% if ps.session_key == request.session.session_key %}
-                                                <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle rounded-pill ms-1" style="font-size: 0.65rem;">Current Device</span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="text-secondary" style="font-size: 0.7rem;">
-                                            Active since {{ ps.created_at|date:"M d, H:i" }} &middot; Last active {{ ps.last_activity|timesince }} ago
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <div class="text-secondary small fst-italic">Current session active.</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 mb-3">
-                        <label class="form-label small fw-semibold text-warning"><i class="bi bi-key-fill me-1"></i> Change Password</label>
-                        <div class="mb-2">
-                            <div class="input-group input-group-sm">
-                                <input type="password" name="current_password" class="form-control form-control-sm" placeholder="Current Password (required to change password)" autocomplete="current-password">
-                                <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row g-2 mb-1">
-                            <div class="col-6">
-                                <div class="input-group input-group-sm">
-                                    <input type="password" name="new_password" class="form-control form-control-sm" placeholder="New Password" autocomplete="new-password">
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="input-group input-group-sm">
-                                    <input type="password" name="confirm_password" class="form-control form-control-sm" placeholder="Confirm Password" autocomplete="new-password">
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-                            <div class="form-text text-secondary small m-0">Leave blank to retain current password.</div>
-                            <div class="form-check m-0">
-                                <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordsProfile">
-                                <label class="form-check-label small text-secondary user-select-none" for="showPasswordsProfile">
-                                    Show passwords
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if not profile_user.is_debug_account %}
-                    <div class="p-3 rounded border mb-3" id="securityVerificationBox"
-                         style="background: rgba({% if grace_active %}8, 183, 79, 0.06{% else %}245, 158, 11, 0.06{% endif %}) !important; border: 1px solid rgba({% if grace_active %}8, 183, 79, 0.3{% else %}245, 158, 11, 0.3{% endif %}) !important;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong class="small {% if grace_active %}text-success{% else %}text-warning{% endif %}" id="securityVerificationTitle">
-                                <i class="bi bi-shield-lock-fill me-1"></i> Security Verification
-                            </strong>
-                            {% if grace_active %}
-                                <span class="badge rounded-pill border border-success border-opacity-50 text-success small" style="background: rgba(8, 183, 79, 0.15);" id="securityGraceBadge">
-                                    <i class="bi bi-check-circle me-1"></i> 10m Grace Active
-                                </span>
-                            {% endif %}
-                        </div>
-                        {% if grace_active %}
-                            <div class="small text-light text-opacity-75" id="securityGraceMessage" style="font-size: 0.85rem; line-height: 1.4;">
-                                Your session is actively authenticated. You can modify password, phone number, and 2FA settings directly without re-entering an OTP.
-                            </div>
-                        {% else %}
-                            <div class="small text-secondary mb-2" id="securityOtpPrompt">
-                                Enter verification code or use your biometric passkey to update security settings.
-                                <a href="{% url 'learn_more' topic='profile-security' %}" target="_blank" class="text-decoration-none small text-info ms-1">Learn more &rarr;</a>
-                            </div>
-                            <div class="input-group input-group-sm mb-1" id="securityOtpInputGroup">
-                                <input type="text" name="security_otp_code" id="securityOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="Enter 6-digit OTP">
-                                <button type="button" class="btn btn-outline-warning" id="sendSecurityOtpBtn" onclick="requestSecurityOtp()">
-                                    <i class="bi bi-send me-1"></i> Send OTP
-                                </button>
-                                <button type="button" class="btn btn-outline-success" id="verifySecurityOtpBtn" onclick="verifySecurityOtpInline()">
-                                    <i class="bi bi-check2-circle me-1"></i> Verify OTP
-                                </button>
-                                {% if registered_passkeys %}
-                                <button type="button" class="btn btn-outline-info" id="verifyPasskeyStepUpBtn" onclick="verifyPasskeyForStepUp()">
-                                    <i class="bi bi-fingerprint me-1"></i> Use Fingerprint
-                                </button>
-                                {% endif %}
-                            </div>
-                            <div id="securityOtpFeedback" class="small mt-1 font-monospace" style="display: none;"></div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-dark-custom" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-green">Save Profile</button>
-                </div>
-            </form>
+            <div class="modal-body text-center p-2 pt-0">
+                <img src="{{ profile_user.profile_photo.url }}" alt="{{ profile_user.enrollment_number }}’s profile photo"
+                     class="profile-photo-preview-image">
+                <div class="text-white small mt-2">{{ profile_user.display_name }}</div>
+            </div>
         </div>
     </div>
 </div>
 {% endif %}
 
-{% if is_self %}
-<script>
-async function registerWebAuthnPasskey() {
-    const statusDiv = document.getElementById('passkeyRegStatus');
-    if (!statusDiv) return;
+<!-- Editing, privacy, notifications, and sign-in security are managed in focused Account Settings sections. -->
 
-    statusDiv.style.display = 'block';
-    statusDiv.className = 'small mt-2 text-info font-monospace';
-    statusDiv.textContent = 'Requesting challenge...';
-
-    if (!window.PublicKeyCredential) {
-        statusDiv.className = 'small mt-2 text-danger font-monospace';
-        statusDiv.textContent = 'WebAuthn is not supported on this device/browser.';
-        return;
+<style>
+    .profile-photo-preview-trigger {
+        display: inline-flex;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        cursor: zoom-in;
     }
-
-    try {
-        const chalRes = await fetch("{% url 'passkey_reg_challenge' %}");
-        if (!chalRes.ok) {
-            const errData = await chalRes.json().catch(() => ({}));
-            if (chalRes.status === 403) {
-                statusDiv.className = 'small mt-2 text-warning font-monospace';
-                statusDiv.textContent = errData.error || 'Recent re-authentication required. Please enter your OTP below.';
-                const secOtpInput = document.getElementById('securityOtpInput');
-                if (secOtpInput) secOtpInput.focus();
-                return;
-            }
-            throw new Error(errData.error || 'Challenge request failed.');
-        }
-        const chalData = await chalRes.json().catch(() => ({}));
-
-        const challengeBytes = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-        const userIdBytes = new TextEncoder().encode(chalData.user_id);
-
-        const isMac = /Macintosh|Mac OS X/i.test(navigator.userAgent);
-        const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        statusDiv.textContent = isMac
-            ? 'Please touch your Touch ID sensor on your Mac keyboard...'
-            : (isIos ? 'Please verify using Face ID or Touch ID...' : 'Please touch your fingerprint sensor or verify with Windows Hello...');
-
-        const rpConfig = { name: 'Campus Nexus' };
-        if (chalData.rp_id && !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(chalData.rp_id)) {
-            rpConfig.id = chalData.rp_id;
-        }
-
-        const isPlatformAvailable = window.PublicKeyCredential &&
-            typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
-            ? await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false)
-            : false;
-
-        const authSelection = {
-            residentKey: 'preferred',
-            userVerification: 'preferred',
-        };
-        // Explicitly set 'platform' attachment so macOS directly invokes Touch ID
-        if (isPlatformAvailable || isMac || isIos) {
-            authSelection.authenticatorAttachment = 'platform';
-        }
-
-        const credential = await navigator.credentials.create({
-            publicKey: {
-                challenge: challengeBytes,
-                rp: rpConfig,
-                user: {
-                    id: userIdBytes,
-                    name: chalData.user_name,
-                    displayName: chalData.display_name,
-                },
-                pubKeyCredParams: [
-                    { type: 'public-key', alg: -7 },   // ES256
-                    { type: 'public-key', alg: -257 },  // RS256
-                    { type: 'public-key', alg: -8 },    // Ed25519
-                ],
-                authenticatorSelection: authSelection,
-                attestation: 'none',
-                timeout: 60000,
-            }
-        });
-
-        if (!credential) throw new Error('Passkey creation was cancelled.');
-
-        statusDiv.textContent = 'Registering passkey...';
-
-        function bufferToBase64url(buffer) {
-            if (!buffer) return '';
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        }
-
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
-
-        function getDeviceOfOrigin() {
-            const ua = navigator.userAgent;
-            let os = 'Windows PC';
-            if (/Windows NT/i.test(ua)) {
-                os = 'Windows PC';
-            } else if (/iPhone/i.test(ua)) {
-                os = 'iPhone';
-            } else if (/iPad/i.test(ua)) {
-                os = 'iPad';
-            } else if (/Macintosh|Mac OS X/i.test(ua)) {
-                os = 'Mac (Touch ID)';
-            } else if (/Android/i.test(ua)) {
-                os = 'Android';
-            } else if (/Linux/i.test(ua)) {
-                os = 'Linux';
-            } else if (/CrOS/i.test(ua)) {
-                os = 'Chromebook';
-            }
-
-            let browser = '';
-            if (/Edg\//i.test(ua)) {
-                browser = 'Edge';
-            } else if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) {
-                browser = 'Chrome';
-            } else if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) {
-                browser = 'Safari';
-            } else if (/Firefox\//i.test(ua)) {
-                browser = 'Firefox';
-            } else if (/Opera|OPR\//i.test(ua)) {
-                browser = 'Opera';
-            }
-
-            return browser ? `${os} (${browser})` : os;
-        }
-
-        function getFormattedLocalTime() {
-            const now = new Date();
-            return now.toLocaleString('en-US', {
-                month: 'short',
-                day: '2-digit',
-                year: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        }
-
-        const deviceOrigin = getDeviceOfOrigin();
-        const localTimeStr = getFormattedLocalTime();
-        const keyLabel = `${deviceOrigin} — ${localTimeStr}`;
-
-        const verifyRes = await fetch("{% url 'passkey_reg_verify' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({
-                id: credential.id,
-                rawId: bufferToBase64url(credential.rawId),
-                type: credential.type,
-                response: {
-                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
-                    attestationObject: bufferToBase64url(credential.response.attestationObject),
-                    transports: credential.response.getTransports ? credential.response.getTransports() : []
-                },
-                device: deviceOrigin,
-                client_time: localTimeStr,
-                name: keyLabel,
-            })
-        });
-
-        const verifyData = await verifyRes.json().catch(() => ({}));
-        if (verifyData.success) {
-            statusDiv.className = 'small mt-2 text-success font-monospace';
-            statusDiv.textContent = `Passkey active (${keyLabel})! 2-Factor Authentication enabled.`;
-            const switchEl = document.getElementById('twoFactorSwitch');
-            if (switchEl) switchEl.checked = true;
-            setTimeout(() => { location.reload(); }, 1200);
-        } else {
-            throw new Error(verifyData.error || 'Failed to register passkey.');
-        }
-    } catch (err) {
-        statusDiv.className = 'small mt-2 text-danger font-monospace';
-        let msg = err.message || 'Passkey setup failed.';
-        if (window.location.hostname === '127.0.0.1' && /domain|origin|valid/i.test(msg)) {
-            msg += ' (Tip: Open http://localhost:8000 instead of 127.0.0.1 for WebAuthn/Windows Hello compliance)';
-        }
-        statusDiv.textContent = msg;
+    .profile-photo-preview-trigger:focus-visible {
+        outline: 3px solid var(--green, #08B74F);
+        outline-offset: 4px;
     }
-}
-
-async function verifySecurityOtpInline() {
-    const otpInput = document.getElementById('securityOtpInput');
-    const feedback = document.getElementById('securityOtpFeedback');
-    const verifyBtn = document.getElementById('verifySecurityOtpBtn');
-    if (!otpInput) return;
-
-    const code = otpInput.value.trim();
-    if (!code) {
-        if (feedback) {
-            feedback.style.display = 'block';
-            feedback.className = 'small mt-1 text-warning font-monospace';
-            feedback.textContent = 'Please enter the 6-digit verification code first.';
-        }
-        otpInput.focus();
-        return;
+    .profile-photo-preview-dialog { max-width: min(92vw, 760px); }
+    .profile-photo-preview-content { background: rgba(5, 11, 8, 0.96); border: 1px solid var(--glass-border, rgba(8, 183, 79, 0.2)); }
+    .profile-photo-preview-image {
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 78vh;
+        margin: 0 auto;
+        object-fit: contain;
+        border-radius: 8px;
     }
+</style>
 
-    if (verifyBtn) {
-        verifyBtn.disabled = true;
-        verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
-    }
-
-    try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
-        const res = await fetch("{% url 'verify_security_otp' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({ otp_code: code })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-            const box = document.getElementById('securityVerificationBox');
-            if (box) {
-                box.style.setProperty('background', 'rgba(8, 183, 79, 0.06)', 'important');
-                box.style.setProperty('border-color', 'rgba(8, 183, 79, 0.3)', 'important');
-                box.classList.remove('bg-success', 'bg-warning', 'border-warning');
-                box.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong class="small text-success">
-                            <i class="bi bi-shield-lock-fill me-1"></i> Security Verification
-                        </strong>
-                        <span class="badge rounded-pill border border-success border-opacity-50 text-success small" style="background: rgba(8, 183, 79, 0.15);">
-                            <i class="bi bi-check-circle me-1"></i> 10m Grace Active
-                        </span>
-                    </div>
-                    <div class="small text-light text-opacity-75" style="font-size: 0.85rem; line-height: 1.4;">
-                        Your session is actively authenticated. You can modify password, phone number, and 2FA settings directly without re-entering an OTP.
-                    </div>
-                `;
-            }
-            const passkeyStatus = document.getElementById('passkeyRegStatus');
-            if (passkeyStatus) {
-                passkeyStatus.style.display = 'block';
-                passkeyStatus.className = 'small mt-2 text-success font-monospace';
-                passkeyStatus.textContent = 'Identity verified! You can now click "Register Passkey" above.';
-            }
-        } else {
-            throw new Error(data.error || 'Invalid OTP code.');
-        }
-    } catch (err) {
-        if (verifyBtn) {
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Verify OTP';
-        }
-        if (feedback) {
-            feedback.style.display = 'block';
-            feedback.className = 'small mt-1 text-danger font-monospace';
-            feedback.textContent = err.message || 'Verification failed. Please try again.';
-        }
-    }
-}
-
-async function requestSecurityOtp() {
-    const feedback = document.getElementById('securityOtpFeedback');
-    const btn = document.getElementById('sendSecurityOtpBtn');
-    if (!feedback || !btn) return;
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
-    feedback.style.display = 'block';
-    feedback.className = 'small mt-1 text-info font-monospace';
-    feedback.textContent = 'Sending verification code to your registered email and mobile...';
-
-    const phoneInput = document.querySelector('input[name="phone_number"]');
-    const emailInput = document.querySelector('input[name="email"]');
-    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
-    const emailVal = emailInput ? emailInput.value.trim() : '';
-
-    try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
-        const res = await fetch("{% url 'send_security_otp' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-            },
-            body: JSON.stringify({ phone_number: phoneVal, email: emailVal })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-            feedback.className = 'small mt-1 text-success font-monospace';
-            feedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i> ' + (data.message || 'Verification code dispatched!') + '</span>';
-            const otpInput = document.getElementById('securityOtpInput');
-            if (otpInput) {
-                otpInput.focus();
-            }
-            let cooldown = 15;
-            const timer = setInterval(() => {
-                cooldown--;
-                if (cooldown <= 0) {
-                    clearInterval(timer);
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-send me-1"></i> Resend OTP';
-                } else {
-                    btn.innerHTML = `<i class="bi bi-clock me-1"></i> Wait ${cooldown}s`;
-                }
-            }, 1000);
-        } else {
-            throw new Error(data.error || 'Failed to send verification code.');
-        }
-    } catch (err) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
-        feedback.className = 'small mt-1 text-danger font-monospace';
-        feedback.textContent = err.message || 'Request failed. Please try again.';
-    }
-}
-
-// Ensure security OTP is entered before form submission if security settings changed
-document.addEventListener('DOMContentLoaded', function () {
-    const secOtpInputEl = document.getElementById('securityOtpInput');
-    if (secOtpInputEl) {
-        secOtpInputEl.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                verifySecurityOtpInline();
-            }
-        });
-    }
-    // Auto-reopen edit modal if messages contain errors/validation notices
-    const editModalEl = document.getElementById('editProfileModal');
-    {% if messages %}
-        if (editModalEl && window.bootstrap && window.bootstrap.Modal) {
-            {% for message in messages %}
-                {% if "password" in message.message|lower or "security" in message.message|lower or "verification" in message.message|lower or "otp" in message.message|lower or "phone" in message.message|lower or "email" in message.message|lower %}
-                    try {
-                        const m = new bootstrap.Modal(editModalEl);
-                        m.show();
-                    } catch(e) {}
-                {% endif %}
-            {% endfor %}
-        }
-    {% endif %}
-
-    const editForm = document.querySelector('#editProfileModal form');
-    if (editForm) {
-        editForm.addEventListener('submit', function (e) {
-            const pwdInput = editForm.querySelector('input[name="new_password"]');
-            const curPwdInput = editForm.querySelector('input[name="current_password"]');
-            if (pwdInput && pwdInput.value.trim().length > 0) {
-                if (!curPwdInput || !curPwdInput.value.trim()) {
-                    e.preventDefault();
-                    const feedback = document.getElementById('securityOtpFeedback');
-                    if (feedback) {
-                        feedback.style.display = 'block';
-                        feedback.className = 'small mt-1 text-danger font-monospace';
-                        feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> Current Password is required to change your password.';
-                    } else {
-                        alert('Current Password is required to change your password.');
-                    }
-                    if (curPwdInput) curPwdInput.focus();
-                    return;
-                }
-            }
-
-            const otpInput = document.getElementById('securityOtpInput');
-            if (otpInput && !otpInput.value.trim()) {
-                const pwdInput = editForm.querySelector('input[name="new_password"]');
-                const phoneInput = editForm.querySelector('input[name="phone_number"]');
-                const emailInput = editForm.querySelector('input[name="email"]');
-                const twoFactorSwitch = document.getElementById('twoFactorSwitch');
-
-                const hasPwd = pwdInput && pwdInput.value.trim().length > 0;
-                const origPhone = "{{ profile_user.phone_number }}";
-                const hasPhoneChange = phoneInput && phoneInput.value.trim() !== origPhone;
-                const origEmail = "{{ profile_user.email }}";
-                const hasEmailChange = emailInput && emailInput.value.trim().toLowerCase() !== origEmail.toLowerCase();
-                const orig2fa = {% if profile_user.two_factor_enabled %}true{% else %}false{% endif %};
-                const has2faChange = twoFactorSwitch && twoFactorSwitch.checked !== orig2fa;
-
-                if (hasPwd || hasPhoneChange || hasEmailChange || has2faChange) {
-                    e.preventDefault();
-                    const feedback = document.getElementById('securityOtpFeedback');
-                    if (feedback) {
-                        feedback.style.display = 'block';
-                        feedback.className = 'small mt-1 text-warning font-monospace';
-                        feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> Please click <strong>Send OTP</strong> and enter the 6-digit code dispatched to your email/phone before saving.';
-                    }
-                    otpInput.focus();
-                }
-            }
-        });
-    }
-});
-
-async function verifyPasskeyForStepUp() {
-    const feedback = document.getElementById('securityOtpFeedback');
-    if (feedback) {
-        feedback.style.display = 'block';
-        feedback.className = 'small mt-1 text-info font-monospace';
-        feedback.textContent = 'Touch fingerprint sensor or scan face...';
-    }
-    try {
-        const chalRes = await fetch("{% url 'passkey_auth_challenge' %}");
-        if (!chalRes.ok) throw new Error('Failed to get authentication challenge.');
-        const chalData = await chalRes.json();
-        if (chalData.error) throw new Error(chalData.error);
-
-        const challengeBuf = Uint8Array.from(atob(chalData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-        const allowCredentials = (chalData.credential_ids || []).map(cid => ({
-            id: Uint8Array.from(atob(cid.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
-            type: 'public-key',
-        }));
-
-        const assertion = await navigator.credentials.get({
-            publicKey: {
-                challenge: challengeBuf,
-                allowCredentials: allowCredentials,
-                userVerification: 'preferred',
-                rpId: chalData.rp_id || window.location.hostname,
-                timeout: 60000,
-            }
-        });
-
-        if (!assertion) throw new Error('Biometric verification cancelled.');
-
-        function bufToB64(buf) {
-            if (!buf) return '';
-            const bytes = new Uint8Array(buf);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary)
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
-        }
-
-        const payload = {
-            id: assertion.id,
-            credential_id: assertion.id,
-            rawId: assertion.rawId ? bufToB64(assertion.rawId) : assertion.id,
-            type: assertion.type || 'public-key',
-            client_data_json: bufToB64(assertion.response.clientDataJSON),
-            response: {
-                clientDataJSON: bufToB64(assertion.response.clientDataJSON),
-                authenticatorData: bufToB64(assertion.response.authenticatorData),
-                signature: bufToB64(assertion.response.signature),
-                userHandle: assertion.response.userHandle ? bufToB64(assertion.response.userHandle) : null,
-            }
-        };
-
-        const verifyRes = await fetch("{% url 'passkey_step_up_verify' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        const verifyData = await verifyRes.json().catch(() => ({}));
-        if (verifyRes.ok && verifyData.success) {
-            if (feedback) {
-                feedback.className = 'small mt-1 text-success font-monospace';
-                feedback.textContent = 'Identity confirmed! You can now update your settings.';
-            }
-            setTimeout(() => location.reload(), 800);
-        } else {
-            throw new Error(verifyData.error || 'Passkey verification failed.');
-        }
-    } catch (err) {
-        if (feedback) {
-            feedback.className = 'small mt-1 text-danger font-monospace';
-            feedback.textContent = err.message || 'Biometric verification cancelled or failed.';
-        }
-    }
-}
-
-async function deletePasskey(pkId) {
-    if (!confirm('Are you sure you want to remove this passkey?')) return;
-    try {
-        const formData = new FormData();
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        const res = await fetch(`/auth/passkey/${pkId}/delete/`, {
-            method: 'POST',
-            body: formData,
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
-            location.reload();
-        } else {
-            if (data.learn_more) {
-                if (confirm((data.error || 'Failed to remove passkey.') + '\n\nWould you like to learn more about passkey security?')) {
-                    window.location.href = data.learn_more;
-                }
-            } else {
-                alert(data.error || 'Failed to remove passkey. Re-authentication may be required.');
-            }
-        }
-    } catch (err) {
-        alert('Network error removing passkey.');
-    }
-}
-
-</script>
-{% endif %}
 {% endblock %}

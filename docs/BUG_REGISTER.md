@@ -1,4 +1,8 @@
-# Campus Nexus: Exhaustive Audit-Driven Bug Register
+# Historical bug register — generated 2026-10-13
+
+This register records findings and claimed fixes from an earlier review. “FIXED” or “TESTED” below does not mean the issue was rechecked against the current code. Reproduce and verify before relying on a status. New confirmed discrepancies are tracked in [DOCUMENTATION_AUDIT.md](DOCUMENTATION_AUDIT.md).
+
+## Findings
 
 **Generated:** 2026-10-13  
 **Status Values:** `UNVERIFIED`, `CONFIRMED`, `NOT REPRODUCED`, `ALREADY FIXED`, `NEEDS HUMAN DECISION`, `FIXED`, `TESTED`

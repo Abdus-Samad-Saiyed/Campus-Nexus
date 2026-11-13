@@ -1,4 +1,6 @@
 # Campus Nexus — Capacity Assessment & Benchmark Report
+
+> Historical benchmark snapshot generated 2026-11-07. This result is not a current capacity guarantee. Reproduce on the current revision and record host, database, worker count, and workload before comparing or publishing it.
 **Scenario:** `Baseline Test`  
 **Target Host:** `http://127.0.0.1:8000`  
 **Generated:** `2026-11-07 03:18:53`  

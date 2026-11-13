@@ -1,4 +1,6 @@
 # Campus Nexus — Capacity Assessment & Benchmark Report
+
+> Historical smoke-run snapshot generated 2026-11-07. Results describe that run only and are not current capacity evidence. See [load-testing safety and methodology](../README.md).
 **Scenario:** `Smoke Test`  
 **Target Host:** `http://127.0.0.1:8000`  
 **Generated:** `2026-11-07 03:15:58`  

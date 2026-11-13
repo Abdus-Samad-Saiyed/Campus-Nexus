@@ -691,13 +691,26 @@
                                     <span class="badge {% if fb.feedback_type == 'BUG' %}bg-danger{% elif fb.feedback_type == 'PROPOSAL' %}bg-warning-subtle text-warning{% else %}bg-info-subtle text-info{% endif %} small">
                                         {{ fb.get_feedback_type_display }}
                                     </span>
-                                    <span class="text-secondary small">{{ fb.created_at|date:"M j, H:i" }}</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge {% if fb.status == 'RESOLVED' %}bg-success-subtle text-success{% elif fb.status == 'IN_REVIEW' %}bg-info-subtle text-info{% else %}bg-secondary-subtle text-secondary{% endif %} small">
+                                            {{ fb.get_status_display }}
+                                        </span>
+                                        <span class="text-secondary small">{{ fb.created_at|date:"M j, H:i" }}</span>
+                                    </div>
                                 </div>
                                 <h6 class="fw-bold text-white mb-1">{{ fb.title }}</h6>
                                 <p class="text-white-50 small mb-2">{{ fb.description }}</p>
                                 <div class="text-secondary small" style="font-size: 0.75rem;">
                                     By: <strong>{{ fb.submitter_name }}</strong> ({{ fb.submitter_contact|default:"No contact" }})
                                 </div>
+                                {% if fb.status != 'RESOLVED' %}
+                                    <form method="POST" action="{% url 'admin_complete_feedback' fb.id %}" class="mt-2 text-end">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-check2-circle me-1"></i> Mark complete
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>

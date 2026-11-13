@@ -1,147 +1,51 @@
-# Campus Nexus — Load Testing & Server Capacity Assessment Suite
+# Load testing
 
-A comprehensive, production-grade load testing and capacity benchmarking framework for **Campus Nexus**.
-Designed to measure maximum sustainable concurrent users, requests per second, latency percentiles (P50/P95/P99), hardware resource utilization, database concurrency invariants, and Cloudflare Tunnel overhead.
+Reviewed 2026-11-12 against the runner, fixture, and cleanup scripts. This harness creates privileged test accounts and can overwrite SQLite database files during restoration. It is not safe to aim at production, a shared development database, or any database containing data that is not disposable.
 
----
+## Before running
 
-## 1. Absolute Data & Database Isolation
+1. Use a separate local checkout and an explicitly disposable SQLite database. Do not load a production `.env`; the scripts initialize Django from the selected settings module and can therefore use the configured `DATABASE_URL`.
+2. Stop the application and all writers using the target database before setup. The optional full-file restore can overwrite concurrent changes.
+3. Verify `DATABASE_URL` resolves to the disposable database. The namespace prefix does not isolate the database by itself.
+4. Confirm enough disk space for a database copy, report files, and generated charts.
+5. Use synthetic data only. Keep `active_test_users.json` private; it contains credentials and is generated in `load-testing/test-data/`.
 
-> **Priority Guarantee:** Load testing NEVER modifies, corrupts, or deletes real student records.
+The harness does not provide a production safety guarantee. Its fixture setup and cleanup target `default` and may also target a configured `temp_early_access` alias. Cleanup removes users whose enrollment starts with `2099LOAD`, rides marked with `[LOADTEST]`, and can restore a SQLite file snapshot. A misconfigured target or pre-existing matching fixture can cause data loss.
 
-* **Namespace Demarcation:** All synthetic test accounts are strictly isolated under `2099LOAD001`–`2099LOAD050` and `2099LOAD999` (admin).
-* **Test Listings:** All benchmark ride requests carry the `[LOADTEST]` marker in their location and notes fields.
-* **Pre-Test Snapshots:** Before any test run, a bitwise file snapshot of the active SQLite database (`.pre_loadtest_backup`) is saved.
-* **Automated Teardown:** Upon benchmark conclusion, `cleanup_test_data.py` drops all test records and restores the pristine database snapshot, returning the platform cleanly to its pre-test state.
+## Layout
 
----
+- `locustfile.py`: workload entry point.
+- `users/`: anonymous, authenticated, transactional, and admin user profiles.
+- `config/`: targets, weights, credentials, and thresholds.
+- `monitoring/`: system and database monitors.
+- `scripts/setup_test_data.py`: fixture creation and SQLite snapshots.
+- `scripts/cleanup_test_data.py`: fixture removal and optional snapshot restoration.
+- `scripts/run_scenario.py`: benchmark orchestration.
+- `reports/`: dated benchmark output.
 
-## 2. Directory Architecture
+## Dependencies
 
-```text
-load-testing/
-│
-├── locustfile.py                 # Primary Locust test suite combining all user profiles
-├── requirements.txt              # Testing framework dependencies
-├── README.md                     # Comprehensive operational guide
-│
-├── config/
-│   ├── settings.py               # Configurable thresholds, weights, & environment defaults
-│   └── endpoints.py              # Verified application route registry
-│
-├── users/
-│   ├── common.py                 # CSRF extraction, authentication & credential pool leasing
-│   ├── anonymous.py              # Profile A: Anonymous discovery visitors (15%)
-│   ├── authenticated.py          # Profile B: Ordinary browsing students (55%)
-│   ├── transactional.py          # Profile C: Active ride joiners, creators & chatters (25%)
-│   └── admin.py                  # Profile D: Operational & analytics desk reviewers (5%)
-│
-├── monitoring/
-│   ├── system_monitor.py         # Sub-second CPU, RAM, Disk, Network & GPU (RTX 5050) telemetry
-│   └── database_monitor.py       # SQLite WAL file tracking, DB size, and lock contention monitor
-│
-├── scripts/
-│   ├── setup_test_data.py        # Safe fixture population and pre-test DB backup
-│   ├── cleanup_test_data.py      # Automated teardown & bitwise database restore
-│   ├── run_scenario.py           # Cross-platform benchmark orchestrator
-│   ├── generate_report.py        # Markdown, terminal table, and multi-panel chart generator
-│   ├── run_smoke_test.ps1 / .sh  # Quick verification scenario (5 users)
-│   ├── run_baseline_test.ps1/.sh # Normal workload baseline (10 users)
-│   ├── run_load_test.ps1 / .sh   # Progressive load test (35 users)
-│   └── run_stress_test.ps1 / .sh # Stress & saturation test (80 users)
-│
-├── reports/                      # Auto-generated CSVs, HTML reports, Markdown summaries & PNG charts
-│
-└── test-data/
-    ├── README.md                 # Test data isolation charter
-    └── capacity_integrity_test.py # Concurrency race condition integrity test
-```
+Install the project environment first, then install the separate benchmark requirements:
 
----
-
-## 3. Configuration & Environment Variables
-
-The framework is fully configurable via environment variables without modifying source files:
-
-| Environment Variable | Default | Purpose |
-|---|---|---|
-| `CAMPUS_TARGET_URL` | `http://127.0.0.1:8000` | Target host (Local Daphne or Cloudflare Tunnel) |
-| `CAMPUS_LOADTEST_USERS_COUNT` | `50` | Number of test student accounts to generate |
-| `CAMPUS_LOADTEST_PASSWORD` | `LoadTest@Pass123!` | Password for synthetic test accounts |
-| `WAIT_TIME_MIN` | `1.0` | Minimum think time between user requests (seconds) |
-| `WAIT_TIME_MAX` | `3.0` | Maximum think time between user requests (seconds) |
-| `WEIGHT_ANONYMOUS` | `15` | Percentage of anonymous visitor virtual users |
-| `WEIGHT_AUTHENTICATED` | `55` | Percentage of ordinary browsing student virtual users |
-| `WEIGHT_TRANSACTIONAL` | `25` | Percentage of state-changing transactional virtual users |
-| `WEIGHT_ADMIN` | `5` | Percentage of administrative desk virtual users |
-
----
-
-## 4. Running Benchmarks
-
-### Option A: Using Pre-Configured Scenarios
-
-From PowerShell:
-```powershell
-# 1. Smoke Test (5 concurrent users, 60s)
-.\load-testing\scripts\run_smoke_test.ps1
-
-# 2. Baseline Test (10 concurrent users, 120s)
-.\load-testing\scripts\run_baseline_test.ps1
-
-# 3. Progressive Load Test (35 concurrent users, 180s)
-.\load-testing\scripts\run_load_test.ps1
-
-# 4. Stress Test (80 concurrent users, 120s)
-.\load-testing\scripts\run_stress_test.ps1
-```
-
-From Bash:
 ```bash
-chmod +x load-testing/scripts/*.sh
-./load-testing/scripts/run_smoke_test.sh
-./load-testing/scripts/run_baseline_test.sh
+python -m pip install -r requirements.txt
+python -m pip install -r load-testing/requirements.txt
 ```
 
-### Option B: Universal Custom Benchmark Runner
+## Run against a disposable local instance
 
-```powershell
-# Run custom duration against local server
-.\venv\Scripts\python.exe load-testing/scripts/run_scenario.py --scenario baseline --target http://127.0.0.1:8000 --users 20 --duration 90s
+The orchestration script supports `smoke`, `baseline`, `load`, `stress`, and `burst` scenarios. It creates fixtures, starts monitors and Locust, generates reports, then requests cleanup and snapshot restoration.
 
-# Run benchmark across Cloudflare Tunnel
-.\venv\Scripts\python.exe load-testing/scripts/run_scenario.py --scenario baseline --target https://dev.campus-nexus.online --users 10 --duration 60s
-```
-
-### Option C: Concurrent Capacity Integrity Test
-
-Verifies that concurrent write races against scarce capacity (e.g., 30 students claiming 3 seats simultaneously) never violate business invariants:
-```powershell
-.\venv\Scripts\python.exe load-testing/test-data/capacity_integrity_test.py
-```
-
----
-
-## 5. Distributed Load Generation (Master/Worker Configuration)
-
-To isolate the load generator from the application hosting laptop and prevent CPU contention:
-
-### On the Load Generator Machine (Machine B):
 ```bash
-# 1. Start Locust Master
-locust -f load-testing/locustfile.py --master --host http://<HOST_IP>:8000
-
-# 2. Start Worker Processes (one per CPU core)
-locust -f load-testing/locustfile.py --worker --master-host=<MACHINE_B_IP>
+python load-testing/scripts/run_scenario.py --scenario smoke --target http://127.0.0.1:8000
 ```
 
-Open `http://localhost:8089` on Machine B to control the distributed swarm.
+Optional parameters include `--users` and `--duration`. Check the current script's CLI before using them. Do not run against a remote production host or public service without an explicitly approved test plan and isolated dataset.
 
----
+## Results and interpretation
 
-## 6. Cleanup & Reset
+Reports in `reports/` are snapshots from earlier runs. They are not current capacity guarantees and some scenarios contain failures. Compare only runs with documented commit, host hardware, database engine, worker count, target, user model, duration, and error rate. The harness does not model every Android client, network condition, or production dependency.
 
-To manually trigger a complete cleanup and restore the database to its pre-test snapshot:
-```powershell
-.\venv\Scripts\python.exe load-testing/scripts/cleanup_test_data.py --restore-backup
-```
+## Cleanup caution
+
+If a run stops unexpectedly, inspect the active database and backup files before running cleanup. `--restore-backup` replaces the SQLite database file with the saved snapshot; it can erase changes made after that snapshot. Do not run it while the app is connected or against PostgreSQL. Review `scripts/cleanup_test_data.py` and confirm every target path before using it.

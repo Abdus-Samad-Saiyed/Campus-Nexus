@@ -2,6 +2,17 @@
 
 {% block title %}Dashboard — COORDINATE{% endblock %}
 
+{% block extra_head %}
+<style>
+@media (max-width: 767.98px) {
+    #firstLoginAnnouncementBanner { margin-bottom: 1rem !important; box-shadow: none !important; }
+    #firstLoginAnnouncementBanner > .p-4 { padding: 1rem !important; }
+    #firstLoginAnnouncementBanner h3 { font-size: 1.2rem; }
+    #firstLoginAnnouncementBanner .fs-6 { font-size: .92rem !important; line-height: 1.5 !important; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <!-- Welcome Header -->
@@ -510,12 +521,12 @@
                     <h6 class="fw-bold text-secondary text-uppercase mb-0">Reliability Score</h6>
                     <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem;"><i class="bi bi-shield-check"></i></span>
                 </div>
-                <div class="stat-value">{{ user.on_time_percentage }}%</div>
+                <div class="stat-value">{% if user.rides_completed > 0 %}{{ user.on_time_percentage }}%{% else %}—{% endif %}</div>
                 <div class="reliability-bar-wrap my-3">
-                    <div class="reliability-bar" style="width: {{ user.on_time_percentage }}%;"></div>
+                    <div class="reliability-bar" style="width: {% if user.rides_completed > 0 %}{{ user.on_time_percentage }}{% else %}0{% endif %}%;"></div>
                 </div>
                 <p class="text-secondary small mb-0">
-                    Calculated from punctuality and attendance reports across {{ user.rides_completed }} completed ride{{ user.rides_completed|pluralize }}.
+                    {% if user.rides_completed > 0 %}Calculated from punctuality and attendance reports across {{ user.rides_completed }} completed ride{{ user.rides_completed|pluralize }}.{% else %}Your reliability score appears after your first completed ride.{% endif %}
                 </p>
             </div>
         </div>
@@ -544,13 +555,13 @@
                     <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold">
                         <i class="bi bi-check-circle-fill me-1"></i> Verified ID
                     </span>
-                    {% elif early_launch_mode %}
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill fw-semibold" title="Fast-track self-declared access">
-                        <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Account
+                    {% elif pending_application %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill fw-semibold">
+                        <i class="bi bi-clock-history me-1"></i> Verification pending
                     </span>
                     {% else %}
                     <span class="badge bg-secondary-subtle text-secondary px-3 py-1 rounded-pill fw-semibold">
-                        Unverified
+                        Account active
                     </span>
                     {% endif %}
                     {% if user.behavior_reports > 0 %}
@@ -564,15 +575,13 @@
                 <p class="text-secondary small mt-3 mb-0">
                     {% if user.verified %}
                         Your profile is completely verified and in good standing.
-                    {% elif early_launch_mode %}
-                        {% if pending_application %}
-                            <span class="text-info fw-semibold"><i class="bi bi-clock-history me-1"></i>Verified Permanent Account Application Pending:</span> Application #{{ pending_application.application_number }} submitted on {{ pending_application.created_at|date:"M d, Y" }}. You can continue coordinating rides while our desk reviews your permanent verification.
-                        {% else %}
-                            <span class="text-warning fw-semibold">Quick-Bypass Account:</span> Active for transit coordination.
-                            <a href="{% url 'apply_account' %}?mode=permanent" class="green-accent fw-semibold ms-1">Apply for Verified Permanent Account &rarr;</a>
-                        {% endif %}
                     {% else %}
-                        Your account verification is pending physical desk approval.
+                        {% if pending_application %}
+                            <span class="text-info fw-semibold"><i class="bi bi-clock-history me-1"></i>Verification in progress:</span> Request #{{ pending_application.application_number }} submitted on {{ pending_application.created_at|date:"M d, Y" }}. You can keep using the features available to your account while it is reviewed.
+                        {% else %}
+                            Your account is active. Some student features require verification.
+                            <a href="{% url 'apply_account' %}" class="green-accent fw-semibold ms-1">Request student verification</a>
+                        {% endif %}
                     {% endif %}
                 </p>
             </div>

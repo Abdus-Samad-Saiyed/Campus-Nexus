@@ -550,3 +550,27 @@ p, span, h1, h2, h3, h4, h5, h6, a, label, div {
     filter: none !important;
 }
 
+/* Mobile navigation and rendering refinements */
+@media (max-width: 991.98px) {
+    /* Keep the top bar focused on alerts and the navigation drawer. */
+    .navbar-mobile-actions .pwa-install-pinned-btn,
+    .navbar-mobile-actions .theme-toggle-btn,
+    .navbar-mobile-actions button[data-bs-target="#uiSettingsModal"] { display: none !important; }
+
+    /* Reduce costly blur and decorative glow on phones while retaining the visual theme. */
+    .glass, .navbar-custom, .nexus-popdown-banner {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+    .glass-glow, .glass:hover { box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.4)) !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+

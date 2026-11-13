@@ -3,6 +3,16 @@
 
 {% block title %}Student Directory &amp; Search — COORDINATE{% endblock %}
 
+{% block extra_head %}
+<style>
+    .year-results-group > summary { list-style: none; }
+    .year-results-group > summary::-webkit-details-marker { display: none; }
+    .year-results-chevron { transition: transform 150ms ease; }
+    .year-results-group:not([open]) .year-results-chevron { transform: rotate(-90deg); }
+    .year-results-group > summary:focus-visible { outline: 2px solid var(--bs-success); outline-offset: 2px; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <!-- Header -->
@@ -25,7 +35,7 @@
 
     <!-- Search Box -->
     <div class="glass p-4 mb-4">
-        <form method="GET" action="{% url 'user_search' %}" toolname="search_students" tooldescription="Search university students by name, enrollment number, department, or branch" class="row g-2 align-items-center">
+        <form method="GET" action="{% url 'user_search' %}" id="student-search-form" toolname="search_students" tooldescription="Search university students by name, enrollment number, department, or branch" class="row g-2 align-items-center">
             <div class="col-md-9 col-lg-10">
                 <div class="input-group">
                     <span class="input-group-text">
@@ -33,21 +43,21 @@
                     </span>
                     <input type="text"
                            name="q"
+                           id="student-search-input"
                            value="{{ query }}"
                            class="form-control"
                            placeholder="Search by enrollment number (e.g. 2024BCSE), name, or branch..."
+                           autocomplete="off"
+                           aria-controls="student-search-results"
+                           aria-describedby="student-search-status"
                            autofocus>
                 </div>
             </div>
             <div class="col-md-3 col-lg-2 d-flex gap-2">
-                <button type="submit" class="btn btn-green w-100 fw-semibold">
-                    Search
+                <button type="submit" class="btn btn-green w-100 fw-semibold">Search</button>
+                <button type="button" id="clear-student-search" class="btn btn-dark-custom" title="Clear search" aria-label="Clear search" {% if not query %}hidden{% endif %}>
+                    <i class="bi bi-x-lg"></i>
                 </button>
-                {% if query %}
-                    <a href="{% url 'user_search' %}" class="btn btn-dark-custom" title="Clear search">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
-                {% endif %}
             </div>
         </form>
 
@@ -57,27 +67,29 @@
                 <span>Privacy Active: Students who choose <em>"Hide from student search"</em> in their profile are not listed.</span>
             </div>
             <div>
-                Showing <strong>{{ total_count }}</strong> student{{ total_count|pluralize }}
+                Showing <strong id="student-count">{{ total_count }}</strong> <span id="student-count-label">student{{ total_count|pluralize }}</span>
             </div>
         </div>
+        <div id="student-search-status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <!-- Results Grid: Grouped by Enrollment Year first, then Branch (Your Year & Branch first) -->
-    <div class="row g-3">
+    <div class="row g-3" id="student-search-results">
         {% if year_groups %}
             {% for yg in year_groups %}
-                <div class="col-12 mt-4">
-                    <div class="d-flex align-items-center gap-2 pb-2 border-bottom border-secondary">
-                        <h4 class="fw-bold mb-0 fs-5 text-white">
+                <details class="col-12 year-results-group" data-student-year="{{ yg.year }}"{% if yg.is_my_year %} open{% endif %}>
+                    <summary class="d-flex align-items-center gap-2 py-3 border-bottom border-secondary" style="cursor: pointer; min-height: 48px;">
+                        <i class="bi bi-chevron-down text-secondary year-results-chevron" aria-hidden="true"></i>
+                        <span class="fw-bold fs-5 text-white">
                             <i class="bi bi-calendar3 me-1 text-success"></i>
                             Batch of {{ yg.year }}
-                        </h4>
+                        </span>
                         {% if yg.is_my_year %}
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small fw-semibold">Your Batch</span>
                         {% endif %}
                         <span class="badge bg-dark border border-secondary text-secondary ms-auto small">{{ yg.total_students }} Student{{ yg.total_students|pluralize }}</span>
-                    </div>
-                </div>
+                    </summary>
+                    <div class="row g-3 pt-3">
 
                 {% for bg in yg.branches %}
                     <div class="col-12 mt-3 mb-1">
@@ -203,6 +215,8 @@
                         {% endwith %}
                     {% endfor %}
                 {% endfor %}
+                    </div>
+                </details>
             {% endfor %}
         {% else %}
             <div class="col-12">
@@ -211,7 +225,7 @@
                     <h3 class="fw-bold fs-5 mt-3 mb-1">No Students Found</h3>
                     <p class="text-secondary small mb-3">
                         {% if query %}
-                            No active verified students matched your search for "{{ query }}".
+                            No visible students matched your search for "{{ query }}".
                         {% else %}
                             Start typing an enrollment number or student name above.
                         {% endif %}
@@ -224,4 +238,92 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const form = document.getElementById('student-search-form');
+    const input = document.getElementById('student-search-input');
+    const results = document.getElementById('student-search-results');
+    const count = document.getElementById('student-count');
+    const countLabel = document.getElementById('student-count-label');
+    const status = document.getElementById('student-search-status');
+    const clearButton = document.getElementById('clear-student-search');
+    if (!form || !input || !results || !count || !countLabel || !status) return;
+
+    let debounceTimer;
+    let activeRequest;
+
+    function getCollapsedYears(container) {
+        return new Set(Array.from(container.querySelectorAll('details[data-student-year]:not([open])'))
+            .map(function (group) { return group.dataset.studentYear; }));
+    }
+
+    function restoreCollapsedYears(container, collapsedYears) {
+        container.querySelectorAll('details[data-student-year]').forEach(function (group) {
+            if (collapsedYears.has(group.dataset.studentYear)) group.open = false;
+        });
+    }
+
+    async function updateResults() {
+        const query = input.value.trim();
+        const url = new URL(form.action, window.location.href);
+        if (query) url.searchParams.set('q', query);
+        else url.searchParams.delete('q');
+
+        if (activeRequest) activeRequest.abort();
+        const controller = new AbortController();
+        activeRequest = controller;
+        results.setAttribute('aria-busy', 'true');
+        status.textContent = query ? `Searching students for ${query}.` : 'Loading students.';
+        if (clearButton) clearButton.hidden = !query;
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: controller.signal,
+            });
+            if (!response.ok) throw new Error('Search request failed.');
+
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const nextResults = page.getElementById('student-search-results');
+            const nextCount = page.getElementById('student-count');
+            if (!nextResults || !nextCount) throw new Error('Search results were unavailable.');
+
+            const collapsedYears = getCollapsedYears(results);
+            results.innerHTML = nextResults.innerHTML;
+            restoreCollapsedYears(results, collapsedYears);
+            count.textContent = nextCount.textContent;
+            countLabel.textContent = Number(nextCount.textContent) === 1 ? 'student' : 'students';
+            history.replaceState({}, '', url.pathname + url.search + url.hash);
+            status.textContent = `${nextCount.textContent} students found.`;
+        } catch (error) {
+            if (error.name !== 'AbortError') status.textContent = 'Could not update results. Try again or use Search.';
+        } finally {
+            if (activeRequest === controller) results.removeAttribute('aria-busy');
+        }
+    }
+
+    input.addEventListener('input', function () {
+        window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(updateResults, 250);
+    });
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        window.clearTimeout(debounceTimer);
+        updateResults();
+    });
+
+    if (clearButton) {
+        clearButton.addEventListener('click', function () {
+            input.value = '';
+            input.focus();
+            window.clearTimeout(debounceTimer);
+            updateResults();
+        });
+    }
+})();
+</script>
 {% endblock %}

@@ -1,158 +1,35 @@
-# Campus Nexus — Operations, Governance & Desk Manual
+# Operations and administration
 
----
+Reviewed 2026-11-12 against `campus/operations.py`, `campus/urls.py`, `accounts/views.py`, and the operations templates.
 
-## 1. Operational Command Center (`/operations/`)
+## Staff access
 
-Campus administrators and authorized staff manage platform health, identity queues, and student safety via the **Operational Dashboard**.
+The operations dashboard is at `/operations/`. Views generally require staff or superuser access; destructive or high-privilege actions may be restricted to superusers. The route decorators and view checks are the authority. Keep staff roles limited and review access when adding a dashboard action.
 
-```
-[ Admin Console: /operations/ ]
-  |-- Active Concurrent Sessions vs Unique Users
-  |-- Ride Volume, Status Distribution & Completion Ratios
-  |-- Time-Series 7-Day User Growth & Ride Creation Charts
-  |-- Physical Desk Queue (Pending In-Person Password / Phone Resets)
-  |-- Pending Applications Queue (New Registrations)
-  |-- Superuser Privilege Control & Audit Event Feeds
-  `-- Secure CSV Data Exports (Rides, Students, Applications)
-```
+## Feedback and bug requests
 
----
+Users submit feedback and bug reports through the feedback form. Staff can mark a feedback request complete using the operations dashboard. The action is a POST route at `/operations/feedback/<feedback_id>/complete/`; retain CSRF protection and verify authorization when changing it. “Complete” records workflow status and does not itself verify that the underlying bug is fixed or deployed.
 
-## 2. In-Person Physical Verification Desk
+## Account applications and permanent verification
 
-### 2.1 Problem Solved
-When a student loses their phone, has their SIM deactivated, or loses access to their institutional email account, self-service automated OTP recovery is impossible. Campus Nexus provides a secure, physical in-person verification desk to prevent account abandonment.
+The application queue and approval/rejection actions are managed by staff with the required permissions. Review an applicant's institutional details using the approved process before changing verification state. Avoid exporting or sharing application data unless required for the role. Account-flow details are implemented in `accounts/views.py` and the templates.
 
-### 2.2 End-to-End Workflow
+The account system also has unverified/self-declared states. The early-launch storage isolation claim is unresolved; do not use it as a data protection boundary. See the [documentation audit](DOCUMENTATION_AUDIT.md).
 
-```
-1. Student files In-Person Request at /forgot-password/ (Tab 2: In-Person Desk)
-   Records: Enrollment number, alternative contact phone, and reason for desk visit.
-   System creates: PhysicalVerificationRequest (Status: PENDING)
-          |
-          v
-2. Student physically visits Campus Operations Desk
-   Presents official Institute ID Card and Government Photo Identification.
-          |
-          v
-3. Verification Officer inspects ticket on /operations/
-   Actions available to Administrator:
-   a. "Verify & Reset Password": Enters a temporary password for the student.
-      -> Terminate any active sessions.
-      -> Updates user password hash.
-      -> Marks PhysicalVerificationRequest as VERIFIED.
-      -> Logs PHYSICAL_VERIFICATION_RESOLVED audit event.
-   b. "Verify & Update Phone": Corrects student's registered mobile number.
-      -> Updates user.phone_number in database.
-      -> Marks ticket as VERIFIED.
-      -> Logs ADMIN_PHONE_UPDATE audit event.
-   c. "Reject": Rejects request if student fails ID card verification.
-```
+## Administrative actions and exports
 
----
+The root URL configuration registers staff tools for announcements, user/phone management, verification resolution, and CSV exports. Some exports are limited to superusers. Inspect the exact route decorators and view logic before granting access or automating exports. Treat downloaded CSV files as sensitive personal data, store them securely, and delete them according to the institution's retention rules.
 
-## 3. Account Soft-Deletion & Historical Retention
+Account deletion uses soft-deletion behavior in the operations code. Confirm related records, access revocation, and retention effects from the current implementation before promising that data is either erased or retained permanently.
 
-### 3.1 Policy
-Campus regulations require that student accounts can be closed/deleted upon graduation, withdrawal, or disciplinary action, but **past trip logs, driver reviews, and behavioral complaints must be retained permanently** for legal and institutional compliance.
+## Health endpoints
 
-### 3.2 Implementation (`admin_delete_account`)
-When an administrator clicks **Delete Account** on `/operations/`:
-1. **Account Closure:** The account is flagged `is_deleted = True` and `is_active = False`. `deleted_at` timestamp is recorded.
-2. **Session Termination:** All active browser and mobile sessions associated with `current_session_key` are deleted from session storage.
-3. **Storage Sanitization:** Uploaded avatars (`profile_photo`) are deleted from media storage to free up server disk space.
-4. **Historical Preservation:**
-   - The user record remains in the database.
-   - Past completed rides still list their enrollment number and full name.
-   - Punctuality ratings and peer reviews written by or for the user remain visible in historical ride summaries.
-5. **Audit Logging:** An immutable `ACCOUNT_DELETED` entry is added to `AuditEvent` recording the actor enrollment and deletion reason.
+`/health/` and `/healthz/` are aliases for the same handler. Check `campus/operations.py:health_check` for dependency checks, response codes, and any information returned before wiring probes to an orchestrator or public monitor.
 
----
+## Operational safety
 
-## 4. Superuser Governance & Lockout Protection
-
-Superuser privileges are managed at `/operations/superusers/`:
-- **Promotion:** Any verified student account can be promoted to superuser/staff status with justification.
-- **Revocation:** Superuser permissions can be stripped at any time.
-- **Lockout Prevention:** The system calculates `active_superusers = User.objects.filter(is_superuser=True, is_active=True).count()`. If only one active superuser remains, any attempt to revoke their permissions or delete their account is blocked with an alert: *"Cannot revoke the sole active superuser."*
-
----
-
-## 5. Contributor Management (`/contributors/`)
-
-Platform maintainers and developers are honored in the public Contributors directory:
-- **Peer Nominations (`/contributors/nominate/`):** Active contributors can nominate fellow student developers, designers, or moderators.
-- **Admin Revocation (`/contributors/<id>/remove/`):** Administrators have authority to remove or deactivate contributor entries if nominations violate platform conduct.
-
----
-
-## 6. Secure Operational Data Exports
-
-Administrators can download sanitized CSV datasets for institutional reporting:
-- **Export Rides (`/operations/export/rides/`):** Route, departure time, total spots, confirmed passengers, completion status, and creation timestamps.
-- **Export Students (`/operations/export/users/`):** Enrollment ID, branch, degree, joining year, verification status, completed rides, and punctuality rate.
-- **Export Applications (`/operations/export/applications/`):** Application number, applicant enrollment, submission date, phone verification status, and decision outcome.
-- Every export action logs an `EXPORT_GENERATED` audit event.
-
-
----
-
-## 7. Operating in Early Launch Mode & Managing the Temporary Database
-
-### 7.1 When to Activate Early Launch
-Activate Early Launch Mode when sudden, high-volume campus transit requirements (such as end-of-semester departure surges, emergency campus vacations, or transit strikes) prevent proctors and administrators from conducting physical ID verification for hundreds of students in real-time.
-
-Early access accounts are classified as untrusted and are stored in an isolated temporary database (`temp_early_access.sqlite3`) so they never conflict with or pollute permanent student records.
-
-### 7.2 Starting the Server
-Run Daphne via the custom management command with the `--early-launch` flag:
-```bash
-python manage.py runserver --early-launch 0.0.0.0:8000
-```
-
-Upon launch, Daphne auto-migrates the temporary database, syncs administrator credentials, and outputs an operational confirmation banner:
-```text
-======================================================================
-CAMPUS NEXUS — EARLY LAUNCH MODE ACTIVE (TEMPORARY DATABASE)
-  * Isolated database: temp_early_access.sqlite3
-  * Permanent database is untouched; zero conflict with real accounts.
-  * Self-declared accounts are untrusted (verified=False).
-  * Account records will NOT be stored permanently.
-======================================================================
-```
-
-Alternatively, set the environment variable in containerized or background environments:
-```bash
-EARLY_LAUNCH_MODE=True python manage.py runserver 0.0.0.0:8000
-```
-
-### 7.3 Administrator Oversight During Early Launch
-1. **Audit Inspection:** Every self-declaration creates an `AuditEvent` with `event_type='EARLY_LAUNCH_SELF_DECLARATION'`, viewable in the operational audit feed.
-2. **Reviewing Applications:** Official permanent applications submitted via `/apply/?mode=permanent` appear directly in `/admin/applications/`. Administrators can verify physical IDs and approve or reject them in real time.
-3. **Approving Upgrades:** Approving an application for a student who previously registered on Early Access automatically upgrades their account (`verified=True`) and mirrors their permanent record into `permanent` (`db.sqlite3`).
-4. **User Exports:** Use `/operations/export/users/` to download CSV records of all self-declared students with phone numbers and enrollment codes.
-5. **Emergency Disciplinary Actions:** Administrators can immediately deactivate or delete problematic accounts from `/operations/` with the standard soft-deletion safeguards.
-
-### 7.4 Purging Early Launch Data & Transitioning Back to Standard Mode
-When the transit rush has concluded and physical verification resumes:
-1. **Purge the Temporary Database:** Run the management command:
-   ```bash
-   python manage.py purge_early_launch
-   # Or without prompt in automated scripts:
-   python manage.py purge_early_launch --force
-   ```
-   *Note:* The purge command inspects `temp_early_access.sqlite3` for active rides (`OPEN` or `FULL`). If active rides exist, it warns the administrator and displays remaining participant counts before proceeding.
-   All approved and pending permanent applications mirrored to `permanent` (`db.sqlite3`) remain completely intact!
-2. **Restart in Standard Mode:** Simply omit `--early-launch`:
-   ```bash
-   python manage.py runserver 0.0.0.0:8000
-   ```
-   python manage.py purge_early_launch --force
-   ```
-2. **Restart Without Flag:** Restart the server without the `--early-launch` flag:
-   ```bash
-   python manage.py runserver 0.0.0.0:8000
-   ```
-3. The platform immediately restores the physical verification desk flow on `/accounts/apply/` and the application review queue on `/operations/`.
-4. The permanent database (`db.sqlite3` / PostgreSQL) has remained 100% clean and untouched throughout the entire early launch period, with zero conflicting accounts or corrupted records.
+- Require HTTPS and restrict access to admin routes at the application and network layers.
+- Use POST for state-changing actions and keep CSRF and role checks in place.
+- Do not paste credentials, OTPs, private keys, student records, or exported data into tickets or logs.
+- Keep an auditable reason for privileged manual changes and establish institution-approved retention and incident procedures.
+- Back up before schema, deletion, or account migration operations; test restores in an isolated environment.

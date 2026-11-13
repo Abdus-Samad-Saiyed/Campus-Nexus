@@ -158,7 +158,12 @@
                         <i class="bi bi-person-badge"></i>
                     </div>
                     <h2 class="fw-bold mb-1 text-white">Student Sign In</h2>
-                    <p class="text-secondary small">Access verified rides across campus</p>
+                    <p class="text-secondary small">Sign in to your Campus Nexus account</p>
+                </div>
+
+                <div class="text-center mb-3">
+                    <span class="text-secondary small">New to Campus Nexus?</span>
+                    <a href="{% url 'apply_account' %}" class="green-accent fw-bold text-decoration-none ms-1">Create an account</a>
                 </div>
 
                 <!-- 2-Week Downloaded App Passkey Fast Sign-In Card -->
@@ -253,7 +258,8 @@
 
                         {% if form.errors %}
                             <div class="alert alert-danger py-2 small mb-3">
-                                <i class="bi bi-exclamation-circle-fill me-1"></i> Invalid enrollment number or password.
+                                <i class="bi bi-exclamation-circle-fill me-1"></i> We couldn’t sign you in with those details. Check them and try again, or create an account if you’re new.
+                                <a href="{% url 'apply_account' %}" class="alert-link d-block mt-1">Create an account</a>
                             </div>
                         {% endif %}
 
@@ -285,7 +291,7 @@
                                     <i class="bi bi-key"></i>
                                 </div>
                                 <input type="password" name="password" autocomplete="current-password" required id="id_password" class="form-control auth-input-field" placeholder="Enter your password">
-                                <button type="button" class="auth-password-btn password-toggle-btn" id="btnTogglePassword" tabindex="-1" title="Show password" aria-label="Show password" onclick="togglePasswordVisibility()">
+                                <button type="button" class="auth-password-btn password-toggle-btn" id="btnTogglePassword" title="Show password" aria-label="Show password" onclick="togglePasswordVisibility()">
                                     <i class="bi bi-eye" id="passwordEyeIcon"></i>
                                 </button>
                             </div>
@@ -313,12 +319,6 @@
 
                 <hr class="my-4 border-secondary border-opacity-25">
 
-                <div class="text-center small">
-                    <p class="text-secondary mb-2">New student or haven't verified yet?</p>
-                    <a href="{% url 'apply_account' %}" class="green-accent fw-semibold text-decoration-none">
-                        <i class="bi bi-pencil-square me-1"></i> Submit Account Application &rarr;
-                    </a>
-                </div>
             </div>
         </div>
     </div>

@@ -67,7 +67,7 @@
                     </form>
                 {% elif can_join %}
                     <button type="button" class="btn btn-green" data-bs-toggle="modal" data-bs-target="#requestJoinModal">
-                        <i class="bi bi-send-fill me-1"></i> Request to Join
+                        <i class="bi bi-send-fill me-1"></i> Request a seat
                     </button>
                 {% elif can_waitlist %}
                     <form action="{% url 'join_waitlist' ride.id %}" method="POST" class="m-0">
@@ -749,7 +749,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="modal-content glass border-success-subtle text-white">
             <div class="modal-header border-secondary">
                 <h5 class="modal-title fw-bold text-success d-flex align-items-center gap-2" id="requestJoinModalLabel">
-                    <i class="bi bi-person-plus-fill"></i> Request to Join Ride
+                    <i class="bi bi-person-plus-fill"></i> Request a seat
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -757,27 +757,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 {% csrf_token %}
                 <div class="modal-body">
                     <p class="small text-secondary mb-3">
-                        Submitting a join request sends a notification to the host. If approved, you will be confirmed as a passenger.
+                        The host will review your request. If they approve, you’ll be confirmed for this ride.
                     </p>
                     <div class="card bg-dark-subtle border-secondary p-3 mb-3 rounded-3">
-                        <h6 class="fw-semibold mb-2 text-light"><i class="bi bi-shield-check text-success me-1"></i> Privacy & Consent Agreement <span class="badge bg-success-subtle text-success small ms-1">Mandatory</span></h6>
+                        <h6 class="fw-semibold mb-2 text-light"><i class="bi bi-shield-check text-success me-1"></i> What confirmed riders can see <span class="badge bg-success-subtle text-success small ms-1">Required</span></h6>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="disclose_identity" value="true" id="modal_disclose_identity" checked required>
                             <label class="form-check-label small text-secondary" for="modal_disclose_identity">
-                                Disclose student identity (name, enrollment number, gender) to host & confirmed co-passengers (Required).
+                                Share my name, student ID, and gender with the host and confirmed riders.
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="share_contact" value="true" id="modal_share_contact" checked required>
                             <label class="form-check-label small text-secondary" for="modal_share_contact">
-                                Share phone number and email with confirmed co-passengers during active trip (Required).
+                                Share my phone number and email with confirmed riders while the ride is active.
                             </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-dark-custom" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-green">Submit Request</button>
+                    <button type="submit" class="btn btn-green">Send request</button>
                 </div>
             </form>
         </div>

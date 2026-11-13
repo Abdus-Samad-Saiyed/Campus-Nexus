@@ -1,5 +1,7 @@
 # Campus Nexus — System Capacity & Performance Assessment Report
 
+> Historical projection/report generated 2026-11-07. Treat projected values and environment claims as unverified; this file is not a measurement of current production capacity. See [load-testing safety and methodology](../README.md).
+
 **Date & Time:** 2026-11-07  
 **Architecture:** Multi-Worker Daphne ASGI Cluster (8 Workers), Redis Channel Layer, Django 6.0, Python 3.14  
 **Database Layers Evaluated:** SQLite WAL / PostgreSQL 18.6 Enterprise Engine

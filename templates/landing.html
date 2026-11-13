@@ -10,7 +10,7 @@
         <div class="col-lg-6 col-xl-6 mb-4 mb-lg-0">
             {% if early_launch_mode %}
             <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-semibold mb-3 border border-warning-subtle d-inline-flex align-items-center">
-                <i class="bi bi-rocket-takeoff-fill me-2"></i> Early Launch Mode Active &middot; Instant Self-Declaration
+                <i class="bi bi-mortarboard-fill me-2"></i> Campus access is open for NIT Srinagar students
             </span>
             {% else %}
             <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center">
@@ -19,27 +19,20 @@
             {% endif %}
             <h1 class="hero-title mb-4">
                 CAMPUS <span class="green-accent">NEXUS</span>.<br>
-                One Platform.<br>
-                All Campus Services.
+                Find your way<br>
+                across campus.
             </h1>
             <p class="hero-subtitle mb-4">
-                Campus Nexus is the centralized digital ecosystem connecting students across hostels, departments, and services. Launch <strong>COORDINATE</strong> for cab shares today, with additional campus modules coming soon.
+                Find a shared ride, connect with students, and access campus services in one place. Start with the features available today; more campus tools will grow here over time.
             </p>
             <div class="mb-4">
-                <div class="row g-2 align-items-center" style="max-width: 440px;">
-                    <div class="col-6">
-                        <a href="{% url 'login' %}" class="btn btn-green w-100 py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> Student Sign In
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="#catalogue" class="btn btn-outline-green w-100 py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
-                            <i class="bi bi-grid-fill me-2"></i> Explore Services
-                        </a>
-                    </div>
-                </div>
-                <div class="text-secondary small mt-2" style="font-size: 0.8rem;">
-                    <i class="bi bi-person-check me-1 text-success"></i> Sign In is for students who have already created an account.
+                <div class="d-flex flex-column flex-sm-row gap-2" style="max-width: 440px;">
+                    <a href="{% url 'apply_account' %}" class="btn btn-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                        <i class="bi bi-person-plus-fill me-2"></i> Create account
+                    </a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Sign in
+                    </a>
                 </div>
             </div>
         </div>
@@ -64,15 +57,15 @@
                     <div class="d-flex gap-3 align-items-start">
                         <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">1. Quick-Bypass Account <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill small fw-semibold ms-1" style="font-size: 0.65rem;">Recommended</span></h6>
-                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Temporary account that allows basic functionalities without requiring physical verification of identity. Later, temporary accounts can be converted into verified permanent accounts after identity verification.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Create your student account</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Start with the features available now. You can request student verification later from the same account.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
                         <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">2. Apply for Verified Permanent Account</h6>
-                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Accounts with details physically verified against the holder. Full access to all features. Permanent account.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Verify when you’re ready</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Some student features require identity verification. Your account and activity stay together.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
@@ -85,16 +78,11 @@
                 </div>
 
                 <div class="d-grid gap-2">
-                    <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark fw-bold py-2">
-                        <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Student Registration
+                    <a href="{% url 'apply_account' %}" class="btn btn-warning text-dark fw-bold py-2">
+                        <i class="bi bi-person-plus-fill me-1"></i> Create student account
                     </a>
                     <div class="row g-2 align-items-stretch">
-                        <div class="col-sm-7 col-12">
-                            <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-outline-green w-100 h-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
-                                <i class="bi bi-shield-check me-1"></i> Apply for Verified Account
-                            </a>
-                        </div>
-                        <div class="col-sm-5 col-12">
+                        <div class="col-12">
                             <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 h-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
                                 <i class="bi bi-incognito me-1"></i> Try Guest Demo
                             </a>
@@ -112,44 +100,20 @@
                         </button>
                     </div>
                     <div class="text-secondary small" style="font-size: 0.74rem; line-height: 1.35;">
-                        <strong class="text-light">THIS PLATFORM IS NOT MONETIZED.</strong> Quick-Bypass Accounts and Verified Permanent Accounts aren't tiers of accounts and neither incurs a charge. Verified Permanent Accounts simply requires you to submit an application and present yourself physically for verification before a Designated Application Approver along with your physical ID card for verification of details.
+                        <strong class="text-light">No fees.</strong> Some student features require identity verification. You can request it later from the same account.
                     </div>
                 </div>
                 {% else %}
-                <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                    <i class="bi bi-shield-lock-fill green-accent"></i> Physical ID Verification
+                <h4 class="fw-bold mb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-mortarboard-fill green-accent"></i> Welcome to Campus Nexus
                 </h4>
-                <p class="text-secondary small mb-4">
-                    To keep the campus community secure and accountable, every student account is verified against official enrollment records.
-                </p>
-
-                <div class="d-flex flex-column gap-3">
-                    <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon"><i class="bi bi-file-earmark-person"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-1">1. Submit Application</h6>
-                            <p class="text-secondary small mb-0">Provide your enrollment number, department branch, and mobile contact.</p>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon"><i class="bi bi-card-checklist"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-1">2. Credential Verification</h6>
-                            <p class="text-secondary small mb-0">Student administrators confirm official institute enrollment status.</p>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-3 align-items-start">
-                        <div class="feature-icon"><i class="bi bi-check2-circle"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-1">3. Access Campus Nexus</h6>
-                            <p class="text-secondary small mb-0">Sign in once to access COORDINATE and upcoming campus utilities.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-grid mt-4">
+                <p class="text-secondary small mb-3">Create one student account and start with the features currently available to you. You can request student verification later from your account.</p>
+                <div class="d-grid gap-2">
                     <a href="{% url 'apply_account' %}" class="btn btn-green fw-bold py-2">
-                        <i class="bi bi-send-fill me-1"></i> Apply for Verification
+                        <i class="bi bi-person-plus-fill me-1"></i> Create student account
+                    </a>
+                    <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info fw-semibold py-2">
+                        <i class="bi bi-incognito me-1"></i> Explore Guest Demo
                     </a>
                 </div>
                 {% endif %}
@@ -276,19 +240,19 @@
             </div>
             <div class="modal-body text-light text-opacity-90 py-4">
                 <p class="mb-3" style="line-height: 1.6;">
-                    The platform was originally supposed to release with all accounts requiring physical verification before activation to prevent fake accounts and enforce accountability.
+                    Create one student account to get started. Some features stay limited until your student identity is verified.
                 </p>
                 <p class="mb-3" style="line-height: 1.6;">
-                    However, due to the approaching end of semester, student need was prioritized and the platform has been released in early-launch, allowing for self-declared Quick-Bypass Accounts that do not require verification.
+                    You can request verification at any time from your account. The review process will explain what information you need to provide.
                 </p>
                 <p class="mb-0" style="line-height: 1.6;">
-                    These accounts will get a chance for physical verification at the earliest in the following semester (Spring 2027). Until then, services can be availed using these temporary Quick-Bypass Accounts.
+                    Your profile, rides, and messages remain with your account as its verification status changes. Features continue to follow their current safety and eligibility rules.
                 </p>
             </div>
             <div class="modal-footer border-secondary border-opacity-25">
                 <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
-                <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark btn-sm fw-bold px-3">
-                    <i class="bi bi-lightning-charge-fill me-1"></i> Create Quick-Bypass Account
+                <a href="{% url 'apply_account' %}" class="btn btn-warning text-dark btn-sm fw-bold px-3">
+                    <i class="bi bi-person-plus-fill me-1"></i> Create student account
                 </a>
             </div>
         </div>

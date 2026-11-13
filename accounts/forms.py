@@ -37,7 +37,7 @@ class EnrollmentAuthenticationForm(AuthenticationForm):
 
 
 class AccountApplicationForm(forms.ModelForm):
-    """Public form for prospective students to apply for a verified account."""
+    """Collect student account details or an existing student's verification request."""
 
     email = forms.EmailField(
         label='Institute / Personal Email',
@@ -105,7 +105,15 @@ class AccountApplicationForm(forms.ModelForm):
 
         if enrollment == 'GUEST_DEMO':
             raise forms.ValidationError(
-                'Guest demo accounts cannot apply for permanent status. Please enter your valid student enrollment number.'
+                'Guest Demo cannot request student verification. Enter your own student enrollment number to create an account.'
+            )
+
+        if not (self.user and self.user.is_authenticated) and User.objects.filter(
+            enrollment_number=enrollment,
+            is_deleted=False,
+        ).exists():
+            raise forms.ValidationError(
+                'An account may already exist for these details. Try signing in or resetting your password.'
             )
 
         if not ENROLLMENT_VALIDATOR.regex.match(enrollment):
@@ -126,6 +134,14 @@ class AccountApplicationForm(forms.ModelForm):
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         perm_db = 'permanent' if is_distinct_perm else 'default'
+
+        if not (self.user and self.user.is_authenticated) and perm_db != 'default' and User.objects.using(perm_db).filter(
+            enrollment_number=enrollment,
+            is_deleted=False,
+        ).exists():
+            raise forms.ValidationError(
+                'An account may already exist for these details. Try signing in or resetting your password.'
+            )
 
         # Only block if an already verified, active non-deleted user exists
         if User.objects.filter(enrollment_number=enrollment, verified=True, is_deleted=False).exists():
@@ -181,6 +197,13 @@ class AccountApplicationForm(forms.ModelForm):
             and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
         )
         perm_db = 'permanent' if is_distinct_perm else 'default'
+
+        if not (self.user and self.user.is_authenticated):
+            email_users = User.objects.filter(email=email, is_deleted=False)
+            if email_users.exists() or (perm_db != 'default' and User.objects.using(perm_db).filter(email=email, is_deleted=False).exists()):
+                raise forms.ValidationError(
+                    'This email may already be linked to an account. Try signing in or resetting your password.'
+                )
 
         if User.objects.filter(email=email, verified=True, is_deleted=False).exists():
             raise forms.ValidationError('An account with this email address already exists.')

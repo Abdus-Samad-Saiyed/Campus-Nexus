@@ -1,4 +1,8 @@
-# Campus Nexus: Architecture & Baseline Inventory (Phase 0)
+# Historical snapshot — 2026-10-13
+
+This was an initial inventory, not a current audit. Its claims, file paths, missing-file findings, test results, and risk status have not been revalidated. For the current discrepancy list, see [DOCUMENTATION_AUDIT.md](DOCUMENTATION_AUDIT.md).
+
+## Campus Nexus: Architecture & Baseline Inventory (Phase 0)
 
 **Generated:** 2026-10-13  
 **Status:** Baseline established. No application code or database schema modified.

@@ -1,5 +1,7 @@
 # Campus Nexus — Mechanical Zen Engine & Visual Experience
 
+> Design and implementation notes reviewed 2026-11-12. Treat animation rates and performance language below as design intent; they are not measured device benchmarks. Check `static/js/watermark.js` and the current templates for implemented behavior.
+
 ---
 
 ## 1. Aesthetic Philosophy & Visual Identity

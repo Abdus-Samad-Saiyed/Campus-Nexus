@@ -1,10 +1,15 @@
-    <!-- Ride Density Graph Across Dates (Next 14 / 30 / 90 Days) -->
-    <div class="glass p-4 mb-4">
+    <!-- Optional ride availability overview; keep dates and results prominent on mobile. -->
+    <details class="ride-density-details mb-3">
+      <summary class="btn btn-dark-custom w-100 text-start py-2 px-3" aria-label="Show ride availability by date">
+        <i class="bi bi-calendar3 me-2 green-accent"></i> Ride availability by date
+        <span class="text-secondary small ms-1">(optional overview)</span>
+      </summary>
+    <div class="glass p-3 p-md-4 mt-2 mb-3">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-success-subtle text-success border border-success-subtle small text-uppercase fw-semibold">
-                        <i class="bi bi-bar-chart-fill me-1"></i> Ride Density Telemetry
+                        <i class="bi bi-bar-chart-fill me-1"></i> Rides by date
                     </span>
                     <span class="text-secondary small">
                         {% if density_days == 90 %}Upcoming 3-Month View (90 Days)
@@ -121,6 +126,7 @@
             {% endfor %}
         </div>
     </div>
+    </details>
 
     <!-- Dynamic Quick Date Selector Strip -->
     <div class="glass p-3 mb-4">
@@ -183,15 +189,18 @@
         </div>
     </div>
 
-    <!-- Date-Time Range & Attribute Filter Form -->
-    <div class="glass p-4 mb-4">
+    <!-- Date-time and attribute filters; keep the long form out of the way until requested. -->
+    <details class="glass p-3 mb-4" id="ride-filter-disclosure">
+        <summary class="d-flex align-items-center gap-2 text-light fw-semibold" style="min-height: 48px; cursor: pointer;">
+            <i class="bi bi-sliders green-accent"></i>
+            <span>Filters and sort</span>
+            <span class="text-secondary small fw-normal">Set dates, route, visibility, and order</span>
+            {% if has_date_filter or selected_route or selected_visibility or custom_from or custom_to or queue_only %}
+                <span class="badge bg-success-subtle text-success ms-auto">Filters applied</span>
+            {% endif %}
+        </summary>
+        <div class="pt-3">
         <form method="GET" action="{% url 'ride_list' %}" hx-get="{% url 'ride_list' %}" toolname="filter_rides" tooldescription="Filter available student rides by departure time, seat availability, and destination" class="row g-3">
-            <div class="col-12 mb-1">
-                <span class="small text-secondary fw-semibold text-uppercase">
-                    <i class="bi bi-sliders me-1 green-accent"></i> Filter & Sort Controls
-                </span>
-            </div>
-
             <!-- Date Range: From / To -->
             <div class="col-sm-6 col-md-3">
                 <label class="form-label">From Date</label>
@@ -280,7 +289,8 @@
                 </button>
             </div>
         </form>
-    </div>
+        </div>
+    </details>
 
     <!-- Ride Cards Grid -->
     {% if rides %}
@@ -487,14 +497,14 @@
             <div class="feature-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.5rem;">
                 <i class="bi bi-car-front"></i>
             </div>
-            <h4 class="fw-bold mb-2">No Rides Found</h4>
-            <p class="text-secondary small mb-4">No rides scheduled matching your current criteria.</p>
+            <h4 class="fw-bold mb-2">No rides match those filters</h4>
+            <p class="text-secondary small mb-4">Try a different date or route, or share a ride you’re planning so other students can request a seat.</p>
             <div class="d-flex gap-2 justify-content-center">
                 <a href="{% url 'ride_list' %}" hx-get="{% url 'ride_list' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset All Filters
                 </a>
                 <a href="{% url 'create_ride' %}" class="btn btn-green">
-                    <i class="bi bi-plus-lg me-1"></i> Propose a New Ride
+                    <i class="bi bi-plus-lg me-1"></i> Offer a ride
                 </a>
             </div>
         </div>

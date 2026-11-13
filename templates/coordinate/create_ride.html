@@ -17,7 +17,7 @@
                         {% endif %}
                     </div>
                     <h2 class="fw-bold mb-1">Offer a Shared Ride</h2>
-                    <p class="text-secondary small">Set your departure route, passenger capacity, and audience comfort settings.</p>
+                    <p class="text-secondary small">Share your route, departure time, and available seats. Students can request to join; you choose who rides.</p>
                 </div>
 
                 <form method="POST" toolname="create_ride" tooldescription="Create and publish a new campus ride listing with route details, seat capacity, departure schedule, and passenger requirements">
@@ -68,19 +68,19 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label for="{{ form.visibility.id_for_label }}" class="form-label">Visibility Gate</label>
+                            <label for="{{ form.visibility.id_for_label }}" class="form-label">Who can see this ride?</label>
                             {{ form.visibility }}
                             {% if form.visibility.errors %}
                                 <div class="text-danger small mt-1">{{ form.visibility.errors.0 }}</div>
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.total_spots.id_for_label }}" class="form-label">Total Spots (Including You)</label>
+                            <label for="{{ form.total_spots.id_for_label }}" class="form-label">Total seats, including yours</label>
                             {{ form.total_spots }}
                             {% if form.total_spots.errors %}
                                 <div class="text-danger small mt-1">{{ form.total_spots.errors.0 }}</div>
                             {% endif %}
-                            <div class="form-text text-secondary small">Standard cabs hold 4; larger SUVs hold up to 6.</div>
+                            <div class="form-text text-secondary small">Count every seat in the vehicle, including the driver’s.</div>
                         </div>
                     </div>
 
@@ -94,11 +94,11 @@
                     </div>
 
                     <div class="card bg-dark-subtle border-secondary p-3 mb-4 rounded-3">
-                        <h6 class="fw-semibold mb-2"><i class="bi bi-shield-check text-success me-1"></i> Privacy & Ride Consent <span class="badge bg-success-subtle text-success small ms-1">Mandatory</span></h6>
+                        <h6 class="fw-semibold mb-2"><i class="bi bi-shield-check text-success me-1"></i> What confirmed riders can see <span class="badge bg-success-subtle text-success small ms-1">Required</span></h6>
                         <div class="form-check mb-2">
                             {{ form.disclose_identity }}
                             <label class="form-check-label small" for="{{ form.disclose_identity.id_for_label }}">
-                                Disclose my student identity (name, enrollment number, gender) to confirmed co-passengers (Required).
+                                Share my name, student ID, and gender with confirmed co-passengers.
                             </label>
                             {% if form.disclose_identity.errors %}
                                 <div class="text-danger small mt-1">{{ form.disclose_identity.errors.0 }}</div>
@@ -107,7 +107,7 @@
                         <div class="form-check">
                             {{ form.share_contact }}
                             <label class="form-check-label small" for="{{ form.share_contact.id_for_label }}">
-                                Share my phone number & email with confirmed co-passengers during active trip (Required).
+                                Share my phone number and email with confirmed co-passengers while the ride is active.
                             </label>
                             {% if form.share_contact.errors %}
                                 <div class="text-danger small mt-1">{{ form.share_contact.errors.0 }}</div>
@@ -126,7 +126,7 @@
                     <div class="d-flex gap-2">
                         <a href="{% url 'ride_list' %}" class="btn btn-dark-custom w-50">Cancel</a>
                         <button type="submit" class="btn btn-green w-50">
-                            <i class="bi bi-check-circle-fill me-1"></i> Post Ride
+                            <i class="bi bi-check-circle-fill me-1"></i> Publish ride
                         </button>
                     </div>
                 </form>

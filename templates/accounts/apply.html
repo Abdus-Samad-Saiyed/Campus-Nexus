@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if early_launch_mode and active_tab == 'early' %}Quick-Bypass Student Access — Early Launch{% else %}Apply for Verified Permanent Account — COORDINATE{% endif %}{% endblock %}
+{% block title %}{% if user.is_authenticated and not is_guest_demo %}Request Student Verification — Campus Nexus{% else %}Create Your Campus Nexus Account{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -17,58 +17,24 @@
                             </div>
                             <div>
                                 <h5 class="fw-bold mb-1 text-light">Create Your Student Account</h5>
-                                <p class="text-secondary small mb-3">
-                                    You are currently exploring Campus Nexus in <strong>Guest Demo Mode</strong>. Guest demo sessions cannot apply directly for permanent account elevation. To start coordinating rides as a student, please create an account using your actual NIT Srinagar enrollment number:
+                                <p class="text-secondary small mb-0">
+                                    You’re exploring Campus Nexus in Guest Demo Mode. Create a student account with your enrollment number to keep your own profile, rides, and messages.
                                 </p>
-                                <div class="d-flex flex-wrap gap-2">
-                                    {% if early_launch_mode %}
-                                    <a href="{% url 'apply_account' %}?mode=early" class="btn btn-warning text-dark btn-sm fw-semibold">
-                                        <i class="bi bi-lightning-charge-fill me-1"></i> Quick-Bypass Account (Skip Verification For Now)
-                                    </a>
-                                    {% endif %}
-                                    <a href="{% url 'apply_account' %}?mode=permanent" class="btn btn-green btn-sm fw-semibold">
-                                        <i class="bi bi-shield-check me-1"></i> Verified Permanent Account (Physical Verification)
-                                    </a>
-                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endif %}
-
-                {% if early_launch_mode %}
-                    <!-- High-Precision Responsive Mode Switcher -->
-                    <div class="apply-mode-switcher mb-4">
-                        <a href="{% url 'apply_account' %}?mode=early"
-                           class="apply-mode-tab {% if active_tab == 'early' %}active-early{% endif %}"
-                           role="tab"
-                           aria-selected="{% if active_tab == 'early' %}true{% else %}false{% endif %}">
-                            <i class="bi bi-lightning-charge-fill me-1"></i>
-                            <span class="tab-label">Quick-Bypass Account</span>
-                            <span class="tab-badge">Recommended</span>
-                        </a>
-                        <a href="{% url 'apply_account' %}?mode=permanent"
-                           class="apply-mode-tab {% if active_tab == 'permanent' %}active-permanent{% endif %}"
-                           role="tab"
-                           aria-selected="{% if active_tab == 'permanent' %}true{% else %}false{% endif %}">
-                            <i class="bi bi-shield-check me-1"></i>
-                            <span class="tab-label">Verified Permanent Account</span>
-                            <span class="tab-badge">ID Verified</span>
-                        </a>
                     </div>
                 {% endif %}
 
                 {% if early_launch_mode and active_tab == 'early' %}
                     <div class="mb-4">
                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill fw-semibold mb-2">
-                            <i class="bi bi-lightning-charge-fill me-1"></i> QUICK-BYPASS STUDENT REGISTRATION
+                            <i class="bi bi-person-plus-fill me-1"></i> STUDENT ACCOUNT
                         </span>
-                        <h2 class="fw-bold mb-1">Quick-Bypass Student Registration</h2>
-                        <p class="text-secondary small">
-                            Temporary account that allows basic functionalities without requiring physical verification of identity. Later, temporary accounts can be converted into verified permanent accounts after identity verification.
-                        </p>
+                        <h2 class="fw-bold mb-1">Create your student account</h2>
+                        <p class="text-secondary small">Start with the features currently available to you. You can request student verification later from this account.</p>
                     </div>
 
-                    <form method="POST" toolname="submit_student_application" tooldescription="Submit student registration application for university enrollment verification and platform access">
+                    <form method="POST" toolname="create_student_account" tooldescription="Create a Campus Nexus student account">
                         {% csrf_token %}
                         <input type="hidden" name="registration_mode" value="early">
 
@@ -129,7 +95,7 @@
                                 <label for="{{ form.password.id_for_label }}" class="form-label">Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.password }}
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
@@ -144,7 +110,7 @@
                                 <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.confirm_password }}
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
@@ -160,29 +126,26 @@
                             </label>
                         </div>
 
-                        <button type="submit" class="btn btn-warning text-dark w-100 py-2 fs-6 fw-bold">
-                            <i class="bi bi-rocket-takeoff-fill me-1"></i> Register & Enter Campus Nexus
+                        <button type="submit" class="btn btn-green w-100 py-2 fs-6 fw-bold">
+                            <i class="bi bi-person-plus-fill me-1"></i> Create account
                         </button>
-
-                        <div class="text-center mt-3 small">
-                            <span class="text-secondary">Looking for official permanent student ID verification?</span>
-                            <a href="{% url 'apply_account' %}?mode=permanent" class="green-accent fw-semibold ms-1">Switch to Official Permanent Account &rarr;</a>
-                        </div>
+                        <p class="text-center text-secondary small mt-3 mb-0">Already have an account? <a href="{% url 'login' %}" class="green-accent fw-semibold">Sign in</a></p>
                     </form>
                 {% else %}
                     <div class="mb-4">
-                        <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold mb-2">
-                            <i class="bi bi-shield-check me-1"></i> OFFICIAL STUDENT REGISTRATION
-                        </span>
-                        <h2 class="fw-bold mb-1">Apply for Verification</h2>
-                        <p class="text-secondary small">
-                            Please provide accurate college credentials. Accounts undergo physical admin verification against institute registration records and are permanently stored.
-                        </p>
+                        {% if user.is_authenticated and not is_guest_demo %}
+                            <span class="badge bg-info-subtle text-info px-3 py-1 rounded-pill fw-semibold mb-2"><i class="bi bi-shield-check me-1"></i> STUDENT VERIFICATION</span>
+                            <h2 class="fw-bold mb-1">Request student verification</h2>
+                            <p class="text-secondary small">Your account is already active. Submit your student details for review; your account and activity stay together.</p>
+                        {% else %}
+                            <h2 class="fw-bold mb-1">Create your student account</h2>
+                            <p class="text-secondary small">One account gets you started. Student verification can be requested later from your profile.</p>
+                        {% endif %}
                     </div>
 
                     <form method="POST">
                         {% csrf_token %}
-                        <input type="hidden" name="registration_mode" value="permanent">
+                        <input type="hidden" name="registration_mode" value="signup">
 
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger py-2 small mb-3">
@@ -197,7 +160,7 @@
                             {% if user.is_authenticated and not is_guest_demo %}
                                 <input type="text" class="form-control" value="{{ user.enrollment_number }}" readonly disabled style="opacity: 0.85; background: rgba(0,0,0,0.4);">
                                 <input type="hidden" name="enrollment_number" value="{{ user.enrollment_number }}">
-                                <div class="form-text text-info small"><i class="bi bi-info-circle me-1"></i> Bound to your active temporary account ({{ user.enrollment_number }}).</div>
+                                <div class="form-text text-info small"><i class="bi bi-info-circle me-1"></i> This request will be added to your existing account.</div>
                             {% else %}
                                 {{ form.enrollment_number }}
                                 <div class="form-text text-secondary small">Example: 2024BCSE001 (Must match your NIT ID card)</div>
@@ -224,9 +187,9 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="{{ form.email.id_for_label }}" class="form-label">Institute / Personal Email *</label>
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email address *</label>
                             {{ form.email }}
-                            <div class="form-text text-secondary small">Mandatory for confirmed in-person ride coordination and emergency contact between co-passengers. Direct SMS verification is planned for an upcoming release; your verification code will be sent to your email.</div>
+                                {% if not user.is_authenticated or is_guest_demo %}<div class="form-text text-secondary small">Use an email address you can access.</div>{% endif %}
                             {% if form.email.errors %}
                                 <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
                             {% endif %}
@@ -247,21 +210,21 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-5">
-                                <label class="form-label">6-Digit Verification Code *</label>
+                                <label class="form-label">6-digit verification code {% if user.is_authenticated and not is_guest_demo %}(if changing your phone){% else %}*{% endif %}</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-shield-check"></i></span>
-                                    <input type="text" name="phone_otp" id="phoneOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="000000" required>
+                                    <input type="text" name="phone_otp" id="phoneOtpInput" class="form-control font-monospace text-center" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" {% if not user.is_authenticated or is_guest_demo %}required{% endif %}>
                                 </div>
                                 <div class="form-text text-secondary small">Enter OTP received on email or SMS.</div>
                             </div>
                         </div>
 
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6">
+                            {% if not user.is_authenticated or is_guest_demo %}<div class="col-md-6">
                                 <label for="{{ form.password.id_for_label }}" class="form-label">Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.password }}
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
@@ -276,41 +239,37 @@
                                 <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirm Password {% if user.is_authenticated and not is_guest_demo %}(Optional){% endif %}</label>
                                 <div class="input-group">
                                     {{ form.confirm_password }}
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password" aria-label="Show/hide password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
                                 {% if form.confirm_password.errors %}
                                     <div class="text-danger small mt-1">{{ form.confirm_password.errors.0 }}</div>
                                 {% endif %}
-                            </div>
+                            </div>{% endif %}
                         </div>
-                        <div class="form-check mb-4 mt-n1">
+                        {% if not user.is_authenticated or is_guest_demo %}<div class="form-check mb-4 mt-n1">
                             <input class="form-check-input show-passwords-toggle" type="checkbox" id="showPasswordsPerm">
                             <label class="form-check-label small text-secondary user-select-none" for="showPasswordsPerm">
                                 Show passwords
                             </label>
-                        </div>
+                        </div>{% endif %}
 
                         <button type="submit" class="btn btn-green w-100 py-2 fs-6 fw-bold">
-                            <i class="bi bi-file-earmark-check me-1"></i> Submit Verification Application
+                            {% if user.is_authenticated and not is_guest_demo %}<i class="bi bi-file-earmark-check me-1"></i> Submit verification request{% else %}<i class="bi bi-person-plus-fill me-1"></i> Create account{% endif %}
                         </button>
+
+                        {% if not user.is_authenticated or is_guest_demo %}<p class="text-center text-secondary small mt-3 mb-0">Already have an account? <a href="{% url 'login' %}" class="green-accent fw-semibold">Sign in</a></p>{% endif %}
 
                         {% if early_launch_mode %}
                         <div class="text-center mt-3 small">
                             <span class="text-secondary">Need immediate cab sharing before ID verification?</span>
-                            <a href="{% url 'apply_account' %}?mode=early" class="text-warning fw-semibold ms-1">Use Quick-Bypass Account &rarr;</a>
+                            <a href="{% url 'apply_account' %}" class="text-warning fw-semibold ms-1">Create your account first &rarr;</a>
                         </div>
                         {% endif %}
                     </form>
                 {% endif %}
 
-                <hr class="my-4">
-
-                <div class="text-center small">
-                    <p class="text-secondary mb-1">Already registered?</p>
-                    <a href="{% url 'login' %}" class="green-accent fw-semibold">Sign in with your enrollment number &rarr;</a>
-                </div>
             </div>
         </div>
 
@@ -322,9 +281,9 @@
                         <div class="feature-icon mb-3" style="width: 48px; height: 48px; font-size: 1.25rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
                             <i class="bi bi-airplane-engines-fill"></i>
                         </div>
-                        <h3 class="fw-bold fs-5 mb-1">End-of-Term Transit Priority</h3>
+                        <h3 class="fw-bold fs-5 mb-1">Your account, step by step</h3>
                         <p class="text-secondary small">
-                            With semester exams ending and high transit demand to Srinagar Airport and railway stations, in-person verification queues have been waived for temporary access.
+                            Create your account first. Request student verification later when you’re ready.
                         </p>
                     </div>
 
@@ -335,49 +294,38 @@
                                 <strong class="text-white">Instant Ride Coordination</strong>
                             </div>
                             <div class="text-secondary small">
-                                Immediate access to find, join, and offer airport &amp; railway station rides without waiting for physical desk verification.
+                                Use the features currently available to your account. Safety and eligibility rules still apply.
                             </div>
                         </div>
 
                         <div class="p-3 rounded border border-secondary bg-black bg-opacity-30">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="bi bi-shield-check text-info"></i>
-                                <strong class="text-white">Quick-Bypass Status</strong>
+                                <strong class="text-white">Account access</strong>
                             </div>
                             <div class="text-secondary small">
-                                Active for transit coordination. Official verified student privileges are unlocked when you apply for permanent ID verification.
+                                Access depends on current student verification and feature safety rules. You can request verification later from this account.
                             </div>
                         </div>
 
                         <div class="p-3 rounded border border-secondary bg-black bg-opacity-30">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="bi bi-arrow-up-circle-fill text-success"></i>
-                                <strong class="text-white">Seamless Elevation</strong>
+                                <strong class="text-white">One account, kept together</strong>
                             </div>
                             <div class="text-secondary small">
-                                You can apply for permanent student verification at any time. When approved, your profile upgrades cleanly with all your rides preserved.
+                                If approved, verification is added to this profile and your activity stays with it.
                             </div>
                         </div>
                     </div>
 
-                    <div class="p-3 rounded border border-success-subtle bg-black bg-opacity-40 small text-secondary">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <i class="bi bi-shield-check text-success"></i>
-                            <strong class="text-white">Prefer Official Verification?</strong>
-                        </div>
-                        <p class="mb-0 text-white-50 small">
-                            If you want a permanently verified student profile for the upcoming academic year, switch to the <a href="{% url 'apply_account' %}?mode=permanent" class="green-accent fw-semibold">Official Permanent Account</a> tab.
-                        </p>
-                    </div>
-                {% else %}
+                {% elif user.is_authenticated and not is_guest_demo %}
                     <div class="mb-3">
                         <div class="feature-icon mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">
                             <i class="bi bi-person-check-fill"></i>
                         </div>
                         <h3 class="fw-bold fs-5 mb-1">Designated Application Approvers</h3>
-                        <p class="text-secondary small">
-                            To maintain campus safety and authentic student verification, your permanent application is reviewed and vetted by the following designated institute administrators:
-                        </p>
+                        <p class="text-secondary small">Student verification requests are reviewed by designated campus administrators.</p>
                     </div>
 
                     <div class="d-flex flex-column gap-3 mb-4 flex-grow-1">
@@ -415,6 +363,17 @@
                         <p class="mb-0 text-white-50 small">
                             Applications are cross-checked against departmental roll lists. If your verification is pending for over 24 hours, contact asaiyed_2024BCSE065@nitsri.ac.in.
                         </p>
+                    </div>
+                {% else %}
+                    <div class="mb-3">
+                        <div class="feature-icon mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            <i class="bi bi-check2-circle"></i>
+                        </div>
+                        <h3 class="fw-bold fs-5 mb-1">You’ll need</h3>
+                        <p class="text-secondary small">Your student enrollment number, a phone number and email you can access, and a password.</p>
+                    </div>
+                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30 small text-secondary">
+                        After creating your account, you can start with the features currently available to you. Request student verification later from your profile.
                     </div>
                 {% endif %}
             </div>

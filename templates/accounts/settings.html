@@ -29,6 +29,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
+    min-height: 48px;
     border-radius: 10px;
     color: var(--text-muted, #94a3b8);
     text-decoration: none;
@@ -126,8 +127,8 @@ a.settings-card-clickable:hover .settings-card {
 
         <div class="d-flex align-items-center gap-2">
             <span class="small text-secondary font-monospace d-none d-md-inline">{{ profile_user.enrollment_number }}</span>
-            <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2.5 rounded-pill small">
-                <i class="bi bi-check-circle-fill me-1"></i> Verified Account
+            <span class="badge {% if profile_user.verified %}bg-success-subtle text-success border-success-subtle{% else %}bg-secondary-subtle text-secondary border-secondary{% endif %} border py-1 px-2.5 rounded-pill small">
+                {% if profile_user.verified %}<i class="bi bi-check-circle-fill me-1"></i> Verified student{% else %}<i class="bi bi-person-check me-1"></i> Account active{% endif %}
             </span>
         </div>
     </div>
@@ -504,10 +505,12 @@ a.settings-card-clickable:hover .settings-card {
                     <!-- Submit Action -->
                     <div class="d-flex align-items-center justify-content-between pt-3 border-top border-secondary border-opacity-25 flex-wrap gap-2">
                         <span class="text-secondary small">Changes take effect immediately on saving.</span>
-                        <button type="submit" class="btn btn-green px-4 fw-semibold">
-                            <i class="bi bi-check2 me-1"></i> Save changes
+                        <button type="submit" class="btn btn-green px-4 fw-semibold" id="personalSaveButton">
+                            <span class="personal-save-idle"><i class="bi bi-check2 me-1"></i> Save changes</span>
+                            <span class="personal-save-loading d-none"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span><span class="personal-save-loading-label">Saving changes…</span></span>
                         </button>
                     </div>
+                    <div id="personalSaveStatus" class="small text-secondary mt-2 text-end" role="status" aria-live="polite" hidden></div>
                 </form>
             </div>
 
@@ -695,7 +698,7 @@ a.settings-card-clickable:hover .settings-card {
                             <label class="form-label small text-secondary">Current Password</label>
                             <div class="input-group input-group-sm">
                                 <input type="password" name="current_password" class="form-control" placeholder="Current password" autocomplete="current-password" required>
-                                <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password">
+                                <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
@@ -706,7 +709,7 @@ a.settings-card-clickable:hover .settings-card {
                                 <label class="form-label small text-secondary">New Password</label>
                                 <div class="input-group input-group-sm">
                                     <input type="password" name="new_password" class="form-control" placeholder="New password" autocomplete="new-password" required>
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
@@ -715,7 +718,7 @@ a.settings-card-clickable:hover .settings-card {
                                 <label class="form-label small text-secondary">Confirm New</label>
                                 <div class="input-group input-group-sm">
                                     <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" autocomplete="new-password" required>
-                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" tabindex="-1" title="Show/hide password">
+                                    <button type="button" class="btn btn-outline-secondary border-secondary password-toggle-btn" title="Show/hide password" aria-label="Show/hide password">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
@@ -953,6 +956,12 @@ if (photoInput) {
 // Contact details change detector: reveals verification notice if unverified
 const personalForm = document.getElementById('personalInfoForm');
 if (personalForm) {
+    let personalSaveStarted = false;
+    const personalSaveButton = document.getElementById('personalSaveButton');
+    const personalSaveStatus = document.getElementById('personalSaveStatus');
+    const personalSaveIdle = personalSaveButton?.querySelector('.personal-save-idle');
+    const personalSaveLoading = personalSaveButton?.querySelector('.personal-save-loading');
+    const personalSaveLoadingLabel = personalSaveButton?.querySelector('.personal-save-loading-label');
     const origPhone = "{{ profile_user.phone_number }}";
     const origEmail = "{{ profile_user.email }}";
     const phoneInput = personalForm.querySelector('input[name="phone_number"]');
@@ -968,6 +977,28 @@ if (personalForm) {
 
     if (phoneInput) phoneInput.addEventListener('input', checkContactChanges);
     if (emailInput) emailInput.addEventListener('input', checkContactChanges);
+
+    personalForm.addEventListener('submit', function(event) {
+        if (personalSaveStarted) {
+            event.preventDefault();
+            return;
+        }
+        personalSaveStarted = true;
+        const photoSelected = Boolean(photoInput?.files?.length);
+        personalForm.setAttribute('aria-busy', 'true');
+        if (personalSaveIdle) personalSaveIdle.classList.add('d-none');
+        if (personalSaveLoading) personalSaveLoading.classList.remove('d-none');
+        if (personalSaveLoadingLabel) {
+            personalSaveLoadingLabel.textContent = photoSelected ? 'Uploading and saving photo…' : 'Saving changes…';
+        }
+        if (personalSaveButton) personalSaveButton.disabled = true;
+        if (personalSaveStatus) {
+            personalSaveStatus.hidden = false;
+            personalSaveStatus.textContent = photoSelected
+                ? 'Uploading your photo and saving your changes. This can take a few seconds; keep this page open.'
+                : 'Saving your changes. Please wait…';
+        }
+    });
 }
 
 async function requestContactSecurityOtp(btn) {

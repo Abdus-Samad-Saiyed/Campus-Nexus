@@ -37,7 +37,7 @@ from django.core.mail import send_mail
 from django.db import IntegrityError, connections, transaction
 
 logger = logging.getLogger(__name__)
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models import Case, Count, IntegerField, OuterRef, Q, Subquery, When
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -1149,26 +1149,22 @@ def forgot_password_view(request):
 
 @rate_limit(key_prefix='apply', limit=5, period_seconds=60)
 def apply_account(request):
-    """Student account application or Early Launch self-declaration."""
+    """Create a limited-access student account or request verification for an existing account."""
     early_launch = getattr(settings, 'EARLY_LAUNCH_MODE', False)
     from accounts.demo import is_guest_demo
     in_guest_demo = is_guest_demo(request) or (request.user.is_authenticated and getattr(request.user, 'enrollment_number', '') == 'GUEST_DEMO')
     is_real_authenticated = request.user.is_authenticated and not in_guest_demo
 
-    mode = (
-        request.POST.get('registration_mode')
-        or request.GET.get('mode')
-        or ('early' if early_launch else 'permanent')
-    )
-    if not early_launch:
-        mode = 'permanent'
+    # New visitors always create the same limited-access student account first.
+    # Verification is a later action on that account; account type is not a signup choice.
+    mode = 'permanent' if is_real_authenticated else ('early' if early_launch else 'signup')
 
     if is_real_authenticated:
         # Verified students cannot re-apply
         if request.user.verified:
-            messages.info(request, "Your account is already permanently verified.")
+            messages.info(request, "Your account is already verified.")
             return redirect('dashboard')
-        # Untrusted / early access users can apply for permanent verification
+        # Existing limited-access accounts can request student verification.
         mode = 'permanent'
 
         # Check if an application is already pending review
@@ -1204,7 +1200,7 @@ def apply_account(request):
                     request.session['just_signed_in'] = True
                 messages.success(
                     request,
-                    "Welcome to Campus Nexus! Your fast-track account is active so you can coordinate rides immediately. You can apply for official ID verification whenever you are ready."
+                    "Your account is active. You can request student verification later from your account."
                 )
                 return redirect('dashboard')
 
@@ -1212,6 +1208,98 @@ def apply_account(request):
                 'form': form,
                 'early_launch_mode': early_launch,
                 'active_tab': 'early',
+                'designated_admins': designated_admins,
+                'is_guest_demo': in_guest_demo,
+            })
+
+        elif not is_real_authenticated:
+            form = AccountApplicationForm(request.POST)
+            enrollment = request.POST.get('enrollment_number', '').strip().upper()
+            phone_num = request.POST.get('phone_number', '').strip()
+            email_addr = request.POST.get('email', '').strip().lower()
+            phone_otp = request.POST.get('phone_otp', '').strip()
+            is_debug = enrollment.startswith('20XX') and (getattr(settings, 'DEBUG', False) or 'test' in sys.argv)
+
+            if form.is_valid():
+                phone_verified = is_debug
+                if not phone_verified and not phone_otp:
+                    form.add_error(None, 'Enter the verification code sent to your contact details to create your account.')
+                elif not phone_verified:
+                    phone_verified, otp_err = verify_phone_otp(
+                        user=None,
+                        phone_number=phone_num,
+                        email=email_addr,
+                        submitted_code=phone_otp,
+                        purpose='SIGNUP',
+                    )
+                    if not phone_verified:
+                        form.add_error(None, f'Verification failed: {otp_err}')
+
+                if phone_verified:
+                    details = form.cleaned_data
+                    name_parts = details['full_name'].strip().split()
+                    first_name = name_parts[0] if name_parts else ''
+                    last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+                    password_hash = make_password(details['password'])
+                    with transaction.atomic():
+                        user = User.objects.create(
+                            username=enrollment,
+                            enrollment_number=enrollment,
+                            first_name=first_name,
+                            last_name=last_name,
+                            email=details['email'],
+                            phone_number=details['phone_number'],
+                            gender=details['gender'],
+                            password=password_hash,
+                            verified=False,
+                            is_active=True,
+                        )
+
+                        from accounts.utils import is_test_environment
+                        is_distinct_permanent = (
+                            not is_test_environment()
+                            and 'permanent' in connections
+                            and connections['permanent'].settings_dict.get('NAME') != connections['default'].settings_dict.get('NAME')
+                        )
+                        if is_distinct_permanent:
+                            try:
+                                User.objects.using('permanent').update_or_create(
+                                    enrollment_number=enrollment,
+                                    defaults={
+                                        'username': enrollment,
+                                        'first_name': first_name,
+                                        'last_name': last_name,
+                                        'email': details['email'],
+                                        'phone_number': details['phone_number'],
+                                        'gender': details['gender'],
+                                        'password': password_hash,
+                                        'verified': False,
+                                        'is_active': True,
+                                    },
+                                )
+                            except Exception as exc:
+                                logger.warning('Could not mirror new student account to permanent database: %s', exc)
+
+                        log_audit_event(
+                            event_type='ACCOUNT_CREATED',
+                            actor_enrollment=enrollment,
+                            description=f'Limited-access student account created for {enrollment}',
+                            target_id=enrollment,
+                        )
+
+                    if in_guest_demo and hasattr(request, 'session'):
+                        request.session.pop('is_guest_demo', None)
+                    from django.contrib.auth import login
+                    login(request, user, backend='accounts.backends.EnrollmentBackend')
+                    if not is_downloaded_app_request(request):
+                        request.session['just_signed_in'] = True
+                    messages.success(request, 'Your account is ready. You can request student verification later from your account.')
+                    return redirect('dashboard')
+
+            return render(request, 'accounts/apply.html', {
+                'form': form,
+                'early_launch_mode': early_launch,
+                'active_tab': 'signup',
                 'designated_admins': designated_admins,
                 'is_guest_demo': in_guest_demo,
             })
@@ -1439,7 +1527,7 @@ def apply_account(request):
 
                     messages.success(
                         request,
-                        f'Application #{application.application_number} submitted! Temporary campus access activated. You can coordinate rides immediately while awaiting admin verification.'
+                        f'Verification request #{application.application_number} submitted. Your account and activity remain available under the current access rules while it is reviewed.'
                     )
                     return render(request, 'accounts/application_success.html', {
                         'application': application,
@@ -2070,9 +2158,18 @@ def user_search(request):
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query) |
             Q(branch__icontains=query)
-        )
+        ).annotate(
+            _search_priority=Case(
+                When(first_name__istartswith=query, then=0),
+                When(first_name__icontains=query, then=1),
+                default=2,
+                output_field=IntegerField(),
+            )
+        ).order_by('_search_priority', 'enrollment_number')
+    else:
+        students_qs = students_qs.order_by('enrollment_number')
 
-    students_qs = students_qs.order_by('enrollment_number')[:60]
+    students_qs = students_qs[:60]
 
     # Map friendships and friend requests
     user_friends = set(

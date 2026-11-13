@@ -1,28 +1,9 @@
-# Campus Nexus — Load Testing Data Isolation & Safety
+# Load-test fixtures and credentials
 
-## Isolation Philosophy
-Load testing MUST NEVER contaminate or corrupt production or real development datasets.
-All synthetic entities created for load testing use strict namespace demarcations:
+These scripts create synthetic accounts and ride records in the database configured by Django settings. The `2099LOAD` naming pattern and `[LOADTEST]` ride marker support cleanup; they do not isolate data from other records or databases.
 
-1. **User Accounts:**
-   - Format: `2099LOAD001` through `2099LOAD050`
-   - Administrative Account: `2099LOAD999`
-   - Role: Student (or Staff/Superuser for admin test account)
-   - Verified: True (bypasses unverified account gates)
-   - 2FA: Disabled (`two_factor_enabled=False`, `is_debug_account=True`) to allow automated HTTP authentication without SMS/Email OTP dependency.
+**Use only with a disposable local SQLite database.** Stop application writers first. Confirm the effective `DATABASE_URL` before setup. Never point the scripts at production, a shared instance, or data that cannot be replaced.
 
-2. **Rides & Telemetry:**
-   - Notes field prefix: `[LOADTEST]`
-   - Created only in the future (> 1 day, < 365 days).
-   - Tagged for clean automated cascade deletion.
+`active_test_users.json` contains generated test login credentials. Keep it private and remove it after the run. The optional snapshot restore copies a complete SQLite file over its target and may discard any changes made after the snapshot. It is not supported as a safe cleanup method for PostgreSQL.
 
-3. **Backup & Teardown Protocol:**
-   - `python load-testing/scripts/setup_test_data.py`:
-     1. Creates a bitwise backup snapshot of the active SQLite database (`temp_early_access.sqlite3.pre_loadtest_backup` or `db.sqlite3.pre_loadtest_backup`).
-     2. Populates only demarcated `2099LOAD*` accounts and `[LOADTEST]` rides.
-     3. Saves active credentials to `load-testing/test-data/active_test_users.json`.
-   - `python load-testing/scripts/cleanup_test_data.py`:
-     1. Queries and deletes all `2099LOAD*` users, participants, ride messages, consent records, and sessions.
-     2. Queries and deletes all `[LOADTEST]` rides.
-     3. Deletes `active_test_users.json`.
-     4. Verifies database consistency and confirms 0 residual load-test records.
+See [load-testing guidance](../README.md) and inspect the setup/cleanup scripts before each run.

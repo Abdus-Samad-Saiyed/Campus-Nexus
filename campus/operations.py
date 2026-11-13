@@ -289,6 +289,21 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
 
 @require_POST
 @login_required
+@user_passes_test(_is_staff_or_superuser)
+def admin_complete_feedback(request: HttpRequest, feedback_id: int) -> HttpResponse:
+    """Mark a student feedback or bug report as complete from the operations queue."""
+    feedback = get_object_or_404(PlatformFeedback, pk=feedback_id)
+    if feedback.status == 'RESOLVED':
+        messages.info(request, 'This report is already marked complete.')
+    else:
+        feedback.status = 'RESOLVED'
+        feedback.save(update_fields=['status'])
+        messages.success(request, 'Report marked complete.')
+    return redirect('operational_dashboard')
+
+
+@require_POST
+@login_required
 @user_passes_test(_is_superuser)
 def admin_update_phone(request: HttpRequest, user_id: int) -> HttpResponse:
     """Superuser-only endpoint to update student's phone number after in-person ID check."""

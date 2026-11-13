@@ -32,6 +32,7 @@ from campus.operations import (
     admin_toggle_announcement,
     admin_delete_announcement,
     admin_delete_account,
+    admin_complete_feedback,
     admin_resolve_physical_verification,
     admin_update_phone,
     export_applications_csv,
@@ -101,8 +102,6 @@ class CustomPasswordChangeView(PasswordChangeView):
 
 @login_required
 def serve_protected_media(request, path):
-    if is_guest_demo(request):
-        return HttpResponseForbidden("Access to student media is strictly prohibited in Guest Demo Mode.")
     safe_path = os.path.normpath(path).lstrip('/\\')
     if safe_path.startswith('..') or os.path.isabs(safe_path):
         raise Http404("Invalid media path.")
@@ -115,16 +114,19 @@ def serve_protected_media(request, path):
     if not os.path.isfile(full_path):
         raise Http404("Media file not found.")
 
-    if is_guest_demo(request):
-        return HttpResponseForbidden("Access to student media is strictly prohibited in Guest Demo Mode.")
-
     normalized_rel = safe_path.replace('\\', '/')
     if normalized_rel.startswith('profiles/'):
         owner = User.objects.filter(profile_photo=normalized_rel).first()
         if not owner:
             raise Http404("Media file not found.")
-        # Self or staff can always view own profile photo
-        if request.user == owner or request.user.is_staff or request.user.is_superuser:
+        # A real account can always view its own photo, including when a stale
+        # Guest Demo session flag is present. The synthetic demo identity stays blocked.
+        is_demo_identity = is_guest_demo(request.user)
+        if request.user == owner and not is_demo_identity:
+            return FileResponse(open(full_path, 'rb'))
+        if is_guest_demo(request):
+            return HttpResponseForbidden("Access to student media is strictly prohibited in Guest Demo Mode.")
+        if request.user.is_staff or request.user.is_superuser:
             return FileResponse(open(full_path, 'rb'))
         # In Early Launch Mode (temporary database), permit profile photo viewing unless hidden by owner
         if getattr(settings, 'EARLY_LAUNCH_MODE', False) and not getattr(owner, 'hide_profile_photo', False):
@@ -133,6 +135,9 @@ def serve_protected_media(request, path):
         if can_view_profile_field(request.user, owner, 'profile_photo'):
             return FileResponse(open(full_path, 'rb'))
         return HttpResponseForbidden("Access to this profile media is restricted.")
+
+    if is_guest_demo(request):
+        return HttpResponseForbidden("Access to student media is strictly prohibited in Guest Demo Mode.")
 
     # Sensitive non-profile media (e.g. ID verification cards) requires verified student or staff
     if not (request.user.is_staff or getattr(request.user, 'verified', False) or getattr(settings, 'EARLY_LAUNCH_MODE', False)):
@@ -182,6 +187,7 @@ urlpatterns = [
     path('announcements/<int:announcement_id>/acknowledge/', acknowledge_announcement, name='acknowledge_announcement'),
     path('operations/users/<int:user_id>/update-phone/', admin_update_phone, name='admin_update_phone'),
     path('operations/users/<int:user_id>/delete/', admin_delete_account, name='admin_delete_account'),
+    path('operations/feedback/<int:feedback_id>/complete/', admin_complete_feedback, name='admin_complete_feedback'),
     path('operations/physical-verification/<int:request_id>/resolve/', admin_resolve_physical_verification, name='admin_resolve_physical_verification'),
     path('operations/export/rides/', export_rides_csv, name='export_rides_csv'),
     path('operations/export/users/', export_users_csv, name='export_users_csv'),

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Application Submitted — Campus Nexus{% endblock %}
+{% block title %}Verification Request Submitted — Campus Nexus{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -10,12 +10,12 @@
                 <div class="feature-icon mx-auto mb-4" style="width: 64px; height: 64px; font-size: 2rem;">
                     <i class="bi bi-check2-circle"></i>
                 </div>
-                <h2 class="fw-bold mb-2">{% if user.is_authenticated %}Application Queued!{% else %}Application Received!{% endif %}</h2>
+                <h2 class="fw-bold mb-2">Verification request submitted</h2>
                 <p class="text-secondary mb-4">
                     {% if user.is_authenticated %}
-                        Your permanent verification application for <strong>{{ application.enrollment_number }}</strong> has been queued (Application #<code>{{ application.application_number }}</code>). You can continue coordinating rides and using Campus Nexus normally. As soon as an administrator verifies your institute credentials, your account will automatically upgrade to verified status.
+                        Your student verification request for <strong>{{ application.enrollment_number }}</strong> has been queued (Request #<code>{{ application.application_number }}</code>). You can continue using the features currently available to your account while it is reviewed. If approved, verification will be added to this same account.
                     {% else %}
-                        Your verification request has been queued. An administrator will review your institute credentials. Once approved, you can log in using your enrollment number.
+                        Your verification request has been queued for review.
                     {% endif %}
                 </p>
 
@@ -25,7 +25,7 @@
                         <span class="fw-bold">Next Steps</span>
                     </div>
                     <p class="text-secondary mb-0">
-                        Keep your college ID card handy for verification during working hours at administrative coordinator desks.
+                        Follow the instructions from the campus administrators if they need more information.
                     </p>
                 </div>
 
