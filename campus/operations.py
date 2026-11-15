@@ -330,6 +330,9 @@ def admin_complete_feedback(request: HttpRequest, feedback_id: int) -> HttpRespo
         feedback.status = 'RESOLVED'
         feedback.save(update_fields=['status'])
         messages.success(request, 'Report marked complete.')
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('operational_dashboard')
 
 

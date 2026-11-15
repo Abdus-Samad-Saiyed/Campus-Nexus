@@ -684,7 +684,7 @@
             right: 0 !important;
             min-width: 520px;
             max-width: calc(100vw - 24px);
-            background: var(--surface-solid, #0a0e0a) !important;
+            background: var(--glass-bg, rgba(12, 20, 15, 0.85)) !important;
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border, rgba(255, 255, 255, 0.12)) !important;
@@ -697,7 +697,7 @@
 
         [data-bs-theme="light"] .services-mega-menu,
         [data-theme="light"] .services-mega-menu {
-            background: var(--surface-solid, #ffffff) !important;
+            background: var(--glass-bg, rgba(255, 255, 255, 0.88)) !important;
             border-color: var(--border, rgba(0, 0, 0, 0.12)) !important;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
         }
@@ -1188,20 +1188,23 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'user_search' %}active fw-semibold{% endif %}" href="{% url 'user_search' %}" title="Verified Student Directory">
-                                <i class="bi bi-people-fill me-1 text-info"></i> Student Directory
+                                <i class="bi bi-people-fill me-1 green-accent"></i> Student Directory
                             </a>
                         </li>
                     {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'feedback' %}active fw-semibold{% endif %}" href="{% url 'feedback' %}" title="Feedback &amp; Bug Tracker">
+                            <i class="bi bi-bug-fill me-1 green-accent"></i> Feedback &amp; Bugs
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-inline-flex align-items-center gap-1 {% if request.resolver_match.url_name == 'about' or request.resolver_match.url_name == 'contributors' or request.resolver_match.url_name == 'contact' or request.resolver_match.url_name == 'feedback' %}active fw-semibold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle d-inline-flex align-items-center gap-1 {% if request.resolver_match.url_name == 'about' or request.resolver_match.url_name == 'contributors' or request.resolver_match.url_name == 'contact' %}active fw-semibold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-compass me-1"></i> Explore
                         </a>
                         <ul class="dropdown-menu shadow">
-                            <li><a class="dropdown-item py-2" href="/#contributors"><i class="bi bi-people me-2 text-info"></i>Contributors</a></li>
+                            <li><a class="dropdown-item py-2" href="/#contributors"><i class="bi bi-people me-2 green-accent"></i>Contributors</a></li>
                             <li><a class="dropdown-item py-2" href="/#about"><i class="bi bi-info-circle me-2 text-secondary"></i>About Nexus</a></li>
-                            <li><a class="dropdown-item py-2" href="{% url 'contact' %}"><i class="bi bi-envelope me-2 text-warning"></i>Contact Desk</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item py-2" href="{% url 'feedback' %}"><i class="bi bi-chat-left-heart me-2 green-accent"></i>Feedback &amp; Bug Tracker</a></li>
+                            <li><a class="dropdown-item py-2" href="/#contact"><i class="bi bi-envelope me-2 green-accent"></i>Contact Desk</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -1232,8 +1235,8 @@
 
                     <!-- Services Mega-Dropdown (Theme Accented, Dual-Service Grid) -->
                     <div class="dropdown dropdown-services-mega">
-                        <button class="btn btn-link text-decoration-none dropdown-toggle d-inline-flex align-items-center px-3 py-1.5 rounded-2 navbar-services-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Explore Campus Nexus Services">
-                            <i class="bi bi-grid-fill green-accent me-2"></i>
+                        <button class="btn btn-link text-decoration-none dropdown-toggle d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-2 navbar-services-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Explore Campus Nexus Services">
+                            <i class="bi bi-grid-fill green-accent"></i>
                             <span class="fw-semibold">Services</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end shadow-2xl p-0 services-mega-menu">
@@ -1433,34 +1436,16 @@
                                     </label>
                                     <select id="fx-watermark-mode" class="form-select form-select-sm" onchange="window.setNexusWatermarkMode(this.value)">
                                         <option value="off">Off / Hidden (Default)</option>
-                                        <option value="both">Gears &amp; Clockwork</option>
-                                        <option value="gears">Corner &amp; Edge Gears Only</option>
-                                        <option value="clock">Center Clockwork Only</option>
+                                        <option value="both">On (Active)</option>
                                     </select>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label small text-secondary d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
-                                        <span>Gear Complexity Level</span>
-                                    </label>
-                                    <select id="fx-gear-complexity" class="form-select form-select-sm" onchange="window.setNexusGearComplexity(this.value)">
-                                        <option value="high">Complex (All Edge + Corner Gears)</option>
-                                        <option value="med">Medium (Edges &amp; Corners)</option>
-                                        <option value="low">Minimal (Corners Only)</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label small text-secondary d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
-                                        <span>Random Gear Spread</span>
-                                        <span id="fx-gear-spread-badge" class="badge bg-success-subtle green-accent px-2 py-0.5" style="font-size: 0.65rem;">Constellation</span>
-                                    </label>
-                                    <select id="fx-gear-spread" class="form-select form-select-sm" onchange="window.setNexusGearSpread(this.value)">
-                                        <option value="constellation">Constellation (12+ Scattered Gears)</option>
-                                        <option value="subtle">Subtle Drift (5 Scattered Gears)</option>
-                                        <option value="off">Off (Corners &amp; Edges Only)</option>
-                                    </select>
-                                </div>
+                                <select id="fx-gear-complexity" class="d-none" aria-hidden="true">
+                                    <option value="high" selected>Complex</option>
+                                </select>
+                                <select id="fx-gear-spread" class="d-none" aria-hidden="true">
+                                    <option value="constellation" selected>Constellation</option>
+                                </select>
 
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between small text-secondary mb-1" style="font-size: 0.7rem;">
@@ -3512,9 +3497,7 @@
                             <label class="form-label small text-secondary mb-1">Watermark Mode</label>
                             <select id="modal-fx-watermark-mode" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="window.setNexusWatermarkMode(this.value)">
                                 <option value="off">Off / Hidden (Default)</option>
-                                <option value="both">Gears &amp; Clockwork</option>
-                                <option value="gears">Corner &amp; Edge Gears Only</option>
-                                <option value="clock">Center Clockwork Only</option>
+                                <option value="both">On (Active)</option>
                             </select>
                         </div>
 
@@ -3527,24 +3510,12 @@
                                    oninput="window.setNexusWatermarkOpacity(this.value); document.getElementById('modal-fx-opacity-val').textContent = this.value + '%';">
                         </div>
 
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <label class="form-label small text-secondary mb-1">Gear Complexity</label>
-                                <select id="modal-fx-gear-complexity" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="window.setNexusGearComplexity(this.value)">
-                                    <option value="high">Complex (All)</option>
-                                    <option value="med">Medium</option>
-                                    <option value="low">Minimal</option>
-                                </select>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small text-secondary mb-1">Gear Spread</label>
-                                <select id="modal-fx-gear-spread" class="form-select form-select-sm bg-dark border-secondary text-light" onchange="window.setNexusGearSpread(this.value)">
-                                    <option value="constellation">Constellation</option>
-                                    <option value="subtle">Subtle</option>
-                                    <option value="off">Off</option>
-                                </select>
-                            </div>
-                        </div>
+                        <select id="modal-fx-gear-complexity" class="d-none" aria-hidden="true">
+                            <option value="high" selected>Complex</option>
+                        </select>
+                        <select id="modal-fx-gear-spread" class="d-none" aria-hidden="true">
+                            <option value="constellation" selected>Constellation</option>
+                        </select>
                     </div>
                 </div>
             </div>

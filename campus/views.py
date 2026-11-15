@@ -3,7 +3,7 @@ from accounts.throttling import rate_limit
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
@@ -170,7 +170,7 @@ def feedback_view(request: HttpRequest) -> HttpResponse:
 
         messages.success(
             request,
-            f"Thank you! Your {feedback.get_feedback_type_display().lower()} (ID #{feedback.id}) has been recorded. "
+            f"Thank you! Your {feedback.get_feedback_type_display().lower()} has been recorded. "
             f"Our student maintenance team will review it."
         )
         return redirect("feedback")
@@ -188,6 +188,38 @@ def feedback_view(request: HttpRequest) -> HttpResponse:
     search_query = request.GET.get('q', '').strip()
     selected_type = request.GET.get('type', '').strip()
     selected_status = request.GET.get('status', '').strip()
+    view_filter = request.GET.get('view', '').strip()
+
+    # User-centric metrics for authenticated user
+    my_stats = None
+    if request.user.is_authenticated:
+        user_filter = Q(user=request.user)
+        if request.user.enrollment_number:
+            user_filter |= Q(submitter_contact__icontains=request.user.enrollment_number)
+        my_qs = PlatformFeedback.objects.filter(user_filter)
+        my_stats = {
+            'total': my_qs.count(),
+            'bugs': my_qs.filter(feedback_type='BUG').count(),
+            'features': my_qs.filter(feedback_type='FEATURE').count(),
+            'proposals': my_qs.filter(feedback_type='PROPOSAL').count(),
+            'resolved': my_qs.filter(status='RESOLVED').count(),
+        }
+        if view_filter == 'mine':
+            qs = my_qs
+
+    # Community Bug Hunters Leaderboard
+    leaderboard = list(
+        PlatformFeedback.objects
+        .exclude(submitter_name='')
+        .values('submitter_name')
+        .annotate(
+            total=Count('id'),
+            bugs=Count('id', filter=Q(feedback_type='BUG')),
+            resolved=Count('id', filter=Q(status='RESOLVED'))
+        )
+        .filter(total__gt=0)
+        .order_by('-bugs', '-total')[:5]
+    )
 
     if search_query:
         qs = qs.filter(Q(title__icontains=search_query) | Q(description__icontains=search_query))
@@ -212,8 +244,12 @@ def feedback_view(request: HttpRequest) -> HttpResponse:
         "search_query": search_query,
         "selected_type": selected_type,
         "selected_status": selected_status,
+        "view_filter": view_filter,
+        "my_stats": my_stats,
+        "leaderboard": leaderboard,
         "feedback_types": PlatformFeedback.FEEDBACK_TYPES,
         "status_choices": PlatformFeedback.STATUS_CHOICES,
+        "is_admin": bool(request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)),
     })
 
 

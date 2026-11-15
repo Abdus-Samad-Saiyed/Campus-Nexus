@@ -116,17 +116,37 @@ def _is_superuser(user):
 # Public views
 # ---------------------------------------------------------------------------
 
-def landing(request):
-    """Platform homepage presenting the Campus Nexus umbrella platform, about, and contributors."""
-    from accounts.models import Contributor
+def _get_landing_context(request):
+    """Context for the platform umbrella homepage, modular services, about, contributors, and contact."""
+    from accounts.models import Contributor, PlatformFeedback
     services = [s for s in get_all_services() if s.get('is_active')]
     contributors = Contributor.objects.filter(is_active=True).select_related('nominated_by', 'user').order_by('created_at')
     can_manage_contributors = bool(request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff))
-    return render(request, 'landing.html', {
+    
+    top_bug_hunters = list(
+        PlatformFeedback.objects
+        .exclude(submitter_name='')
+        .values('submitter_name')
+        .annotate(bugs=Count('id', filter=Q(feedback_type='BUG')), total=Count('id'))
+        .filter(bugs__gt=0)
+        .order_by('-bugs', '-total')[:4]
+    )
+
+    return {
         'services': services,
         'contributors': contributors,
         'can_manage_contributors': can_manage_contributors,
-    })
+        'top_bug_hunters': top_bug_hunters,
+    }
+
+
+def landing(request):
+    """Platform homepage presenting the Campus Nexus umbrella platform, dashboard cockpit (when authenticated), about, contributors, and contact desk."""
+    context = _get_landing_context(request)
+    if request.user.is_authenticated:
+        context.update(_get_dashboard_context(request))
+        return render(request, 'accounts/dashboard.html', context)
+    return render(request, 'landing.html', context)
 
 
 def service_catalogue(request):
@@ -1158,9 +1178,13 @@ def apply_account(request):
     in_guest_demo = is_guest_demo(request) or (request.user.is_authenticated and getattr(request.user, 'enrollment_number', '') == 'GUEST_DEMO')
     is_real_authenticated = request.user.is_authenticated and not in_guest_demo
 
-    # New visitors always create the same limited-access student account first.
-    # Verification is a later action on that account; account type is not a signup choice.
-    mode = 'permanent' if is_real_authenticated else ('early' if early_launch else 'signup')
+    req_mode = request.GET.get('mode', '').strip() or request.POST.get('registration_mode', '').strip()
+    if is_real_authenticated or req_mode == 'permanent':
+        mode = 'permanent'
+    elif early_launch and req_mode != 'permanent':
+        mode = 'early'
+    else:
+        mode = 'signup'
 
     if is_real_authenticated:
         # Verified students cannot re-apply
@@ -1215,7 +1239,7 @@ def apply_account(request):
                 'is_guest_demo': in_guest_demo,
             })
 
-        elif not is_real_authenticated:
+        elif not is_real_authenticated and mode != 'permanent':
             form = AccountApplicationForm(request.POST)
             enrollment = request.POST.get('enrollment_number', '').strip().upper()
             phone_num = request.POST.get('phone_number', '').strip()
@@ -1577,8 +1601,8 @@ def application_success(request):
 # ---------------------------------------------------------------------------
 
 @login_required
-def dashboard(request):
-    """User's home page. Shows their active ride if they have one."""
+def _get_dashboard_context(request):
+    """Context for the student cockpit (rides, messages, announcements, stays, stats)."""
     from accounts.demo import is_guest_demo
     active_announcements = Announcement.get_active_for_user(request.user)
 
@@ -1597,7 +1621,7 @@ def dashboard(request):
         other_participations = demo_participations[1:] if len(demo_participations) > 1 else []
         just_signed_in = request.session.pop('just_signed_in', False)
         all_feed_announcements = active_announcements[1:] if len(active_announcements) > 1 else []
-        return render(request, 'accounts/dashboard.html', {
+        return {
             'active_participation': active_participation,
             'other_participations': other_participations,
             'services': get_all_services(),
@@ -1615,7 +1639,9 @@ def dashboard(request):
             'proclaiming_announcement': active_announcements[0] if active_announcements else None,
             'seen_announcement_ids': set(),
             'just_signed_in': just_signed_in,
-        })
+            'active_accommodation_memberships': [],
+            'pending_accommodation_requests_count': 0,
+        }
 
     active_participations = list(
         RideParticipant.objects
@@ -1686,7 +1712,7 @@ def dashboard(request):
     except Exception:
         pass
 
-    return render(request, 'accounts/dashboard.html', {
+    return {
         'active_participation': active_participation,
         'has_passkeys': has_passkeys,
         'other_participations': other_participations,
@@ -1705,7 +1731,13 @@ def dashboard(request):
         'proclaiming_announcement': proclaiming_announcement,
         'seen_announcement_ids': seen_announcement_ids,
         'just_signed_in': just_signed_in,
-    })
+    }
+
+
+@login_required
+def dashboard(request):
+    """User's home page. Unifies with platform landing page."""
+    return landing(request)
 
 
 @login_required
@@ -2183,12 +2215,29 @@ def user_search(request):
         messages.error(request, "Access to the student directory requires a verified student account.")
         return redirect('dashboard')
     query = request.GET.get('q', '').strip()
+    gender = request.GET.get('gender', '').strip()
+    verification = request.GET.get('verification', '').strip()
+    branch = request.GET.get('branch', '').strip().upper()
 
-    # Base queryset: active students (in early launch mode, includes unverified self-declarations)
-    if getattr(settings, 'EARLY_LAUNCH_MODE', False):
+    # Base queryset: active students
+    if getattr(settings, 'EARLY_LAUNCH_MODE', False) or verification == 'unverified' or verification == 'all':
         students_qs = User.objects.filter(is_deleted=False, is_active=True).exclude(pk=request.user.pk)
     else:
         students_qs = User.objects.filter(verified=True, is_deleted=False, is_active=True).exclude(pk=request.user.pk)
+
+    if verification == 'verified':
+        students_qs = students_qs.filter(verified=True)
+    elif verification == 'unverified':
+        students_qs = students_qs.filter(verified=False)
+
+    if gender in ['M', 'F']:
+        students_qs = students_qs.filter(gender=gender)
+
+    if branch and branch != 'ALL':
+        students_qs = students_qs.filter(
+            Q(branch__iexact=branch) | Q(enrollment_number__icontains=branch)
+        )
+
     if not (request.user.is_staff or request.user.is_superuser):
         students_qs = students_qs.filter(hide_from_search=False)
 
@@ -2209,7 +2258,7 @@ def user_search(request):
     else:
         students_qs = students_qs.order_by('enrollment_number')
 
-    students_qs = students_qs[:60]
+    students_qs = students_qs[:100]
 
     # Map friendships and friend requests
     user_friends = set(
@@ -2294,8 +2343,16 @@ def user_search(request):
             'total_students': sum(len(b['students']) for b in branch_list),
         })
 
+    standard_branches = ['CSE', 'ECE', 'EE', 'ME', 'CIV', 'CHE', 'MME', 'IT']
+    db_branches = [b.upper() for b in User.objects.filter(is_active=True).values_list('branch', flat=True) if b]
+    available_branches = sorted(list(set(standard_branches + db_branches)))
+
     context = {
         'query': query,
+        'gender_filter': gender,
+        'verification_filter': verification,
+        'branch_filter': branch,
+        'available_branches': available_branches,
         'student_list': flattened_ordered_list,
         'year_groups': year_groups,
         'total_count': len(flattened_ordered_list),
@@ -2950,7 +3007,10 @@ def reject_application(request, application_id):
             )
         except Exception:
             pass
-    threading.Thread(target=_send_rejection_email, daemon=True).start()
+    if is_test_environment():
+        _send_rejection_email()
+    else:
+        threading.Thread(target=_send_rejection_email, daemon=True).start()
 
     try:
         from channels.layers import get_channel_layer

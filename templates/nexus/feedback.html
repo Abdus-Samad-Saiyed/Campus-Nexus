@@ -23,8 +23,14 @@
             </button>
             <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom d-inline-flex align-items-center gap-1.5">
                 <i class="bi bi-github"></i>
-                <span>GitHub Issues</span>
+                <span>Route Directly to Repository Issues</span>
             </a>
+            {% if is_admin %}
+                <a href="{% url 'operational_dashboard' %}" class="btn btn-outline-warning d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Operations Console</span>
+                </a>
+            {% endif %}
         </div>
     </div>
 
@@ -56,6 +62,132 @@
                 <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Resolved</div>
                 <div class="fs-4 fw-bold text-emerald">{{ resolved_count }}</div>
                 <div class="text-secondary small" style="font-size: 0.75rem;">Fixed &amp; closed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User-Centric Impact & Community Bug Hunters Leaderboard Row -->
+    <div class="row g-4 mb-4">
+        <!-- Personal Activity Card (for authenticated students & admins) -->
+        <div class="col-lg-6">
+            <div class="glass p-4 h-100 border-success-subtle glass-glow d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                                <i class="bi bi-person-badge-fill"></i>
+                            </span>
+                            <h5 class="fw-bold text-white mb-0">Your Contribution Impact</h5>
+                        </div>
+                        {% if user.is_authenticated %}
+                            <span class="badge bg-success-subtle text-success small">Logged In</span>
+                        {% else %}
+                            <a href="{% url 'login' %}?next={% url 'feedback' %}" class="btn btn-outline-green btn-sm py-0.5 px-2" style="font-size: 0.75rem;">Sign In</a>
+                        {% endif %}
+                    </div>
+
+                    {% if user.is_authenticated and my_stats %}
+                        <p class="text-secondary small mb-3">
+                            Thank you for helping us polish Campus Nexus! Every bug or proposal you submit directly helps fellow students.
+                        </p>
+                        <div class="row g-2 text-center mb-3">
+                            <div class="col-3">
+                                <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                                    <div class="fw-bold fs-5 text-white">{{ my_stats.total }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.7rem;">Reports</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                                    <div class="fw-bold fs-5 text-danger">{{ my_stats.bugs }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.7rem;">Bugs</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                                    <div class="fw-bold fs-5 text-info">{{ my_stats.features }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.7rem;">Ideas</div>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="p-2 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                                    <div class="fw-bold fs-5 text-success">{{ my_stats.resolved }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.7rem;">Resolved</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-secondary small mb-3">
+                            Sign in with your student account to automatically track all the bug reports, suggestions, and feature proposals you submit.
+                        </p>
+                        <div class="p-3 rounded bg-black bg-opacity-25 border border-secondary border-opacity-25 text-center text-secondary small">
+                            <i class="bi bi-shield-check text-info me-1"></i> Contributions from verified students receive priority triage.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex gap-2">
+                    <button class="btn btn-green btn-sm flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#feedbackFormCollapse">
+                        <i class="bi bi-plus-circle me-1"></i> Report a Bug
+                    </button>
+                    {% if user.is_authenticated %}
+                        {% if view_filter == 'mine' %}
+                            <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm">Show All Reports</a>
+                        {% else %}
+                            <a href="{% url 'feedback' %}?view=mine" class="btn btn-outline-info btn-sm">Filter My Reports</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Community Bug Hunters Leaderboard -->
+        <div class="col-lg-6">
+            <div class="glass p-4 h-100 border-warning-subtle glass-glow d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+                                <i class="bi bi-trophy-fill"></i>
+                            </span>
+                            <h5 class="fw-bold text-white mb-0">Bug Hunters Leaderboard</h5>
+                        </div>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle small">Top Contributors</span>
+                    </div>
+
+                    {% if leaderboard %}
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            {% for hunter in leaderboard %}
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                                    <div class="d-flex align-items-center gap-2 min-w-0">
+                                        <span class="badge {% if forloop.counter == 1 %}bg-warning text-dark{% elif forloop.counter == 2 %}bg-secondary text-light{% elif forloop.counter == 3 %}bg-danger bg-opacity-75 text-light{% else %}bg-dark text-secondary{% endif %} rounded-pill fw-bold" style="font-size: 0.72rem; min-width: 24px;">
+                                            #{{ forloop.counter }}
+                                        </span>
+                                        <span class="fw-semibold text-white text-truncate" style="font-size: 0.88rem;">
+                                            {{ hunter.submitter_name }}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle small py-0.5 px-2" style="font-size: 0.72rem;">
+                                            <i class="bi bi-bug me-1"></i>{{ hunter.bugs }} Bug{{ hunter.bugs|pluralize }}
+                                        </span>
+                                        <span class="badge bg-dark border border-secondary text-secondary small py-0.5 px-2" style="font-size: 0.72rem;">
+                                            {{ hunter.total }} Total
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-secondary small mb-3">
+                            No bug reports recorded on the leaderboard yet. Be the first student to identify and report an issue!
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div class="pt-2 border-top border-secondary border-opacity-25 text-secondary small text-center" style="font-size: 0.78rem;">
+                    <i class="bi bi-award green-accent me-1"></i> Bug hunters are recognized in the project hall of contributors.
+                </div>
             </div>
         </div>
     </div>
@@ -150,18 +282,22 @@
         </div>
     </div>
 
-    <!-- Search & Filter Controls -->
+    <!-- View Switcher & Search Filter Controls -->
     <div class="glass p-3 mb-4 border-secondary border-opacity-25">
         <form method="GET" action="{% url 'feedback' %}" class="row g-2 align-items-center">
+            {% if view_filter %}
+                <input type="hidden" name="view" value="{{ view_filter }}">
+            {% endif %}
+
             <div class="col-12 col-md-5">
                 <div class="position-relative">
-                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
                     <input type="text"
                            name="q"
                            value="{{ search_query }}"
-                           class="form-control bg-dark border-secondary text-light ps-5"
+                           class="form-control bg-dark border-secondary text-light pe-5"
                            placeholder="Search feedback titles or descriptions..."
                            autocomplete="off">
+                    <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="pointer-events: none;"></i>
                 </div>
             </div>
 
@@ -185,11 +321,18 @@
 
             <div class="col-12 col-md-2 d-flex gap-1">
                 <button type="submit" class="btn btn-green flex-grow-1">Filter</button>
-                {% if search_query or selected_type or selected_status %}
+                {% if search_query or selected_type or selected_status or view_filter %}
                     <a href="{% url 'feedback' %}" class="btn btn-dark-custom text-secondary" title="Reset Filters"><i class="bi bi-x-lg"></i></a>
                 {% endif %}
             </div>
         </form>
+
+        {% if view_filter == 'mine' %}
+            <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between small">
+                <span class="text-info"><i class="bi bi-funnel-fill me-1"></i>Showing only your submissions</span>
+                <a href="{% url 'feedback' %}" class="text-secondary text-decoration-none">View all submissions &rarr;</a>
+            </div>
+        {% endif %}
     </div>
 
     <!-- Feedback & Bug Listings -->
@@ -197,62 +340,72 @@
         <div class="row g-3 mb-4">
             {% for fb in feedbacks %}
                 <div class="col-12">
-                    <div class="glass p-3.5 border-secondary border-opacity-25 h-100">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-2">
-                            <div class="d-flex flex-wrap align-items-center gap-2">
-                                <span class="badge bg-black bg-opacity-60 border border-secondary text-secondary font-monospace" style="font-size: 0.72rem;">#{{ fb.id }}</span>
-                                
-                                {% if fb.feedback_type == 'BUG' %}
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.72rem;">
-                                        <i class="bi bi-bug me-1"></i> Bug Report
-                                    </span>
-                                {% elif fb.feedback_type == 'FEATURE' %}
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.72rem;">
-                                        <i class="bi bi-lightbulb me-1"></i> Feature Request
-                                    </span>
-                                {% elif fb.feedback_type == 'PROPOSAL' %}
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.72rem;">
-                                        <i class="bi bi-rocket-takeoff me-1"></i> New Module Proposal
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.72rem;">
-                                        <i class="bi bi-chat-quote me-1"></i> General Feedback
-                                    </span>
-                                {% endif %}
+                    <div class="glass p-3.5 border-secondary border-opacity-25 h-100 feedback-card" style="word-break: break-word; overflow-wrap: anywhere;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-2 pb-2 border-bottom border-secondary border-opacity-15">
+                            <div class="min-w-0 flex-grow-1">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1.5">
+                                    {% if fb.feedback_type == 'BUG' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.72rem;">
+                                            <i class="bi bi-bug me-1"></i> Bug Report
+                                        </span>
+                                    {% elif fb.feedback_type == 'FEATURE' %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.72rem;">
+                                            <i class="bi bi-lightbulb me-1"></i> Feature Request
+                                        </span>
+                                    {% elif fb.feedback_type == 'PROPOSAL' %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.72rem;">
+                                            <i class="bi bi-rocket-takeoff me-1"></i> New Module Proposal
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.72rem;">
+                                            <i class="bi bi-chat-quote me-1"></i> General Feedback
+                                        </span>
+                                    {% endif %}
 
-                                {% if fb.status == 'OPEN' %}
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.7rem;">
-                                        <i class="bi bi-hourglass-split me-1"></i> Open
-                                    </span>
-                                {% elif fb.status == 'IN_REVIEW' %}
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.7rem;">
-                                        <i class="bi bi-arrow-repeat me-1"></i> In Review
-                                    </span>
-                                {% elif fb.status == 'RESOLVED' %}
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;">
-                                        <i class="bi bi-check2-circle me-1"></i> Resolved
-                                    </span>
-                                {% endif %}
-
-                                <h5 class="fw-bold text-white mb-0 ms-1">{{ fb.title }}</h5>
+                                    {% if fb.status == 'OPEN' %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.7rem;">
+                                            <i class="bi bi-hourglass-split me-1"></i> Open
+                                        </span>
+                                    {% elif fb.status == 'IN_REVIEW' %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.7rem;">
+                                            <i class="bi bi-arrow-repeat me-1"></i> In Review
+                                        </span>
+                                    {% elif fb.status == 'RESOLVED' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;">
+                                            <i class="bi bi-check2-circle me-1"></i> Resolved
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <h5 class="fw-bold text-white mb-0" style="overflow-wrap: anywhere; word-break: break-word;">{{ fb.title }}</h5>
                             </div>
-                            <span class="text-secondary small font-monospace" style="font-size: 0.75rem;">
-                                {{ fb.created_at|timesince }} ago
+                            <span class="text-secondary small font-monospace flex-shrink-0" style="font-size: 0.75rem;">
+                                <i class="bi bi-clock me-1"></i>{{ fb.created_at|timesince }} ago
                             </span>
                         </div>
 
-                        <p class="text-light text-opacity-80 small mb-2" style="line-height: 1.5; white-space: pre-line;">{{ fb.description }}</p>
+                        <p class="text-light text-opacity-80 small mb-3" style="line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; word-break: break-word;">{{ fb.description }}</p>
 
-                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-10 small text-secondary">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-15 small text-secondary gap-2">
                             <div>
                                 <i class="bi bi-person me-1"></i>
                                 <span>Reported by: <strong class="text-light">{{ fb.submitter_name|default:"Anonymous Student" }}</strong></span>
                             </div>
-                            {% if user.is_staff or user.is_superuser %}
-                                <a href="{% url 'operational_dashboard' %}" class="btn btn-link btn-sm p-0 text-decoration-none green-accent">
-                                    Manage in Operations &rarr;
-                                </a>
-                            {% endif %}
+                            <div class="d-flex align-items-center gap-2">
+                                {% if is_admin %}
+                                    {% if fb.status != 'RESOLVED' %}
+                                        <form method="POST" action="{% url 'admin_complete_feedback' fb.id %}" class="m-0 d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-outline-success btn-sm py-0.5 px-2" style="font-size: 0.72rem;">
+                                                <i class="bi bi-check2-circle me-1"></i> Mark Resolved
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    <a href="{% url 'operational_dashboard' %}" class="btn btn-link btn-sm p-0 text-decoration-none green-accent" style="font-size: 0.75rem;">
+                                        Operations &rarr;
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -265,7 +418,7 @@
                 <ul class="pagination pagination-sm">
                     {% if feedbacks.has_previous %}
                         <li class="page-item">
-                            <a class="page-link bg-dark border-secondary text-light" href="?page={{ feedbacks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">&laquo;</a>
+                            <a class="page-link bg-dark border-secondary text-light" href="?page={{ feedbacks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if view_filter %}&view={{ view_filter }}{% endif %}">&laquo;</a>
                         </li>
                     {% endif %}
                     
@@ -275,7 +428,7 @@
 
                     {% if feedbacks.has_next %}
                         <li class="page-item">
-                            <a class="page-link bg-dark border-secondary text-light" href="?page={{ feedbacks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">&raquo;</a>
+                            <a class="page-link bg-dark border-secondary text-light" href="?page={{ feedbacks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if view_filter %}&view={{ view_filter }}{% endif %}">&raquo;</a>
                         </li>
                     {% endif %}
                 </ul>

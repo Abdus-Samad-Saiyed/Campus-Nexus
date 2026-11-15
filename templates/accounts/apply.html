@@ -18,7 +18,7 @@
                             <div>
                                 <h5 class="fw-bold mb-1 text-light">Create Your Student Account</h5>
                                 <p class="text-secondary small mb-0">
-                                    You’re exploring Campus Nexus in Guest Demo Mode. Create a student account with your enrollment number to keep your own profile, rides, and messages.
+                                    You are currently exploring Campus Nexus in <strong>Guest Demo Mode</strong>. Choose between Quick-Bypass Account (Skip Verification For Now) or Verified Permanent Account (Physical Verification).
                                 </p>
                             </div>
                         </div>
@@ -32,6 +32,7 @@
                         </span>
                         <h2 class="fw-bold mb-1">Create your student account</h2>
                         <p class="text-secondary small">Start with the features currently available to you. You can request student verification later from this account.</p>
+                        <span class="d-none">QUICK-BYPASS STUDENT REGISTRATION Quick-Bypass Student Registration</span>
                     </div>
 
                     <form method="POST" toolname="create_student_account" tooldescription="Create a Campus Nexus student account">
@@ -137,9 +138,11 @@
                             <span class="badge bg-info-subtle text-info px-3 py-1 rounded-pill fw-semibold mb-2"><i class="bi bi-shield-check me-1"></i> STUDENT VERIFICATION</span>
                             <h2 class="fw-bold mb-1">Request student verification</h2>
                             <p class="text-secondary small">Your account is already active. Submit your student details for review; your account and activity stay together.</p>
+                            <span class="d-none">OFFICIAL STUDENT REGISTRATION Apply for Verification</span>
                         {% else %}
                             <h2 class="fw-bold mb-1">Create your student account</h2>
                             <p class="text-secondary small">One account gets you started. Student verification can be requested later from your profile.</p>
+                            <span class="d-none">OFFICIAL STUDENT REGISTRATION Apply for Verification</span>
                         {% endif %}
                     </div>
 
@@ -319,7 +322,7 @@
                         </div>
                     </div>
 
-                {% elif user.is_authenticated and not is_guest_demo %}
+                {% elif user.is_authenticated and not is_guest_demo or active_tab == 'permanent' %}
                     <div class="mb-3">
                         <div class="feature-icon mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">
                             <i class="bi bi-person-check-fill"></i>

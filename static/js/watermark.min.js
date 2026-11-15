@@ -198,7 +198,8 @@ zenTransitionsSwitch.checked = !!enabled;
 }
 };
 window.setNexusWatermarkMode = function (mode) {
-localStorage.setItem('nexus_watermark_mode', mode);
+const m = (mode === 'on' || mode === 'both') ? 'both' : 'off';
+localStorage.setItem('nexus_watermark_mode', m);
 applyWatermarkSettings();
 };
 window.setNexusWatermarkOpacity = function (percent) {

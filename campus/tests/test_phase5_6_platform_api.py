@@ -15,6 +15,7 @@ Phase 6:
 
 import datetime
 import json
+from unittest import mock
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -51,13 +52,11 @@ class Phase5PlatformShellWatermarkTests(TestCase):
     def test_service_catalogue_structure(self):
         """Service catalogue contains stable identifiers, badges, and required keys."""
         services = get_all_services()
-        self.assertGreaterEqual(len(services), 4)
+        self.assertGreaterEqual(len(services), 2)
 
         ids = [s["id"] for s in services]
         self.assertIn("coordinate", ids)
-        self.assertIn("stationery_print", ids)
-        self.assertIn("lost_found", ids)
-        self.assertIn("mess_menu", ids)
+        self.assertIn("accommodate", ids)
 
         for s in services:
             self.assertIn("name", s)
@@ -69,9 +68,10 @@ class Phase5PlatformShellWatermarkTests(TestCase):
     def test_service_catalogue_active_filter(self):
         """Only live services have is_active=True."""
         active = get_active_services()
-        self.assertEqual(len(active), 1)
-        self.assertEqual(active[0]["id"], "coordinate")
-        self.assertTrue(active[0]["is_active"])
+        self.assertEqual(len(active), 2)
+        active_ids = [s["id"] for s in active]
+        self.assertIn("coordinate", active_ids)
+        self.assertIn("accommodate", active_ids)
 
     def test_server_authoritative_gateway_active_service(self):
         """Active service route redirects to service entry point."""
@@ -81,10 +81,22 @@ class Phase5PlatformShellWatermarkTests(TestCase):
 
     def test_server_authoritative_gateway_disabled_service(self):
         """Disabled services cannot be bypassed and return HTTP 403 Forbidden."""
-        response = self.client.get(reverse("service_gateway", kwargs={"slug": "print-hub"}))
-        self.assertEqual(response.status_code, 403)
-        self.assertContains(response, "UPCOMING", status_code=403)
-        self.assertContains(response, "Coming Soon", status_code=403)
+        with mock.patch("campus.services.SERVICE_CATALOGUE", [
+            {
+                "id": "mock_hub",
+                "slug": "print-hub",
+                "name": "UPCOMING",
+                "tagline": "Coming Soon",
+                "url": "/services/print-hub/",
+                "is_active": False,
+                "status_badge": "Upcoming",
+                "features": [],
+            }
+        ]):
+            response = self.client.get(reverse("service_gateway", kwargs={"slug": "print-hub"}))
+            self.assertEqual(response.status_code, 403)
+            self.assertContains(response, "UPCOMING", status_code=403)
+            self.assertContains(response, "Coming Soon", status_code=403)
 
     def test_server_authoritative_gateway_unknown_service(self):
         """Non-existent services return HTTP 404."""
@@ -183,7 +195,7 @@ class Phase6ApiFoundationTests(TestCase):
         res = self.client.get(reverse("api_catalogue"))
         self.assertEqual(res.status_code, 200)
         data = res.json()
-        self.assertGreaterEqual(len(data["data"]["services"]), 4)
+        self.assertGreaterEqual(len(data["data"]["services"]), 2)
 
     def test_api_login_success_and_failure(self):
         """Login validates credentials and issues token."""

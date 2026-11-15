@@ -55,9 +55,54 @@
             </div>
             <div class="col-md-3 col-lg-2 d-flex gap-2">
                 <button type="submit" class="btn btn-green w-100 fw-semibold">Search</button>
-                <button type="button" id="clear-student-search" class="btn btn-dark-custom" title="Clear search" aria-label="Clear search" {% if not query %}hidden{% endif %}>
+                <button type="button" id="clear-student-search" class="btn btn-dark-custom" title="Clear search" aria-label="Clear search" {% if not query and not gender_filter and not verification_filter and not branch_filter %}hidden{% endif %}>
                     <i class="bi bi-x-lg"></i>
                 </button>
+            </div>
+
+            <!-- Filters: Gender, Verification Status, Branch -->
+            <div class="col-12 mt-2 pt-2 border-top border-secondary border-opacity-25">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-sm-4 col-md-3">
+                        <label for="filter-gender" class="form-label small text-secondary mb-1 fw-semibold text-uppercase" style="font-size: 0.72rem;">
+                            <i class="bi bi-gender-ambiguous me-1"></i> Gender
+                        </label>
+                        <select name="gender" id="filter-gender" class="form-select form-select-sm bg-dark border-secondary text-light">
+                            <option value="" {% if not gender_filter %}selected{% endif %}>All Genders</option>
+                            <option value="M" {% if gender_filter == 'M' %}selected{% endif %}>Male</option>
+                            <option value="F" {% if gender_filter == 'F' %}selected{% endif %}>Female</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-4 col-md-3">
+                        <label for="filter-verification" class="form-label small text-secondary mb-1 fw-semibold text-uppercase" style="font-size: 0.72rem;">
+                            <i class="bi bi-shield-check me-1"></i> Verification
+                        </label>
+                        <select name="verification" id="filter-verification" class="form-select form-select-sm bg-dark border-secondary text-light">
+                            <option value="" {% if not verification_filter %}selected{% endif %}>All Students</option>
+                            <option value="verified" {% if verification_filter == 'verified' %}selected{% endif %}>Verified Students Only</option>
+                            <option value="unverified" {% if verification_filter == 'unverified' %}selected{% endif %}>Unverified / Early Access</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-4 col-md-3">
+                        <label for="filter-branch" class="form-label small text-secondary mb-1 fw-semibold text-uppercase" style="font-size: 0.72rem;">
+                            <i class="bi bi-mortarboard me-1"></i> Branch
+                        </label>
+                        <select name="branch" id="filter-branch" class="form-select form-select-sm bg-dark border-secondary text-light">
+                            <option value="" {% if not branch_filter %}selected{% endif %}>All Branches</option>
+                            {% for b in available_branches %}
+                                <option value="{{ b }}" {% if branch_filter == b %}selected{% endif %}>{{ b }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-12 col-md-3 d-flex align-items-end pt-2 pt-sm-4 pt-md-0">
+                        <button type="button" id="reset-student-filters" class="btn btn-outline-secondary btn-sm w-100 py-1" style="font-size: 0.78rem;">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
@@ -85,6 +130,10 @@
 (function () {
     const form = document.getElementById('student-search-form');
     const input = document.getElementById('student-search-input');
+    const genderSelect = document.getElementById('filter-gender');
+    const verificationSelect = document.getElementById('filter-verification');
+    const branchSelect = document.getElementById('filter-branch');
+    const resetFiltersBtn = document.getElementById('reset-student-filters');
     const results = document.getElementById('student-search-results');
     const count = document.getElementById('student-count');
     const countLabel = document.getElementById('student-count-label');
@@ -108,16 +157,29 @@
 
     async function updateResults() {
         const query = input.value.trim();
+        const gender = genderSelect ? genderSelect.value : '';
+        const verification = verificationSelect ? verificationSelect.value : '';
+        const branch = branchSelect ? branchSelect.value : '';
+
         const url = new URL(form.action, window.location.href);
         if (query) url.searchParams.set('q', query);
         else url.searchParams.delete('q');
+
+        if (gender) url.searchParams.set('gender', gender);
+        else url.searchParams.delete('gender');
+
+        if (verification) url.searchParams.set('verification', verification);
+        else url.searchParams.delete('verification');
+
+        if (branch) url.searchParams.set('branch', branch);
+        else url.searchParams.delete('branch');
 
         if (activeRequest) activeRequest.abort();
         const controller = new AbortController();
         activeRequest = controller;
         results.setAttribute('aria-busy', 'true');
         status.textContent = query ? `Searching students for ${query}.` : 'Loading students.';
-        if (clearButton) clearButton.hidden = !query;
+        if (clearButton) clearButton.hidden = (!query && !gender && !verification && !branch);
 
         try {
             const response = await fetch(url.toString(), {
@@ -154,6 +216,25 @@
         debounceTimer = window.setTimeout(updateResults, 250);
     });
 
+    [genderSelect, verificationSelect, branchSelect].forEach(function (sel) {
+        if (sel) {
+            sel.addEventListener('change', function () {
+                window.clearTimeout(debounceTimer);
+                updateResults();
+            });
+        }
+    });
+
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function () {
+            if (genderSelect) genderSelect.value = '';
+            if (verificationSelect) verificationSelect.value = '';
+            if (branchSelect) branchSelect.value = '';
+            window.clearTimeout(debounceTimer);
+            updateResults();
+        });
+    }
+
     form.addEventListener('submit', function (event) {
         event.preventDefault();
         window.clearTimeout(debounceTimer);
@@ -163,6 +244,9 @@
     if (clearButton) {
         clearButton.addEventListener('click', function () {
             input.value = '';
+            if (genderSelect) genderSelect.value = '';
+            if (verificationSelect) verificationSelect.value = '';
+            if (branchSelect) branchSelect.value = '';
             input.focus();
             window.clearTimeout(debounceTimer);
             updateResults();

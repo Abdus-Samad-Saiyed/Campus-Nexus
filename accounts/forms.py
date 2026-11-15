@@ -105,7 +105,7 @@ class AccountApplicationForm(forms.ModelForm):
 
         if enrollment == 'GUEST_DEMO':
             raise forms.ValidationError(
-                'Guest Demo cannot request student verification. Enter your own student enrollment number to create an account.'
+                'Guest demo accounts cannot apply for permanent status. Enter your own student enrollment number to create an account.'
             )
 
         if not (self.user and self.user.is_authenticated) and User.objects.filter(
@@ -113,7 +113,7 @@ class AccountApplicationForm(forms.ModelForm):
             is_deleted=False,
         ).exists():
             raise forms.ValidationError(
-                'An account may already exist for these details. Try signing in or resetting your password.'
+                'An account is already registered for this enrollment number. Try signing in or resetting your password.'
             )
 
         if not ENROLLMENT_VALIDATOR.regex.match(enrollment):

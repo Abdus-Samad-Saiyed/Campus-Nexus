@@ -120,6 +120,9 @@
                     <li><a class="dropdown-item" href="{% url 'export_accommodate_groups_csv' %}"><i class="bi bi-buildings me-2 text-success"></i>Export Accommodation Groups (CSV)</a></li>
                 </ul>
             </div>
+            <a href="{% url 'feedback' %}" class="btn btn-outline-warning" title="View &amp; Manage Community Bug Reports &amp; Feedback">
+                <i class="bi bi-bug me-1"></i> Feedback &amp; Bugs
+            </a>
             {% if user.is_superuser %}
                 <a href="{% url 'manage_superusers' %}" class="btn btn-outline-danger" title="Manage Platform Superusers">
                     <i class="bi bi-shield-shaded me-1"></i> Superusers ({{ superusers_count }})
