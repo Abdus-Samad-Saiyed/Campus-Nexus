@@ -122,9 +122,12 @@ class WebPushAndClusterResilienceTests(TransactionTestCase):
                 content='Test content for background push',
                 url='/dashboard/',
             )
-            # Give daemon thread brief moment to invoke webpush
+            # Give daemon thread brief moment to invoke webpush with retry loop for resilience
             import time
-            time.sleep(0.15)
+            for _ in range(25):
+                if mock_webpush.called:
+                    break
+                time.sleep(0.04)
             self.assertTrue(mock_webpush.called)
             args, kwargs = mock_webpush.call_args
             sub_info = kwargs.get('subscription_info')

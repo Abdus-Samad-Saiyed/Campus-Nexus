@@ -6,10 +6,18 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.models import Contributor, PlatformFeedback, User, log_audit_event
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+
+
+def _redirect_contributors_target(request: HttpRequest) -> HttpResponse:
+    referer = request.META.get('HTTP_REFERER')
+    if referer and url_has_allowed_host_and_scheme(referer, allowed_hosts={request.get_host()}):
+        return redirect(referer)
+    return redirect("contributors")
 
 
 def about_view(request: HttpRequest) -> HttpResponse:
@@ -38,7 +46,7 @@ def nominate_contributor(request: HttpRequest) -> HttpResponse:
     """Allows administrators to add recognized contributors."""
     if not (request.user.is_superuser or request.user.is_staff):
         messages.error(request, "Permission denied: Only administrators can add contributors.")
-        return redirect("contributors")
+        return _redirect_contributors_target(request)
 
     name = request.POST.get("name", "").strip()
     enrollment = request.POST.get("enrollment_number", "").strip().upper()
@@ -57,7 +65,7 @@ def nominate_contributor(request: HttpRequest) -> HttpResponse:
                 validator(u)
             except ValidationError:
                 messages.error(request, "Invalid URL format for GitHub or LinkedIn.")
-                return redirect("contributors")
+                return _redirect_contributors_target(request)
 
     name = name[:100]
     enrollment = enrollment[:20]
@@ -66,7 +74,7 @@ def nominate_contributor(request: HttpRequest) -> HttpResponse:
 
     if not name:
         messages.error(request, "Name is required to add a contributor.")
-        return redirect("contributors")
+        return _redirect_contributors_target(request)
 
     linked_user = None
     if enrollment:
@@ -87,7 +95,7 @@ def nominate_contributor(request: HttpRequest) -> HttpResponse:
         contributor.full_clean()
     except ValidationError as e:
         messages.error(request, f"Validation error: {e}")
-        return redirect("contributors")
+        return _redirect_contributors_target(request)
     contributor.save()
 
     log_audit_event(
@@ -98,7 +106,7 @@ def nominate_contributor(request: HttpRequest) -> HttpResponse:
     )
 
     messages.success(request, f"Successfully added {name} as a recognized contributor.")
-    return redirect("contributors")
+    return _redirect_contributors_target(request)
 
 
 @login_required
@@ -107,7 +115,7 @@ def remove_contributor(request: HttpRequest, contributor_id: int) -> HttpRespons
     """Allows administrators to remove a recognized contributor."""
     if not (request.user.is_superuser or request.user.is_staff):
         messages.error(request, "Permission denied: Only administrators can remove contributors.")
-        return redirect("contributors")
+        return _redirect_contributors_target(request)
 
     from django.shortcuts import get_object_or_404
     contributor = get_object_or_404(Contributor, id=contributor_id)
@@ -122,7 +130,7 @@ def remove_contributor(request: HttpRequest, contributor_id: int) -> HttpRespons
     )
 
     messages.success(request, f"Removed {name} from recognized contributors.")
-    return redirect("contributors")
+    return _redirect_contributors_target(request)
 
 
 @rate_limit(key_prefix='feedback', limit=5, period_seconds=60)

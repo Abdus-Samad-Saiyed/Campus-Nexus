@@ -46,23 +46,33 @@
                         </p>
                     </div>
                 </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="#services" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
-                        <i class="bi bi-grid-fill green-accent"></i>
-                        <span>Campus Services</span>
-                    </a>
-                    <a href="#about" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
-                        <i class="bi bi-info-circle text-secondary"></i>
-                        <span>About</span>
-                    </a>
-                    <a href="#contributors" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
-                        <i class="bi bi-people green-accent"></i>
-                        <span>Contributors</span>
-                    </a>
-                    <a href="#contact" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
-                        <i class="bi bi-envelope text-info"></i>
-                        <span>Contact Desk</span>
-                    </a>
+                <div class="w-100 w-lg-auto mt-3 mt-lg-0">
+                    <div class="row g-2 justify-content-lg-end">
+                        <div class="col-6 col-sm-auto">
+                            <a href="#services" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
+                                <i class="bi bi-grid-fill green-accent"></i>
+                                <span>Campus Services</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-sm-auto">
+                            <a href="#about" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
+                                <i class="bi bi-info-circle text-secondary"></i>
+                                <span>About</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-sm-auto">
+                            <a href="#contributors" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
+                                <i class="bi bi-people green-accent"></i>
+                                <span>Contributors</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-sm-auto">
+                            <a href="#contact" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
+                                <i class="bi bi-envelope green-accent"></i>
+                                <span>Contact Desk</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -278,10 +288,10 @@
 
             {% if feed_announcements %}
                 <!-- Priority Campus Announcements Feed -->
-                <div class="glass p-3 p-md-4 mb-4 border-primary-subtle position-relative" style="background: rgba(15, 23, 42, 0.65); border: 1.5px solid rgba(14, 165, 233, 0.35); box-shadow: 0 0 24px rgba(14, 165, 233, 0.08);">
+                <div class="glass p-3 p-md-4 mb-4 border-success-subtle glass-glow position-relative" style="background: var(--glass-bg, rgba(12, 20, 15, 0.75)); border: 1.5px solid var(--glass-border, rgba(8, 183, 79, 0.3)); box-shadow: 0 0 24px var(--green-glow, rgba(8, 183, 79, 0.12));">
                     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="feature-icon" style="width: 34px; height: 34px; font-size: 1rem; background: rgba(14, 165, 233, 0.2); color: #38bdf8;">
+                            <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
                                 <i class="bi bi-megaphone-fill"></i>
                             </span>
                             <div>
@@ -293,39 +303,40 @@
                             <span class="badge bg-dark border border-secondary text-secondary rounded-pill px-2.5 py-1 small">
                                 {{ total_active_announcements_count|default:feed_announcements|length }} Active Notice{{ total_active_announcements_count|default:feed_announcements|length|pluralize }}
                             </span>
-                            <a href="{% url 'announcement_list' %}" class="btn btn-sm btn-outline-info text-nowrap py-1 px-2.5" style="font-size: 0.78rem;">
-                                <span>View All</span> <i class="bi bi-arrow-right ms-1"></i>
+                            <a href="{% url 'announcement_list' %}" class="btn btn-sm btn-outline-green text-nowrap py-1 px-3 d-inline-flex align-items-center gap-1.5" style="font-size: 0.78rem;">
+                                <span>All Notices</span> <i class="bi bi-arrow-right ms-1"></i>
                             </a>
                         </div>
                     </div>
 
-                    <!-- Compact Title Rows -->
+                    <!-- Priority Announcement Cards -->
                     <div class="d-flex flex-column gap-2">
                         {% for ann in feed_announcements %}
                             <a href="{% url 'announcement_detail' ann.id %}"
-                               class="d-flex align-items-center justify-content-between p-2.5 px-3 rounded bg-black bg-opacity-40 border border-secondary text-decoration-none announcement-compact-row text-light transition-base"
-                               style="border-left: 4px solid {% if ann.priority == 'CRITICAL' %}#ef4444{% elif ann.priority == 'WARNING' %}#f59e0b{% elif ann.priority == 'SUCCESS' %}var(--green,#08B74F){% else %}#0ea5e9{% endif %} !important;">
-                                <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
-                                    <span class="badge {% if ann.priority == 'CRITICAL' %}bg-danger{% elif ann.priority == 'WARNING' %}bg-warning text-dark{% elif ann.priority == 'SUCCESS' %}bg-success{% else %}bg-info text-dark{% endif %} px-2 py-0.5 rounded-pill flex-shrink-0" style="font-size: 0.68rem;">
+                               class="d-flex align-items-center justify-content-between p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-50 text-decoration-none announcement-compact-row text-light transition-base hover-glass"
+                               style="border-left: 4px solid {% if ann.priority == 'CRITICAL' %}#ef4444{% elif ann.priority == 'WARNING' %}#f59e0b{% elif ann.priority == 'SUCCESS' %}var(--green,#08B74F){% else %}var(--green,#08B74F){% endif %} !important;">
+                                <div class="d-flex align-items-center gap-2.5 overflow-hidden me-2 min-w-0">
+                                    <span class="badge {% if ann.priority == 'CRITICAL' %}bg-danger text-white{% elif ann.priority == 'WARNING' %}bg-warning text-dark{% elif ann.priority == 'SUCCESS' %}bg-success text-white{% else %}bg-success-subtle text-success border border-success-subtle{% endif %} px-2.5 py-1 rounded-pill flex-shrink-0 fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.03em;">
+                                        {% if ann.priority == 'CRITICAL' %}<i class="bi bi-exclamation-octagon-fill me-1"></i>{% elif ann.priority == 'WARNING' %}<i class="bi bi-exclamation-triangle-fill me-1"></i>{% else %}<i class="bi bi-megaphone-fill me-1"></i>{% endif %}
                                         {{ ann.get_priority_display }}
                                     </span>
                                     <span class="fw-semibold text-white text-truncate" style="font-size: 0.92rem;">
                                         {{ ann.title }}
                                     </span>
                                     {% if ann.id not in seen_announcement_ids %}
-                                        <span class="badge bg-danger rounded-pill px-1.5 py-0.5 flex-shrink-0" id="feedNewBadge-{{ ann.id }}" style="font-size: 0.62rem;">
+                                        <span class="badge bg-danger rounded-pill px-2 py-0.5 flex-shrink-0 fw-bold animate__animated animate__pulse animate__infinite" id="feedNewBadge-{{ ann.id }}" style="font-size: 0.62rem; box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);">
                                             NEW
                                         </span>
                                     {% endif %}
                                 </div>
-                                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                <div class="d-flex align-items-center gap-2.5 flex-shrink-0">
                                     {% if ann.id in seen_announcement_ids %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle py-0.5 px-1.5 d-none d-sm-inline-flex align-items-center" style="font-size: 0.68rem;">
-                                            <i class="bi bi-check2 me-1"></i> Acknowledged
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 d-none d-sm-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-check2"></i> Acknowledged
                                         </span>
                                     {% endif %}
-                                    <span class="text-secondary small d-none d-md-inline" style="font-size: 0.78rem;">
-                                        {{ ann.created_at|date:"M d" }}
+                                    <span class="text-secondary small d-none d-md-inline font-mono" style="font-size: 0.78rem;">
+                                        {{ ann.created_at|date:"M d, Y" }}
                                     </span>
                                     <i class="bi bi-chevron-right text-secondary small"></i>
                                 </div>
@@ -344,7 +355,7 @@
             {% endif %}
 
             <!-- Unified Next Upcoming Ride & Stay Card (Touch Swipeable Carousel) -->
-            <div class="glass p-4 mb-4 border-success-subtle glass-glow position-relative" style="background: rgba(10, 16, 26, 0.7); border: 1.5px solid rgba(8, 183, 79, 0.35); box-shadow: 0 0 28px rgba(8, 183, 79, 0.1);">
+            <div class="glass p-4 mb-4 border-success-subtle glass-glow position-relative" style="background: var(--glass-bg, rgba(12, 20, 15, 0.75)); border: 1.5px solid var(--glass-border, rgba(8, 183, 79, 0.3)); box-shadow: 0 0 28px var(--green-glow, rgba(8, 183, 79, 0.12));">
                 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2 pb-2 border-bottom border-secondary border-opacity-25">
                     <div class="d-flex align-items-center gap-2">
                         <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
@@ -359,15 +370,15 @@
                     <!-- Slide Controls / Indicator Pills -->
                     <div class="d-flex align-items-center gap-2">
                         <div class="btn-group btn-group-sm" role="group" aria-label="Activity Switcher">
-                            <button type="button" class="btn btn-dark-custom active py-1 px-3 d-inline-flex align-items-center gap-1.5" id="btnCarouselSlideRide" data-bs-target="#upcomingActivityCarousel" data-bs-slide-to="0" aria-current="true" aria-label="Next Ride">
+                            <button type="button" class="btn btn-dark-custom active py-1 px-3 d-inline-flex align-items-center gap-2" id="btnCarouselSlideRide" data-bs-target="#upcomingActivityCarousel" data-bs-slide-to="0" aria-current="true" aria-label="Next Ride">
                                 <i class="bi bi-car-front-fill green-accent"></i>
                                 <span>Next Ride</span>
                                 {% if active_participation %}
                                     <span class="badge bg-success rounded-circle p-1" style="width: 6px; height: 6px;"></span>
                                 {% endif %}
                             </button>
-                            <button type="button" class="btn btn-dark-custom py-1 px-3 d-inline-flex align-items-center gap-1.5" id="btnCarouselSlideStay" data-bs-target="#upcomingActivityCarousel" data-bs-slide-to="1" aria-label="Next Stay">
-                                <i class="bi bi-buildings-fill text-info"></i>
+                            <button type="button" class="btn btn-dark-custom py-1 px-3 d-inline-flex align-items-center gap-2" id="btnCarouselSlideStay" data-bs-target="#upcomingActivityCarousel" data-bs-slide-to="1" aria-label="Next Stay">
+                                <i class="bi bi-buildings-fill green-accent"></i>
                                 <span>Next Stay</span>
                                 {% if active_accommodation_memberships %}
                                     <span class="badge bg-info rounded-circle p-1" style="width: 6px; height: 6px;"></span>
@@ -1067,34 +1078,88 @@
             <!-- Active Contributors Directory -->
             <div class="col-lg-8">
                 <div class="glass p-4 h-100 border-secondary border-opacity-25">
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
-                        <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
-                            <i class="bi bi-people-fill green-accent"></i> Recognized Contributors
-                        </h4>
-                        <span class="badge bg-dark border border-secondary text-secondary small">{{ contributors|length }} Core Builder{{ contributors|length|pluralize }}</span>
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25 flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-people-fill green-accent"></i> Recognized Contributors
+                            </h4>
+                            <span class="badge bg-dark border border-secondary text-secondary small">{{ contributors|length }} Core Builder{{ contributors|length|pluralize }}</span>
+                        </div>
+                        {% if can_manage_contributors %}
+                            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#nominateModal">
+                                <i class="bi bi-person-plus-fill me-1"></i> Add Contributor
+                            </button>
+                        {% endif %}
                     </div>
 
                     {% if contributors %}
-                        <div class="row g-3">
+                        <div class="d-flex flex-column gap-3">
                             {% for c in contributors %}
-                                <div class="col-md-6">
-                                    <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-50 h-100 d-flex align-items-center gap-3">
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4 text-white bg-dark border border-success flex-shrink-0"
-                                             style="width: 48px; height: 48px;">
-                                            {{ c.name|slice:":2"|upper }}
+                                <div class="p-3 p-md-4 rounded bg-black bg-opacity-40 border border-secondary border-opacity-40 transition-base">
+                                    <div class="d-flex flex-column flex-sm-row align-items-sm-start gap-3">
+                                        <!-- Contributor Avatar -->
+                                        <div class="position-relative flex-shrink-0 align-self-start">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4 text-white bg-dark border border-success"
+                                                 style="width: 54px; height: 54px; box-shadow: 0 0 16px rgba(8, 183, 79, 0.25);">
+                                                {{ c.name|slice:":2"|upper }}
+                                            </div>
+                                            <span class="position-absolute bottom-0 end-0 badge bg-success text-white rounded-pill px-1.5 py-0.5" style="font-size: 0.6rem;" title="Recognized Contributor">
+                                                <i class="bi bi-award-fill"></i>
+                                            </span>
                                         </div>
+
+                                        <!-- Details & Actions -->
                                         <div class="flex-grow-1 min-w-0">
-                                            <h6 class="fw-bold text-white mb-0 text-truncate">{{ c.name }}</h6>
-                                            <span class="badge bg-success-subtle text-success small mb-1">{{ c.role }}</span>
+                                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                                    <h5 class="fw-bold text-white mb-0">{{ c.name }}</h5>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle small fw-semibold">
+                                                        <i class="bi bi-patch-check-fill me-1"></i>{{ c.role }}
+                                                    </span>
+                                                    {% if c.enrollment_number %}
+                                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small font-mono">
+                                                            {{ c.enrollment_number }}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+
+                                                {% if can_manage_contributors %}
+                                                    <form action="{% url 'remove_contributor' c.id %}" method="POST" class="d-inline" onsubmit="return confirm('Remove {{ c.name|escapejs }} from recognized contributors?');">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm py-0.5 px-2" style="font-size: 0.72rem;" title="Remove Contributor">
+                                                            <i class="bi bi-trash me-1"></i>Remove
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </div>
+
                                             {% if c.bio %}
-                                                <p class="text-secondary small mb-0 text-truncate" style="font-size: 0.75rem;">{{ c.bio }}</p>
+                                                <p class="text-secondary small mb-3" style="line-height: 1.55;">
+                                                    {{ c.bio }}
+                                                </p>
                                             {% endif %}
+
+                                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                {% if c.github_url %}
+                                                    <a href="{{ c.github_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-github"></i>
+                                                        <span>GitHub</span>
+                                                    </a>
+                                                {% endif %}
+                                                {% if c.linkedin_url %}
+                                                    <a href="{{ c.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5 text-info" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-linkedin"></i>
+                                                        <span>LinkedIn</span>
+                                                    </a>
+                                                {% endif %}
+                                                {% if c.enrollment_number %}
+                                                    <a href="{% url 'profile' c.enrollment_number %}" class="btn btn-outline-secondary btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1.5" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-person"></i>
+                                                        <span>Student Profile</span>
+                                                    </a>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                        {% if c.github_url %}
-                                            <a href="{{ c.github_url }}" target="_blank" class="btn btn-sm btn-dark-custom flex-shrink-0" title="GitHub">
-                                                <i class="bi bi-github"></i>
-                                            </a>
-                                        {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}

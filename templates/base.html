@@ -839,13 +839,17 @@
             padding-right: 12px;
         }
 
+        /* Decimal utility fallbacks */
+        .gap-1\.5 { gap: 0.5rem !important; }
+        .me-1\.5 { margin-right: 0.5rem !important; }
+
         .service-bottom-nav {
             pointer-events: auto;
-            background: rgba(10, 16, 26, 0.62) !important;
-            backdrop-filter: blur(18px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
-            border: 1px solid var(--border, rgba(255, 255, 255, 0.14)) !important;
-            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45), 0 0 20px var(--primary-glow, rgba(8, 183, 79, 0.15)) !important;
+            background: var(--glass-bg, rgba(12, 20, 15, 0.72)) !important;
+            backdrop-filter: blur(20px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+            border: 1px solid var(--glass-border, rgba(8, 183, 79, 0.25)) !important;
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45), 0 0 20px var(--green-glow, rgba(8, 183, 79, 0.2)) !important;
             border-radius: 40px;
             padding: 6px 14px;
             display: flex;
@@ -858,9 +862,9 @@
 
         [data-bs-theme="light"] .service-bottom-nav,
         [data-theme="light"] .service-bottom-nav {
-            background: rgba(255, 255, 255, 0.72) !important;
-            border-color: rgba(0, 0, 0, 0.12) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 16px var(--primary-glow, rgba(8, 183, 79, 0.12)) !important;
+            background: rgba(255, 255, 255, 0.8) !important;
+            border-color: var(--glass-border, rgba(0, 0, 0, 0.12)) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 0 16px var(--green-glow, rgba(8, 183, 79, 0.15)) !important;
         }
 
         .service-bottom-nav-item {
@@ -892,12 +896,13 @@
         .service-bottom-nav-item.active {
             color: var(--green, #08B74F) !important;
             background: var(--green-dim, rgba(8, 183, 79, 0.16)) !important;
+            box-shadow: inset 0 0 0 1px var(--border-hover, rgba(8, 183, 79, 0.35)) !important;
             font-weight: 600;
         }
 
         .service-bottom-nav-item.active i {
             color: var(--green, #08B74F) !important;
-            filter: drop-shadow(0 0 6px var(--primary-glow, rgba(8, 183, 79, 0.4))) !important;
+            filter: drop-shadow(0 0 6px var(--green-glow, rgba(8, 183, 79, 0.4))) !important;
         }
 
         [data-bs-theme="light"] .service-bottom-nav-item,
@@ -915,6 +920,7 @@
         [data-theme="light"] .service-bottom-nav-item.active {
             color: var(--green, #08B74F) !important;
             background: var(--green-dim, rgba(8, 183, 79, 0.14)) !important;
+            box-shadow: inset 0 0 0 1px var(--border-hover, rgba(8, 183, 79, 0.25)) !important;
         }
     </style>
     <script>
@@ -1223,26 +1229,148 @@
                     <span class="navbar-brand-text">CAMPUS <span class="green-accent">NEXUS</span></span>
                 </a>
 
-                <!-- Mobile Quick Actions: UI Settings Button LEFT of Rightmost Profile Photo (strictly hidden on desktop, pinned right on mobile) -->
-                <div class="navbar-mobile-actions d-flex align-items-center gap-1 gap-sm-2 d-lg-none ms-auto flex-shrink-0">
+                <!-- Mobile Quick Actions: Messages, UI Palette, and Rightmost Profile Photo Dropdown (strictly hidden on desktop, pinned right on mobile) -->
+                <div class="navbar-mobile-actions d-flex align-items-center gap-1.5 d-lg-none ms-auto flex-shrink-0">
                     <!-- Pinned Mobile Install Button (Direct Native Install on Android; Share Sheet on iOS) -->
                     <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center green-accent d-none" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
                         <i class="bi bi-download" id="pwa-pinned-icon"></i>
                     </button>
                     <button class="btn-pwa-install-mobile d-none" id="btn-pwa-install-mobile" type="button" aria-hidden="true" style="display:none;"></button>
-                    <!-- Mobile Dedicated Visual Controls & Accent Colours Button (To the left of profile photo) -->
-                    <button class="btn btn-icon-nav" type="button" data-bs-toggle="modal" data-bs-target="#uiSettingsModal" title="Visual Controls & Accent Colours" aria-label="Visual Controls & Accent Colours">
+
+                    {% if user.is_authenticated and not is_guest_demo %}
+                        <!-- Upper Top Navbar Messages Action (between Brand and Profile) -->
+                        <a href="{% url 'messages_inbox' %}" class="btn btn-icon-nav position-relative d-inline-flex align-items-center justify-content-center" title="Direct Messages" aria-label="Messages">
+                            <i class="bi bi-chat-left-dots-fill green-accent"></i>
+                            {% if unread_messages_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark" style="font-size: 0.6rem; padding: 0.25em 0.45em;">
+                                    {{ unread_messages_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+                    {% endif %}
+
+                    <!-- Mobile Dedicated Visual Controls & Accent Colours Button -->
+                    <button class="btn btn-icon-nav d-inline-flex align-items-center justify-content-center" type="button" data-bs-toggle="modal" data-bs-target="#uiSettingsModal" title="Visual Controls & Accent Colours" aria-label="Visual Controls & Accent Colours">
                         <i class="bi bi-palette2 green-accent"></i>
                     </button>
+
                     {% if user.is_authenticated %}
-                        <!-- Rightmost Mobile Profile Photo: Tapping opens User Offcanvas Drawer -->
-                        <button type="button" class="btn btn-icon-nav p-0 rounded-circle overflow-hidden border border-secondary" data-bs-toggle="offcanvas" data-bs-target="#mobileUserDrawer" aria-controls="mobileUserDrawer" title="User Menu ({{ user.enrollment_number }})" aria-label="User Menu">
-                            {% if user.profile_photo %}
-                                <img src="{{ user.profile_photo.url }}" alt="{{ user.enrollment_number }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<i class=\'bi bi-person-fill text-secondary\'></i>';">
-                            {% else %}
-                                <i class="bi bi-person-fill text-secondary" style="font-size: 1.1rem; line-height: 40px;"></i>
-                            {% endif %}
-                        </button>
+                        <!-- Rightmost Mobile Profile Photo: Tapping opens Glassy Dropdown Menu matching desktop -->
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn btn-icon-nav p-0 rounded-circle overflow-hidden border border-secondary" data-bs-toggle="dropdown" aria-expanded="false" title="User Menu ({{ user.enrollment_number }})" aria-label="User Menu">
+                                {% if user.profile_photo %}
+                                    <img src="{{ user.profile_photo.url }}" alt="{{ user.enrollment_number }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<i class=\'bi bi-person-fill text-secondary\'></i>';">
+                                {% else %}
+                                    <i class="bi bi-person-fill text-secondary" style="font-size: 1.1rem; line-height: 40px;"></i>
+                                {% endif %}
+                            </button>
+
+                            <ul class="dropdown-menu dropdown-menu-end shadow-xl py-2 glass glass-glow mt-1 border-secondary border-opacity-25" style="min-width: 270px; max-width: 320px;">
+                                <!-- User Identity Header -->
+                                <li class="px-3 py-2 border-bottom border-secondary border-opacity-25 mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle overflow-hidden border border-secondary flex-shrink-0" style="width: 38px; height: 38px;">
+                                            {% if user.profile_photo %}
+                                                <img src="{{ user.profile_photo.url }}" alt="{{ user.enrollment_number }}" class="w-100 h-100 object-fit-cover">
+                                            {% else %}
+                                                <i class="bi bi-person-fill text-secondary d-flex align-items-center justify-content-center h-100 fs-5"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="overflow-hidden min-w-0">
+                                            <div class="fw-bold text-truncate text-white" style="font-size: 0.9rem;">
+                                                {% if is_guest_demo %}Guest Demo Explorer{% else %}{{ user.get_full_name|default:user.enrollment_number }}{% endif %}
+                                            </div>
+                                            <div class="small text-secondary font-mono text-truncate" style="font-size: 0.75rem;">
+                                                {% if is_guest_demo %}DEMO SESSION{% else %}{{ user.enrollment_number }}{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-1.5">
+                                        {% if is_guest_demo %}
+                                            <span class="badge bg-info-subtle text-info py-0 px-1" style="font-size: 0.62rem;">GUEST DEMO</span>
+                                        {% elif user.is_superuser %}
+                                            <span class="badge bg-danger-subtle text-danger py-0 px-1" style="font-size: 0.62rem;">SUPERUSER</span>
+                                        {% elif user.is_staff %}
+                                            <span class="badge bg-success-subtle green-accent py-0 px-1" style="font-size: 0.62rem;">STAFF</span>
+                                        {% elif user.verified %}
+                                            <span class="badge bg-success-subtle text-success py-0 px-1" style="font-size: 0.62rem;">VERIFIED</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+
+                                {% if is_guest_demo %}
+                                    <li>
+                                        <span class="dropdown-item py-2 text-muted small">
+                                            <i class="bi bi-incognito me-2 text-info"></i>Guest Demo Mode Active
+                                        </span>
+                                    </li>
+                                {% else %}
+                                    <li>
+                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-white" href="{% url 'profile' user.enrollment_number %}">
+                                            <i class="bi bi-person-circle text-primary fs-6"></i>
+                                            <span class="fw-semibold small">My Profile</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-white" href="{% url 'account_settings' %}">
+                                            <i class="bi bi-gear-fill green-accent fs-6"></i>
+                                            <span class="fw-semibold small">Account Settings</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if user.is_staff or user.is_superuser %}
+                                    <li><hr class="dropdown-divider border-secondary border-opacity-25 my-1"></li>
+                                    <li class="dropdown-header small text-uppercase fw-bold text-secondary px-3 py-1" style="font-size: 0.68rem; letter-spacing: 0.05em;">
+                                        <i class="bi bi-shield-lock-fill green-accent me-1"></i> Admin Governance
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-white" href="{% url 'operational_dashboard' %}">
+                                            <i class="bi bi-speedometer text-success"></i>
+                                            <span class="small">Operations Overview</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-white" href="{% url 'admin_announcements' %}">
+                                            <i class="bi bi-megaphone text-primary"></i>
+                                            <span class="small">Announcements</span>
+                                        </a>
+                                    </li>
+                                    {% if user.is_superuser %}
+                                        <li>
+                                            <a class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-white" href="{% url 'manage_superusers' %}">
+                                                <i class="bi bi-shield-shaded text-danger"></i>
+                                                <span class="small">Superuser Control</span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    <li>
+                                        <a class="dropdown-item py-1.5 d-flex align-items-center justify-content-between text-white" href="{% url 'application_list' %}">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-card-checklist text-info"></i>
+                                                <span class="small">Pending Applications</span>
+                                            </div>
+                                            {% if pending_applications_count > 0 %}
+                                                <span class="badge bg-danger rounded-pill px-1.5 py-0.5" style="font-size: 0.65rem;">
+                                                    {{ pending_applications_count }}
+                                                </span>
+                                            {% endif %}
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                <li><hr class="dropdown-divider border-secondary border-opacity-25 my-1"></li>
+                                <li>
+                                    <form action="{% url 'logout' %}" method="POST" class="m-0 p-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger">
+                                            <i class="bi bi-box-arrow-right fs-6"></i>
+                                            <span class="fw-semibold small">Sign Out</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     {% else %}
                         <a href="{% url 'login' %}" class="btn btn-outline-green btn-sm px-2.5 py-1 text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
                             <i class="bi bi-box-arrow-in-right"></i> Sign In
@@ -1251,96 +1379,99 @@
                 </div>
             </div>
 
-            <!-- Layer 2: Mobile Quick-Action Strip (Layered Sub-Header) -->
+            <!-- Layer 2: Mobile Quick-Action Strip (Layered Sub-Header - ZERO SCROLL) -->
             <div class="navbar-mobile-layer-2 d-lg-none w-100">
-                <div class="d-flex align-items-center gap-1.5 py-1 px-0 overflow-x-auto text-nowrap no-scrollbar w-100">
+                <div class="d-flex align-items-center justify-content-between gap-1 py-1 px-0 text-nowrap w-100">
                     {% if user.is_authenticated and not is_guest_demo %}
-                        <!-- Messages Quick-Action Pill with Unread Counter -->
-                        <a href="{% url 'messages_inbox' %}" class="mobile-nav-pill {% if request.resolver_match.url_name == 'messages_inbox' or request.resolver_match.url_name == 'direct_chat' %}active{% endif %}">
-                            <i class="bi bi-chat-left-dots-fill green-accent"></i>
-                            <span>Messages</span>
-                            {% if unread_messages_count > 0 %}
-                                <span class="badge rounded-pill bg-danger border border-dark ms-0.5" style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-                                    {{ unread_messages_count }}
-                                </span>
-                            {% endif %}
-                        </a>
+                        <!-- Services Menu Dropdown Pill -->
+                        <div class="dropdown flex-fill">
+                            <button class="mobile-nav-pill dropdown-toggle border-0 w-100 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' or request.resolver_match.app_name == 'coordinate' or request.resolver_match.app_name == 'accommodate' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Campus Services Menu">
+                                <i class="bi bi-grid-fill green-accent me-1"></i>
+                                <span>Services</span>
+                            </button>
+                            <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25" style="min-width: 250px; background: rgba(10, 16, 26, 0.96); backdrop-filter: blur(20px);">
+                                <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
+                                    <i class="bi bi-car-front-fill green-accent"></i> Coordinate
+                                </div>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'ride_list' %}">
+                                    <i class="bi bi-search me-2 text-secondary"></i> Browse Rides
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'create_ride' %}">
+                                    <i class="bi bi-plus-circle me-2 text-secondary"></i> Offer a Ride
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'my_rides' %}">
+                                    <i class="bi bi-clock-history me-2 text-secondary"></i> My Rides
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/coordinate/">
+                                    <i class="bi bi-info-circle me-2"></i> Coordinate Overview &rarr;
+                                </a>
+
+                                <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
+
+                                <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
+                                    <i class="bi bi-buildings-fill green-accent"></i> Accommodate
+                                </div>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_list' %}">
+                                    <i class="bi bi-search me-2 text-secondary"></i> Explore Stays
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_create' %}">
+                                    <i class="bi bi-plus-circle me-2 text-secondary"></i> Create Listing
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:my_groups' %}">
+                                    <i class="bi bi-collection me-2 text-secondary"></i> My Stays
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/accommodate/">
+                                    <i class="bi bi-info-circle me-2"></i> Accommodate Overview &rarr;
+                                </a>
+
+                                <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
+
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-center text-white fw-bold bg-dark border border-secondary border-opacity-25" href="{% url 'service_catalogue' %}">
+                                    <i class="bi bi-grid me-1"></i> All Services Directory &rarr;
+                                </a>
+                            </div>
+                        </div>
 
                         <!-- Student Directory Quick-Action Pill -->
-                        <a href="{% url 'user_search' %}" class="mobile-nav-pill {% if request.resolver_match.url_name == 'user_search' %}active{% endif %}" title="Verified Student Directory">
-                            <i class="bi bi-people-fill green-accent"></i>
+                        <a href="{% url 'user_search' %}" class="mobile-nav-pill flex-fill justify-content-center {% if request.resolver_match.url_name == 'user_search' %}active{% endif %}" title="Verified Student Directory">
+                            <i class="bi bi-people-fill green-accent me-1"></i>
                             <span>Directory</span>
                         </a>
-                    {% endif %}
 
-                    <!-- Services Menu Dropdown Pill (Opens menu like desktop) -->
-                    <div class="dropdown d-inline-block">
-                        <button class="mobile-nav-pill dropdown-toggle border-0 {% if request.resolver_match.url_name == 'service_catalogue' or request.resolver_match.app_name == 'coordinate' or request.resolver_match.app_name == 'accommodate' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Campus Services Menu">
-                            <i class="bi bi-grid-fill green-accent"></i>
-                            <span>Services</span>
-                        </button>
-                        <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25" style="min-width: 260px; background: rgba(10, 16, 26, 0.96); backdrop-filter: blur(20px);">
-                            <!-- Coordinate Quick Links -->
-                            <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-1.5" style="font-size: 0.68rem; letter-spacing: 0.05em;">
-                                <i class="bi bi-car-front-fill green-accent"></i> Coordinate
-                            </div>
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'ride_list' %}">
-                                <i class="bi bi-search me-1.5 text-secondary"></i> Browse Rides
-                            </a>
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'create_ride' %}">
-                                <i class="bi bi-plus-circle me-1.5 text-secondary"></i> Offer a Ride
-                            </a>
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'my_rides' %}">
-                                <i class="bi bi-clock-history me-1.5 text-secondary"></i> My Rides
-                            </a>
-                            <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/coordinate/">
-                                <i class="bi bi-info-circle me-1.5"></i> Coordinate Overview &rarr;
-                            </a>
-
-                            <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
-
-                            <!-- Accommodate Quick Links -->
-                            <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-1.5" style="font-size: 0.68rem; letter-spacing: 0.05em;">
-                                <i class="bi bi-buildings-fill green-accent"></i> Accommodate
-                            </div>
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_list' %}">
-                                <i class="bi bi-search me-1.5 text-secondary"></i> Explore Stays
-                            </a>
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_create' %}">
-                                <i class="bi bi-plus-circle me-1.5 text-secondary"></i> Create Listing
-                            </a>
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:my_groups' %}">
-                                <i class="bi bi-collection me-1.5 text-secondary"></i> My Stays
-                            </a>
-                            <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/accommodate/">
-                                <i class="bi bi-info-circle me-1.5"></i> Accommodate Overview &rarr;
-                            </a>
-
-                            <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
-
-                            <a class="dropdown-item py-1.5 px-2 rounded small text-center text-white fw-bold bg-dark border border-secondary border-opacity-25" href="{% url 'service_catalogue' %}">
-                                <i class="bi bi-grid me-1"></i> All Services Directory &rarr;
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Feedback & Bug Tracker Quick-Action Pill -->
-                    <a href="{% url 'feedback' %}" class="mobile-nav-pill {% if request.resolver_match.url_name == 'feedback' %}active{% endif %}" title="Feedback & Bug Tracker">
-                        <i class="bi bi-bug-fill green-accent"></i>
-                        <span>Feedback</span>
-                    </a>
-
-                    {% if not user.is_authenticated or is_guest_demo %}
-                        <a href="/#contributors" class="mobile-nav-pill">
-                            <i class="bi bi-people green-accent"></i>
-                            <span>Contributors</span>
+                        <!-- Feedback & Bug Tracker Quick-Action Pill -->
+                        <a href="{% url 'feedback' %}" class="mobile-nav-pill flex-fill justify-content-center {% if request.resolver_match.url_name == 'feedback' %}active{% endif %}" title="Feedback & Bug Tracker">
+                            <i class="bi bi-bug-fill green-accent me-1"></i>
+                            <span>Feedback</span>
                         </a>
-                        <a href="/#about" class="mobile-nav-pill">
-                            <i class="bi bi-info-circle text-secondary"></i>
+                    {% else %}
+                        <div class="dropdown flex-fill">
+                            <button class="mobile-nav-pill dropdown-toggle border-0 w-100 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-grid-fill green-accent me-1"></i>
+                                <span>Services</span>
+                            </button>
+                            <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25" style="min-width: 230px;">
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="/coordinate/">
+                                    <i class="bi bi-car-front-fill green-accent me-2"></i>Coordinate Rides
+                                </a>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="/accommodate/">
+                                    <i class="bi bi-buildings-fill green-accent me-2"></i>Accommodate Housing
+                                </a>
+                                <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
+                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'service_catalogue' %}">
+                                    <i class="bi bi-grid me-2"></i>All Services Directory &rarr;
+                                </a>
+                            </div>
+                        </div>
+                        <a href="/#about" class="mobile-nav-pill flex-fill justify-content-center">
+                            <i class="bi bi-info-circle text-secondary me-1"></i>
                             <span>About</span>
                         </a>
-                        <a href="/#contact" class="mobile-nav-pill">
-                            <i class="bi bi-envelope green-accent"></i>
+                        <a href="/#contributors" class="mobile-nav-pill flex-fill justify-content-center">
+                            <i class="bi bi-people green-accent me-1"></i>
+                            <span>Contributors</span>
+                        </a>
+                        <a href="/#contact" class="mobile-nav-pill flex-fill justify-content-center">
+                            <i class="bi bi-envelope green-accent me-1"></i>
                             <span>Contact</span>
                         </a>
                     {% endif %}
@@ -1757,112 +1888,6 @@
             </div>
         </div>
     </nav>
-
-    {% if user.is_authenticated %}
-    <!-- Mobile User Offcanvas Drawer (Opened by Rightmost Profile Photo on Phone Screens) -->
-    <div class="offcanvas offcanvas-end text-bg-dark border-start border-secondary" tabindex="-1" id="mobileUserDrawer" aria-labelledby="mobileUserDrawerLabel" style="max-width: 320px;">
-        <div class="offcanvas-header border-bottom border-secondary border-opacity-25 pb-3">
-            <div class="d-flex align-items-center gap-2.5 overflow-hidden">
-                <div class="rounded-circle overflow-hidden border border-secondary flex-shrink-0" style="width: 44px; height: 44px;">
-                    {% if user.profile_photo %}
-                        <img src="{{ user.profile_photo.url }}" alt="{{ user.enrollment_number }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<i class=\'bi bi-person-fill text-secondary fs-4 d-flex align-items-center justify-content-center h-100\'></i>';">
-                    {% else %}
-                        <i class="bi bi-person-fill text-secondary fs-4 d-flex align-items-center justify-content-center h-100"></i>
-                    {% endif %}
-                </div>
-                <div class="overflow-hidden">
-                    <div class="fw-bold text-truncate text-white" id="mobileUserDrawerLabel" style="font-size: 0.95rem;">
-                        {% if is_guest_demo %}Guest Demo Explorer{% else %}{{ user.get_full_name|default:user.enrollment_number }}{% endif %}
-                    </div>
-                    <div class="small text-secondary font-mono" style="font-size: 0.78rem;">
-                        {% if is_guest_demo %}DEMO SESSION{% else %}{{ user.enrollment_number }}{% endif %}
-                    </div>
-                    {% if is_guest_demo %}
-                        <span class="badge bg-info-subtle text-info py-0 px-1 mt-0.5" style="font-size: 0.62rem;">GUEST DEMO</span>
-                    {% elif user.is_superuser %}
-                        <span class="badge bg-danger-subtle text-danger py-0 px-1 mt-0.5" style="font-size: 0.62rem;">SUPERUSER</span>
-                    {% elif user.is_staff %}
-                        <span class="badge bg-success-subtle green-accent py-0 px-1 mt-0.5" style="font-size: 0.62rem;">STAFF</span>
-                    {% elif user.verified %}
-                        <span class="badge bg-success-subtle text-success py-0 px-1 mt-0.5" style="font-size: 0.62rem;">VERIFIED</span>
-                    {% endif %}
-                </div>
-            </div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-
-        <div class="offcanvas-body p-3 d-flex flex-column justify-content-between">
-            <div class="d-flex flex-column gap-1">
-                {% if not is_guest_demo %}
-                    <!-- My Profile -->
-                    <a class="dropdown-item py-2 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'profile' user.enrollment_number %}">
-                        <i class="bi bi-person-circle green-accent fs-5"></i>
-                        <span class="fw-semibold">My Profile</span>
-                    </a>
-
-                    <!-- Account Settings -->
-                    <a class="dropdown-item py-2 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'account_settings' %}">
-                        <i class="bi bi-gear-fill text-info fs-5"></i>
-                        <span class="fw-semibold">Account Settings</span>
-                    </a>
-                {% else %}
-                    <div class="p-2.5 rounded bg-info bg-opacity-10 border border-info border-opacity-25 text-info small mb-2">
-                        <i class="bi bi-incognito me-1"></i> Guest Demo Mode Active
-                    </div>
-                {% endif %}
-
-                {% if user.is_staff or user.is_superuser %}
-                    <hr class="my-2 border-secondary opacity-25">
-                    <div class="small text-uppercase fw-bold text-secondary px-3 py-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">
-                        <i class="bi bi-shield-lock-fill green-accent me-1"></i> Admin &amp; Governance
-                    </div>
-
-                    <a class="dropdown-item py-1.5 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'operational_dashboard' %}">
-                        <i class="bi bi-speedometer text-success"></i>
-                        <span>Operations Overview</span>
-                    </a>
-                    <a class="dropdown-item py-1.5 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'admin_announcements' %}">
-                        <i class="bi bi-megaphone text-primary"></i>
-                        <span>Announcements</span>
-                    </a>
-                    {% if user.is_superuser %}
-                        <a class="dropdown-item py-1.5 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'manage_superusers' %}">
-                            <i class="bi bi-shield-shaded text-danger"></i>
-                            <span>Superuser Control</span>
-                        </a>
-                    {% endif %}
-                    <a class="dropdown-item py-1.5 px-3 rounded d-flex align-items-center justify-content-between text-white hover-glass" href="{% url 'application_list' %}">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-card-checklist text-info"></i>
-                            <span>Pending Applications</span>
-                        </div>
-                        {% if pending_applications_count > 0 %}
-                            <span class="badge bg-danger rounded-pill px-2 py-0.5" style="font-size: 0.7rem;">{{ pending_applications_count }}</span>
-                        {% endif %}
-                    </a>
-                    <a class="dropdown-item py-1.5 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'admin_analytics' %}">
-                        <i class="bi bi-graph-up text-warning"></i>
-                        <span>Ride Analytics</span>
-                    </a>
-                    <a class="dropdown-item py-1.5 px-3 rounded d-flex align-items-center gap-2 text-white hover-glass" href="{% url 'admin:index' %}" target="_blank">
-                        <i class="bi bi-database-lock text-secondary"></i>
-                        <span>Django Admin</span>
-                    </a>
-                {% endif %}
-            </div>
-
-            <!-- Sign Out at bottom -->
-            <div class="pt-3 border-top border-secondary border-opacity-25 mt-3">
-                <form action="{% url 'logout' %}" method="POST" class="m-0 p-0">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 py-2 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-box-arrow-right me-2"></i> Sign Out
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     <!-- iOS Safari PWA Installation Modal -->
     <div class="modal fade" id="pwaIosInstallModal" tabindex="-1" aria-labelledby="pwaIosInstallModalLabel" aria-hidden="true">
