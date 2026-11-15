@@ -55,20 +55,20 @@ class AccountWorkflowTests(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
 
-        application = AccountApplication.objects.get()
+        user = User.objects.get(enrollment_number='2024BCSE013')
 
         self.assertEqual(
-            application.enrollment_number,
+            user.enrollment_number,
             '2024BCSE013'
         )
         self.assertEqual(
-            application.email,
+            user.email,
             'applicant2024@nitsri.ac.in'
         )
         self.assertNotEqual(
-            application.password,
+            user.password,
             'CampusPass@2024!'
         )
 

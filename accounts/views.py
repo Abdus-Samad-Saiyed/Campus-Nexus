@@ -117,12 +117,15 @@ def _is_superuser(user):
 # ---------------------------------------------------------------------------
 
 def landing(request):
-    """Public landing page presenting the Campus Nexus umbrella platform."""
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    services = get_all_services()
+    """Platform homepage presenting the Campus Nexus umbrella platform, about, and contributors."""
+    from accounts.models import Contributor
+    services = [s for s in get_all_services() if s.get('is_active')]
+    contributors = Contributor.objects.filter(is_active=True).select_related('nominated_by', 'user').order_by('created_at')
+    can_manage_contributors = bool(request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff))
     return render(request, 'landing.html', {
         'services': services,
+        'contributors': contributors,
+        'can_manage_contributors': can_manage_contributors,
     })
 
 
@@ -1659,6 +1662,30 @@ def dashboard(request):
     just_signed_in = request.session.pop('just_signed_in', False)
 
     has_passkeys = PasskeyCredential.objects.filter(user=request.user).exists()
+
+    active_accommodation_memberships = []
+    pending_accommodation_requests_count = 0
+    try:
+        from accommodate.models import (
+            AccommodationGroup,
+            AccommodationJoinApplication,
+            AccommodationMembership,
+            ApplicationStatus,
+            MembershipStatus,
+        )
+        active_accommodation_memberships = list(
+            AccommodationMembership.objects
+            .filter(user=request.user, status=MembershipStatus.ACTIVE)
+            .select_related('group', 'group__stay_location', 'group__current_owner')
+            .order_by('planned_stay')
+        )
+        pending_accommodation_requests_count = AccommodationJoinApplication.objects.filter(
+            group__current_owner=request.user,
+            status=ApplicationStatus.PENDING
+        ).count()
+    except Exception:
+        pass
+
     return render(request, 'accounts/dashboard.html', {
         'active_participation': active_participation,
         'has_passkeys': has_passkeys,
@@ -1667,6 +1694,8 @@ def dashboard(request):
         'pending_application': pending_application,
         'incoming_friend_requests': incoming_friend_requests,
         'incoming_ride_join_requests': incoming_ride_join_requests,
+        'active_accommodation_memberships': active_accommodation_memberships,
+        'pending_accommodation_requests_count': pending_accommodation_requests_count,
         'recent_conversations': recent_conversations,
         'total_unread_messages': total_unread_messages,
         'active_announcements': active_announcements,

@@ -1,0 +1,465 @@
+{% extends 'accommodate/base.html' %}
+
+{% block accommodate_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <div class="glass p-4 p-md-5 rounded-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.65);">
+            <!-- Form Header -->
+            <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                <h3 class="fw-bold text-white mb-1">Form an Accommodation Group</h3>
+                <p class="text-secondary small mb-0">
+                    Coordinate outstation flatmates, verify Google Maps stays, and manage admissions with clear peer rules.
+                </p>
+            </div>
+
+            <!-- Top Stays Quick Select Bar -->
+            {% if popular_stays %}
+                <div class="p-3 rounded-3 mb-4 bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-semibold text-light">
+                            <i class="bi bi-magic text-warning me-1"></i> Quick Fill from Verified Top Stays:
+                        </span>
+                        <span class="text-secondary small">1-click populate</span>
+                    </div>
+                    <div class="d-flex gap-2 overflow-x-auto pb-1" style="scrollbar-width: thin;">
+                        {% for stay in popular_stays %}
+                            <button type="button"
+                                    class="btn btn-sm btn-dark-custom text-nowrap py-1 px-2.5 rounded-2 d-flex align-items-center gap-1.5"
+                                    style="font-size: 0.76rem;"
+                                    onclick="quickFillStay('{{ stay.id }}', '{{ stay.name|escapejs }}', '{{ stay.city|escapejs }}', '{{ stay.location_area|escapejs }}', '{{ stay.formatted_address|escapejs }}', '{{ stay.latitude|default:'' }}', '{{ stay.longitude|default:'' }}', '{{ stay.google_place_id|default:'' }}')">
+                                <i class="bi bi-building text-info"></i>
+                                <span class="text-light fw-medium">{{ stay.name }}</span>
+                                <span class="text-secondary">({{ stay.city }})</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{% url 'accommodate:group_create' %}" id="groupCreateForm">
+                {% csrf_token %}
+
+                <!-- Hidden Google Maps metadata fields -->
+                <input type="hidden" name="stay_location_id" id="hiddenStayLocationId" value="{{ form_data.stay_location_id|default:'' }}">
+                <input type="hidden" name="google_place_id" id="hiddenGooglePlaceId" value="{{ form_data.google_place_id|default:'' }}">
+                <input type="hidden" name="formatted_address" id="hiddenFormattedAddress" value="{{ form_data.formatted_address|default:'' }}">
+                <input type="hidden" name="latitude" id="hiddenLatitude" value="{{ form_data.latitude|default:'' }}">
+                <input type="hidden" name="longitude" id="hiddenLongitude" value="{{ form_data.longitude|default:'' }}">
+
+                <!-- Section 1: Location & Destination -->
+                <div class="mb-4">
+                    <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success rounded-circle" style="width: 24px; height: 24px; font-size: 0.75rem; padding: 4px;">1</span>
+                        <span>Destination &amp; Stay Location</span>
+                    </h5>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small text-secondary fw-semibold">Group Title *</label>
+                            <input type="text"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="title"
+                                   id="inputTitle"
+                                   required
+                                   value="{{ form_data.title|default:'' }}"
+                                   placeholder="e.g. Bangalore Summer Interns — Koramangala 3BHK">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Destination City *</label>
+                            <input type="text"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="destination_city"
+                                   id="inputCity"
+                                   required
+                                   value="{{ form_data.destination_city|default:'' }}"
+                                   placeholder="e.g. Bengaluru, Hyderabad, Pune, Gurugram">
+                            <div class="form-text text-secondary small">You define the destination city directly.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Location / Neighborhood *</label>
+                            <input type="text"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="location_within_city"
+                                   id="inputLocation"
+                                   required
+                                   value="{{ form_data.location_within_city|default:'' }}"
+                                   placeholder="e.g. Koramangala 4th Block / HSR Layout">
+                        </div>
+
+                        <!-- Google Maps Picker Trigger Button & Banner -->
+                        <div class="col-12">
+                            <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-40 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                                <div>
+                                    <div class="fw-semibold text-light small d-flex align-items-center gap-1.5" id="mapsStatusLabel">
+                                        <i class="bi bi-geo-alt-fill text-danger"></i>
+                                        <span>Pinpoint Stay on Google Maps</span>
+                                    </div>
+                                    <div class="text-secondary small mt-0.5" id="mapsStatusSubtext">
+                                        Searches or pin drops resolve to canonical Google address and Place ID to prevent duplicates.
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-info text-nowrap" data-bs-toggle="modal" data-bs-target="#googleMapsModal">
+                                    <i class="bi bi-map me-1"></i> Open Maps Picker
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Lodging / Property Name (Optional)</label>
+                            <input type="text"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="lodging_name"
+                                   id="inputLodgingName"
+                                   value="{{ form_data.lodging_name|default:'' }}"
+                                   placeholder="e.g. Zolo Amber / Stanza Living Frankfurt House">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Google Maps URL (Optional)</label>
+                            <input type="url"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="maps_url"
+                                   id="inputMapsUrl"
+                                   value="{{ form_data.maps_url|default:'' }}"
+                                   placeholder="https://maps.app.goo.gl/...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Stay Dates & Admission Rules -->
+                <div class="mb-4 pt-3 border-top border-secondary border-opacity-25">
+                    <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success rounded-circle" style="width: 24px; height: 24px; font-size: 0.75rem; padding: 4px;">2</span>
+                        <span>Your Declared Stay Dates &amp; Admission Mode</span>
+                    </h5>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Your Stay Start Date *</label>
+                            <input type="date"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="start_date"
+                                   required
+                                   value="{{ form_data.start_date|default:'' }}">
+                            <div class="form-text text-secondary small">Your declared start date at this stay.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Your Stay End Date *</label>
+                            <input type="date"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="end_date"
+                                   required
+                                   value="{{ form_data.end_date|default:'' }}">
+                            <div class="form-text text-secondary small">Your declared departure date.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Target Member Limit</label>
+                            <input type="number"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="member_limit"
+                                   min="1"
+                                   value="{{ form_data.member_limit|default:'' }}"
+                                   placeholder="Leave blank for unlimited">
+                            <div class="form-text text-secondary small">E.g. 4 for a 2BHK flat. New admissions stop when full.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Admission Process *</label>
+                            <select class="form-select bg-black bg-opacity-40 border-secondary text-white" name="admission_mode" id="inputAdmissionMode">
+                                <option value="MANUAL" {% if form_data.admission_mode != 'AUTO' %}selected{% endif %}>
+                                    🛡️ Peer Review (Manual) — Group owner decides with advisory peer objections
+                                </option>
+                                <option value="AUTO" {% if form_data.admission_mode == 'AUTO' %}selected{% endif %}>
+                                    ⚡ Auto FIFO — Applicants admitted instantly until limit; waitlist queued in FIFO
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Cost Sharing & Description -->
+                <div class="mb-4 pt-3 border-top border-secondary border-opacity-25">
+                    <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                        <span class="badge bg-success-subtle text-success rounded-circle" style="width: 24px; height: 24px; font-size: 0.75rem; padding: 4px;">3</span>
+                        <span>Estimated Cost &amp; Expectations</span>
+                    </h5>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Estimated Cost (INR)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-black bg-opacity-40 border-secondary text-secondary">₹</span>
+                                <input type="number"
+                                       step="0.01"
+                                       class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                       name="estimated_cost_amount"
+                                       value="{{ form_data.estimated_cost_amount|default:'' }}"
+                                       placeholder="e.g. 12500">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-secondary fw-semibold">Cost Basis</label>
+                            <select class="form-select bg-black bg-opacity-40 border-secondary text-white" name="estimated_cost_basis">
+                                <option value="PER_PERSON_MONTH" selected>Per Person / Month</option>
+                                <option value="PER_PERSON_DAY">Per Person / Day</option>
+                                <option value="TOTAL_GROUP_MONTH">Total Group / Month</option>
+                                <option value="TOTAL_STAY">Total Stay Period</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small text-secondary fw-semibold">Cost Breakdown Note (Optional)</label>
+                            <input type="text"
+                                   class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                   name="cost_note"
+                                   value="{{ form_data.cost_note|default:'' }}"
+                                   placeholder="e.g. Includes WiFi, water, and daily housekeeping. Electricity billed per meter.">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small text-secondary fw-semibold">Description &amp; Flatmate Preferences</label>
+                            <textarea class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                                      name="description"
+                                      rows="4"
+                                      placeholder="Introduce your internship plans, work location/office, food habits, cleanliness preferences, and study/work routine...">{{ form_data.description|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+                    <a href="{% url 'accommodate:group_list' %}" class="btn btn-dark-custom">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-green px-4 fw-bold">
+                        <i class="bi bi-check-circle-fill me-1"></i> Form Group
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Google Maps Interactive Picker Modal -->
+<div class="modal fade" id="googleMapsModal" tabindex="-1" aria-labelledby="googleMapsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" id="googleMapsModalLabel">
+                    <i class="bi bi-google text-primary me-2"></i>Select Google Maps Stay Location
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small text-secondary fw-semibold">Search Place or Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-black bg-opacity-40 border-secondary text-secondary">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text"
+                               id="gmapsAutocompleteInput"
+                               class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                               placeholder="Type hostel, PG name, apartment, or area...">
+                    </div>
+                </div>
+
+                <!-- Interactive Map Canvas -->
+                <div id="gmapsCanvas"
+                     style="height: 360px; width: 100%; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15);"
+                     class="d-flex align-items-center justify-content-center text-center p-3">
+                    {% if not google_maps_api_key %}
+                        <div class="text-secondary small">
+                            <i class="bi bi-info-circle text-info fs-3 d-block mb-2"></i>
+                            Google Maps API Key not configured in local environment.<br>
+                            You can enter the address details manually or select from the verified top student stays above.
+                        </div>
+                    {% else %}
+                        <div class="text-secondary small" id="mapLoadingNotice">
+                            <div class="spinner-border spinner-border-sm text-success me-1" role="status"></div>
+                            Loading Google Maps Interactive Canvas...
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Selected Location Details Preview -->
+                <div class="mt-3 p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-40" id="selectedLocationPreview" style="display: none;">
+                    <div class="small fw-bold text-white mb-1" id="previewPlaceName">—</div>
+                    <div class="small text-secondary mb-1" id="previewFormattedAddress">—</div>
+                    <div class="small text-light font-mono" id="previewCoords" style="font-size: 0.72rem;">—</div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-dark-custom" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-green px-3 fw-semibold" id="btnConfirmMapsLocation" onclick="confirmMapsLocation()" disabled>
+                    <i class="bi bi-check-lg me-1"></i> Use This Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedPlaceData = null;
+
+function quickFillStay(id, name, city, location, address, lat, lng, placeId) {
+    document.getElementById('hiddenStayLocationId').value = id;
+    document.getElementById('hiddenGooglePlaceId').value = placeId || '';
+    document.getElementById('hiddenFormattedAddress').value = address || '';
+    document.getElementById('hiddenLatitude').value = lat || '';
+    document.getElementById('hiddenLongitude').value = lng || '';
+
+    document.getElementById('inputTitle').value = `${name} — ${location} Interns`;
+    document.getElementById('inputCity').value = city;
+    document.getElementById('inputLocation').value = location;
+    document.getElementById('inputLodgingName').value = name;
+
+    const statusLabel = document.getElementById('mapsStatusLabel');
+    if (statusLabel) {
+        statusLabel.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Selected: <strong>${name}</strong> (${city})`;
+    }
+    const subtext = document.getElementById('mapsStatusSubtext');
+    if (subtext) {
+        subtext.innerText = address;
+    }
+}
+
+function confirmMapsLocation() {
+    if (!selectedPlaceData) return;
+    document.getElementById('hiddenStayLocationId').value = '';
+    document.getElementById('hiddenGooglePlaceId').value = selectedPlaceData.place_id || '';
+    document.getElementById('hiddenFormattedAddress').value = selectedPlaceData.formatted_address || '';
+    document.getElementById('hiddenLatitude').value = selectedPlaceData.lat || '';
+    document.getElementById('hiddenLongitude').value = selectedPlaceData.lng || '';
+
+    if (selectedPlaceData.city) {
+        document.getElementById('inputCity').value = selectedPlaceData.city;
+    }
+    if (selectedPlaceData.name) {
+        document.getElementById('inputLodgingName').value = selectedPlaceData.name;
+    }
+    if (selectedPlaceData.location) {
+        document.getElementById('inputLocation').value = selectedPlaceData.location;
+    }
+
+    const statusLabel = document.getElementById('mapsStatusLabel');
+    if (statusLabel) {
+        statusLabel.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> Linked: <strong>${selectedPlaceData.name || selectedPlaceData.location}</strong>`;
+    }
+    const subtext = document.getElementById('mapsStatusSubtext');
+    if (subtext) {
+        subtext.innerText = selectedPlaceData.formatted_address;
+    }
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('googleMapsModal'));
+    if (modal) modal.hide();
+}
+
+{% if google_maps_api_key %}
+let gmap = null;
+let gmarker = null;
+
+function initGoogleMaps() {
+    const defaultCoords = { lat: 12.9716, lng: 77.5946 }; // Bengaluru
+    const canvas = document.getElementById('gmapsCanvas');
+    if (!canvas) return;
+
+    gmap = new google.maps.Map(canvas, {
+        center: defaultCoords,
+        zoom: 12,
+        styles: [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] }
+        ]
+    });
+
+    gmarker = new google.maps.Marker({
+        position: defaultCoords,
+        map: gmap,
+        draggable: true,
+        title: "Stay Location Pin"
+    });
+
+    const input = document.getElementById('gmapsAutocompleteInput');
+    const autocomplete = new google.maps.places.Autocomplete(input);
+    autocomplete.bindTo('bounds', gmap);
+
+    autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) return;
+
+        if (place.geometry.viewport) {
+            gmap.fitBounds(place.geometry.viewport);
+        } else {
+            gmap.setCenter(place.geometry.location);
+            gmap.setZoom(16);
+        }
+        gmarker.setPosition(place.geometry.location);
+        updateSelectedPlaceFromGoogle(place);
+    });
+
+    gmarker.addListener('dragend', function() {
+        const pos = gmarker.getPosition();
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: pos }, function(results, status) {
+            if (status === 'OK' && results[0]) {
+                updateSelectedPlaceFromGoogle(results[0]);
+            }
+        });
+    });
+}
+
+function updateSelectedPlaceFromGoogle(place) {
+    let cityName = '';
+    let localityName = '';
+    if (place.address_components) {
+        for (const comp of place.address_components) {
+            if (comp.types.includes('locality')) {
+                cityName = comp.long_name;
+            }
+            if (comp.types.includes('sublocality') || comp.types.includes('neighborhood')) {
+                localityName = comp.long_name;
+            }
+        }
+    }
+
+    selectedPlaceData = {
+        name: place.name || localityName || '',
+        formatted_address: place.formatted_address || '',
+        place_id: place.place_id || '',
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng(),
+        city: cityName,
+        location: localityName || place.name || ''
+    };
+
+    const previewBox = document.getElementById('selectedLocationPreview');
+    if (previewBox) {
+        previewBox.style.display = 'block';
+        document.getElementById('previewPlaceName').innerText = selectedPlaceData.name || 'Selected Pin';
+        document.getElementById('previewFormattedAddress').innerText = selectedPlaceData.formatted_address;
+        document.getElementById('previewCoords').innerText = `Lat: ${selectedPlaceData.lat.toFixed(6)}, Lng: ${selectedPlaceData.lng.toFixed(6)}`;
+    }
+
+    const btnConfirm = document.getElementById('btnConfirmMapsLocation');
+    if (btnConfirm) btnConfirm.disabled = false;
+}
+
+// Load Google Maps Script
+(function loadMapsScript() {
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleMaps`;
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+})();
+{% endif %}
+</script>
+{% endblock %}

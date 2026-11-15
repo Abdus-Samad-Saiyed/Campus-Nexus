@@ -1,0 +1,1 @@
+"""Accommodate application package."""

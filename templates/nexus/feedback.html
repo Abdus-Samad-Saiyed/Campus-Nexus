@@ -1,147 +1,313 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Feedback & Bug Reporting — Campus Nexus{% endblock %}
+{% block title %}Feedback & Bug Tracker — Campus Nexus{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Header -->
-            <div class="text-center mb-4">
-                <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center">
-                    <i class="bi bi-chat-left-heart-fill me-2"></i> Student Feedback &amp; Bug Tracker
-                </span>
-                <h1 class="hero-title mb-2">Help Us Improve <span class="green-accent">Campus Nexus</span></h1>
-                <p class="hero-subtitle mx-auto text-secondary small">
-                    Submit bug reports, feature suggestions, or propose an entirely new student service module.
-                </p>
+<div class="container py-4 py-md-5">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="badge bg-success-subtle text-success px-3 py-1.5 rounded-pill fw-semibold mb-2 border border-success-subtle d-inline-flex align-items-center">
+                <i class="bi bi-bug-fill me-1.5 green-accent"></i> Public Platform Issue &amp; Feedback Tracker
+            </span>
+            <h1 class="hero-title mb-1">Feedback &amp; <span class="green-accent">Bug Tracker</span></h1>
+            <p class="hero-subtitle text-secondary small mb-0">
+                Track open issues, explore community proposals, and report bugs directly to platform maintainers.
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-green d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#feedbackFormCollapse" aria-expanded="false" aria-controls="feedbackFormCollapse">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span class="fw-semibold">Report Bug / Feedback</span>
+            </button>
+            <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom d-inline-flex align-items-center gap-1.5">
+                <i class="bi bi-github"></i>
+                <span>GitHub Issues</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Telemetry / Metrics Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Total Entries</div>
+                <div class="fs-4 fw-bold text-white">{{ total_count }}</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Community contributions</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Bug Reports</div>
+                <div class="fs-4 fw-bold text-danger">{{ bugs_count }}</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Issues flagged</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Feature Ideas</div>
+                <div class="fs-4 fw-bold text-info">{{ features_count }}</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Community proposals</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Resolved</div>
+                <div class="fs-4 fw-bold text-emerald">{{ resolved_count }}</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Fixed &amp; closed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collapsible Submission Form -->
+    <div class="collapse mb-4 {% if request.GET.submit %}show{% endif %}" id="feedbackFormCollapse">
+        <div class="glass p-4 p-md-5 glass-glow border-success-subtle">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                <h4 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-pencil-square green-accent"></i> Submit New Report or Feature Idea
+                </h4>
+                <button type="button" class="btn-close btn-close-white" data-bs-toggle="collapse" data-bs-target="#feedbackFormCollapse" aria-label="Close"></button>
             </div>
 
-            <!-- GitHub Issues Routing Banner -->
-            <div class="glass p-3 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 border border-secondary">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="feature-icon flex-shrink-0" style="width: 44px; height: 44px; font-size: 1.25rem;">
-                        <i class="bi bi-github"></i>
-                    </div>
-                    <div>
-                        <strong class="d-block text-white">Route Directly to Repository Issues</strong>
-                        <span class="text-secondary small">
-                            Developers and contributors can open bugs, proposals, and feature requests directly in the GitHub repository issue tracker.
-                        </span>
-                    </div>
-                </div>
-                <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues/new/choose" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm px-3 flex-shrink-0">
-                    <i class="bi bi-box-arrow-up-right me-1"></i> Open GitHub Issues
-                </a>
-            </div>
+            <form id="feedbackForm" method="POST" action="{% url 'feedback' %}" class="d-flex flex-column gap-3">
+                {% csrf_token %}
 
-            <!-- Feedback Submission Form -->
-            <div class="glass p-4 p-md-5 glass-glow">
-                <form id="feedbackForm" method="POST" action="{% url 'feedback' %}" toolname="submit_platform_feedback" tooldescription="Submit user feedback, feature request, or incident report to platform operations" class="d-flex flex-column gap-3">
-                    {% csrf_token %}
-
-                    <!-- Feedback Type Selector -->
-                    <div>
+                <div class="row g-3">
+                    <div class="col-md-4">
                         <label class="form-label text-secondary small fw-semibold text-uppercase">Submission Category</label>
-                        <select id="feedbackType" name="feedback_type" class="form-select" required>
+                        <select id="feedbackType" name="feedback_type" class="form-select bg-dark border-secondary text-light" required>
                             <option value="BUG" {% if request.GET.type == 'BUG' or feedback_type == 'BUG' %}selected{% endif %}>
-                                🐞 Bug Report (Layout issue, error, unexpected behavior)
+                                🐞 Bug Report (Error or issue)
                             </option>
                             <option value="FEATURE" {% if request.GET.type == 'FEATURE' or feedback_type == 'FEATURE' %}selected{% endif %}>
-                                💡 Feature Request (Enhancement to existing features)
+                                💡 Feature Request (Enhancement)
                             </option>
                             <option value="PROPOSAL" {% if request.GET.type == 'PROPOSAL' or feedback_type == 'PROPOSAL' %}selected{% endif %}>
-                                🚀 New Service Proposal (Idea for an entire new campus module)
+                                🚀 New Service Proposal (Module)
                             </option>
                             <option value="GENERAL" {% if not request.GET.type or request.GET.type == 'GENERAL' or feedback_type == 'GENERAL' %}selected{% endif %}>
-                                💬 General Feedback &amp; Suggestions
+                                💬 General Feedback
                             </option>
                         </select>
                     </div>
 
-                    <!-- Subject / Title -->
-                    <div>
+                    <div class="col-md-8">
                         <label class="form-label text-secondary small fw-semibold text-uppercase">Subject / Title</label>
                         <input type="text"
                                id="feedbackTitle"
                                name="title"
                                value="{{ title|default:'' }}"
-                               class="form-control"
-                               placeholder="e.g. Ride list date stepper resets on refresh, or Proposal for hostel print module"
+                               class="form-control bg-dark border-secondary text-light"
+                               placeholder="e.g. Map pin offset in stay creation or Cab list ordering reset"
                                maxlength="200"
                                required>
                     </div>
+                </div>
 
-                    <!-- Description -->
-                    <div>
-                        <label class="form-label text-secondary small fw-semibold text-uppercase">Detailed Description</label>
-                        <textarea id="feedbackDesc"
-                                  name="description"
-                                  class="form-control"
-                                  rows="6"
-                                  placeholder="Describe the issue or proposal clearly. For bugs, include steps to reproduce..."
-                                  required>{{ description|default:'' }}</textarea>
+                <div>
+                    <label class="form-label text-secondary small fw-semibold text-uppercase">Detailed Description</label>
+                    <textarea id="feedbackDesc"
+                              name="description"
+                              class="form-control bg-dark border-secondary text-light"
+                              rows="5"
+                              placeholder="Describe the issue or proposal clearly. Include reproduction steps, browser/OS, or module details..."
+                              required>{{ description|default:'' }}</textarea>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">Your Name (Optional)</label>
+                        <input type="text"
+                               id="submitterName"
+                               name="submitter_name"
+                               value="{% if user.is_authenticated %}{{ user.get_full_name }}{% else %}{{ submitter_name|default:'' }}{% endif %}"
+                               class="form-control bg-dark border-secondary text-light"
+                               placeholder="Your name or alias">
                     </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold text-uppercase">Your Name (Optional)</label>
-                            <input type="text"
-                                   id="submitterName"
-                                   name="submitter_name"
-                                   value="{% if user.is_authenticated %}{{ user.get_full_name }}{% else %}{{ submitter_name|default:'' }}{% endif %}"
-                                   class="form-control"
-                                   placeholder="Your name or alias">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold text-uppercase">Contact / Enrollment (Optional)</label>
-                            <input type="text"
-                                   name="submitter_contact"
-                                   value="{% if user.is_authenticated %}{{ user.enrollment_number }}{% else %}{{ submitter_contact|default:'' }}{% endif %}"
-                                   class="form-control"
-                                   placeholder="Enrollment no. or mobile">
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">Contact / Enrollment (Optional)</label>
+                        <input type="text"
+                               name="submitter_contact"
+                               value="{% if user.is_authenticated %}{{ user.enrollment_number }}{% else %}{{ submitter_contact|default:'' }}{% endif %}"
+                               class="form-control bg-dark border-secondary text-light"
+                               placeholder="Enrollment no. or phone">
                     </div>
+                </div>
 
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-40 small text-secondary">
-                        <i class="bi bi-shield-check text-success me-1"></i>
-                        <strong>Privacy Safeguard:</strong> Feedback entries are tracked in the operational administrative dashboard. Do not include sensitive passwords or private credentials.
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center pt-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="routeToGitHubIssue()">
-                            <i class="bi bi-github me-1"></i> Pre-fill &amp; Route to GitHub Issue &rarr;
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center pt-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="routeToGitHubIssue()">
+                        <i class="bi bi-github me-1"></i> Pre-fill &amp; Route to GitHub Issue &rarr;
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-dark-custom" data-bs-toggle="collapse" data-bs-target="#feedbackFormCollapse">Cancel</button>
+                        <button type="submit" class="btn btn-green px-4">
+                            <i class="bi bi-send-fill me-1"></i> Submit Report
                         </button>
-                        <div class="d-flex gap-2">
-                            <a href="{% url 'landing' %}" class="btn btn-dark-custom">Cancel</a>
-                            <button type="submit" class="btn btn-green px-4">
-                                <i class="bi bi-send-fill me-1"></i> Submit Report
-                            </button>
-                        </div>
                     </div>
-                </form>
-            </div>
-
-            <script>
-            function routeToGitHubIssue() {
-                const title = document.getElementById('feedbackTitle').value.trim() || 'Bug report / Feature proposal';
-                const type = document.getElementById('feedbackType').value;
-                const desc = document.getElementById('feedbackDesc').value.trim() || 'No description provided';
-                const name = document.getElementById('submitterName').value.trim() || 'Anonymous Student';
-
-                const label = (type === 'BUG') ? 'bug' : (type === 'FEATURE' ? 'enhancement' : 'documentation');
-                const issueBody = `### Category\n${type}\n\n### Description\n${desc}\n\n### Submitter\n${name}\n\n*Routed from Campus Nexus Web Portal*`;
-
-                const githubUrl = 'https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues/new?' +
-                    'title=' + encodeURIComponent(`[${type}] ${title}`) +
-                    '&labels=' + encodeURIComponent(label) +
-                    '&body=' + encodeURIComponent(issueBody);
-
-                window.open(githubUrl, '_blank', 'noopener,noreferrer');
-            }
-            </script>
+                </div>
+            </form>
         </div>
     </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="glass p-3 mb-4 border-secondary border-opacity-25">
+        <form method="GET" action="{% url 'feedback' %}" class="row g-2 align-items-center">
+            <div class="col-12 col-md-5">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                    <input type="text"
+                           name="q"
+                           value="{{ search_query }}"
+                           class="form-control bg-dark border-secondary text-light ps-5"
+                           placeholder="Search feedback titles or descriptions..."
+                           autocomplete="off">
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <select name="type" class="form-select bg-dark border-secondary text-light" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for code, label in feedback_types %}
+                        <option value="{{ code }}" {% if selected_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <select name="status" class="form-select bg-dark border-secondary text-light" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-green flex-grow-1">Filter</button>
+                {% if search_query or selected_type or selected_status %}
+                    <a href="{% url 'feedback' %}" class="btn btn-dark-custom text-secondary" title="Reset Filters"><i class="bi bi-x-lg"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Feedback & Bug Listings -->
+    {% if feedbacks %}
+        <div class="row g-3 mb-4">
+            {% for fb in feedbacks %}
+                <div class="col-12">
+                    <div class="glass p-3.5 border-secondary border-opacity-25 h-100">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <span class="badge bg-black bg-opacity-60 border border-secondary text-secondary font-monospace" style="font-size: 0.72rem;">#{{ fb.id }}</span>
+                                
+                                {% if fb.feedback_type == 'BUG' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.72rem;">
+                                        <i class="bi bi-bug me-1"></i> Bug Report
+                                    </span>
+                                {% elif fb.feedback_type == 'FEATURE' %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.72rem;">
+                                        <i class="bi bi-lightbulb me-1"></i> Feature Request
+                                    </span>
+                                {% elif fb.feedback_type == 'PROPOSAL' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.72rem;">
+                                        <i class="bi bi-rocket-takeoff me-1"></i> New Module Proposal
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.72rem;">
+                                        <i class="bi bi-chat-quote me-1"></i> General Feedback
+                                    </span>
+                                {% endif %}
+
+                                {% if fb.status == 'OPEN' %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.7rem;">
+                                        <i class="bi bi-hourglass-split me-1"></i> Open
+                                    </span>
+                                {% elif fb.status == 'IN_REVIEW' %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.7rem;">
+                                        <i class="bi bi-arrow-repeat me-1"></i> In Review
+                                    </span>
+                                {% elif fb.status == 'RESOLVED' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;">
+                                        <i class="bi bi-check2-circle me-1"></i> Resolved
+                                    </span>
+                                {% endif %}
+
+                                <h5 class="fw-bold text-white mb-0 ms-1">{{ fb.title }}</h5>
+                            </div>
+                            <span class="text-secondary small font-monospace" style="font-size: 0.75rem;">
+                                {{ fb.created_at|timesince }} ago
+                            </span>
+                        </div>
+
+                        <p class="text-light text-opacity-80 small mb-2" style="line-height: 1.5; white-space: pre-line;">{{ fb.description }}</p>
+
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-10 small text-secondary">
+                            <div>
+                                <i class="bi bi-person me-1"></i>
+                                <span>Reported by: <strong class="text-light">{{ fb.submitter_name|default:"Anonymous Student" }}</strong></span>
+                            </div>
+                            {% if user.is_staff or user.is_superuser %}
+                                <a href="{% url 'operational_dashboard' %}" class="btn btn-link btn-sm p-0 text-decoration-none green-accent">
+                                    Manage in Operations &rarr;
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if feedbacks.has_other_pages %}
+            <nav aria-label="Feedback navigation" class="d-flex justify-content-center">
+                <ul class="pagination pagination-sm">
+                    {% if feedbacks.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark border-secondary text-light" href="?page={{ feedbacks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">&laquo;</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link bg-green border-green text-dark fw-bold">{{ feedbacks.number }} of {{ feedbacks.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if feedbacks.has_next %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark border-secondary text-light" href="?page={{ feedbacks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">&raquo;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+    {% else %}
+        <div class="glass p-5 text-center my-4">
+            <i class="bi bi-inbox fs-1 text-secondary mb-3 d-block"></i>
+            <h5 class="fw-bold text-white mb-2">No Reports or Feedback Found</h5>
+            <p class="text-secondary small mb-4">No submissions match your search and filter criteria.</p>
+            <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm">Clear All Filters</a>
+        </div>
+    {% endif %}
 </div>
+
+<script>
+function routeToGitHubIssue() {
+    const title = document.getElementById('feedbackTitle').value.trim() || 'Bug report / Feature proposal';
+    const type = document.getElementById('feedbackType').value;
+    const desc = document.getElementById('feedbackDesc').value.trim() || 'No description provided';
+    const name = document.getElementById('submitterName').value.trim() || 'Anonymous Student';
+
+    const label = (type === 'BUG') ? 'bug' : (type === 'FEATURE' ? 'enhancement' : 'documentation');
+    const issueBody = `### Category\n${type}\n\n### Description\n${desc}\n\n### Submitter\n${name}\n\n*Routed from Campus Nexus Web Portal*`;
+
+    const githubUrl = 'https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues/new?' +
+        'title=' + encodeURIComponent(`[${type}] ${title}`) +
+        '&labels=' + encodeURIComponent(label) +
+        '&body=' + encodeURIComponent(issueBody);
+
+    window.open(githubUrl, '_blank', 'noopener,noreferrer');
+}
+</script>
 {% endblock %}

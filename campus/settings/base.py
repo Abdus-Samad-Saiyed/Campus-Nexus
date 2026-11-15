@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.postgres',
 
     # Third party
     'corsheaders',
@@ -69,6 +70,7 @@ INSTALLED_APPS = [
 
     # Local
     'coordinate',
+    'accommodate',
 ]
 
 
@@ -374,4 +376,7 @@ CSRF_COOKIE_SECURE = env.bool('DJANGO_CSRF_COOKIE_SECURE', default=True)
 VAPID_PUBLIC_KEY = env.str('VAPID_PUBLIC_KEY', default='')
 VAPID_PRIVATE_KEY = env.str('VAPID_PRIVATE_KEY', default='')
 VAPID_CLAIMS = {'sub': env.str('VAPID_ADMIN_EMAIL', default='mailto:admin@campus-nexus.online')}
+
+# --- Google Maps API ---------------------------------------------------------
+GOOGLE_MAPS_API_KEY = env.str('GOOGLE_MAPS_API_KEY', default='')
 

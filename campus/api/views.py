@@ -809,6 +809,53 @@ def api_recent_notifications(request: HttpRequest) -> JsonResponse:
     except Exception:
         pass
 
+    # 4. Accommodation Stay Applications & Review Invitations
+    try:
+        from accommodate.models import (
+            AccommodationJoinApplication,
+            AccommodationReviewInvitation,
+            ApplicationStatus,
+            InvitationStatus,
+        )
+        owner_apps = AccommodationJoinApplication.objects.filter(
+            group__current_owner=user,
+            status=ApplicationStatus.PENDING,
+        ).select_related('applicant', 'group')[:10]
+        for app in owner_apps:
+            notifications.append({
+                'id': f'accom_app_{app.id}',
+                'category': 'accommodate',
+                'title': f'Stay Application: {app.group.title}',
+                'content': f'{app.applicant.get_full_name() or app.applicant.enrollment_number} applied to join your group in {app.group.destination_city}.',
+                'icon': 'bi-buildings-fill',
+                'badge': 'Stay Application',
+                'badge_class': 'bg-warning-subtle text-warning border border-warning-subtle',
+                'url': f'/accommodate/groups/{app.group_id}/manage/',
+                'timestamp': app.created_at.strftime('%d %b, %H:%M') if app.created_at else '',
+                'read': False,
+            })
+
+        review_invs = AccommodationReviewInvitation.objects.filter(
+            reviewer_user=user,
+            status=InvitationStatus.OPEN,
+        ).select_related('subject_membership__user', 'subject_membership__group')[:10]
+        for inv in review_invs:
+            departed = inv.subject_membership.user
+            notifications.append({
+                'id': f'accom_rev_{inv.id}',
+                'category': 'accommodate',
+                'title': f'Peer Review: {inv.subject_membership.group.title}',
+                'content': f'{departed.get_full_name() or departed.enrollment_number} has departed. Please submit peer feedback.',
+                'icon': 'bi-star-fill',
+                'badge': 'Review Invitation',
+                'badge_class': 'bg-info-subtle text-info border border-info-subtle',
+                'url': f'/accommodate/reviews/{inv.id}/submit/',
+                'timestamp': inv.created_at.strftime('%d %b, %H:%M') if inv.created_at else '',
+                'read': False,
+            })
+    except Exception:
+        pass
+
     unread = len([n for n in notifications if not n.get('read', False)])
     return json_success(
         data={

@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Campus Nexus — Central Student Platform & COORDINATE{% endblock %}
+{% block title %}Campus Nexus — The Central Platform for NIT Srinagar Students{% endblock %}
 
 {% block content %}
 <div class="container pt-2 pt-md-3 pb-5">
     <!-- Umbrella Platform Hero -->
-    <div class="row align-items-center pt-1 pb-3 mb-4">
+    <div class="row align-items-center pt-1 pb-3 mb-5">
         <div class="col-lg-6 col-xl-6 mb-4 mb-lg-0">
             {% if early_launch_mode %}
             <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-semibold mb-3 border border-warning-subtle d-inline-flex align-items-center">
@@ -23,16 +23,25 @@
                 across campus.
             </h1>
             <p class="hero-subtitle mb-4">
-                Find a shared ride, connect with students, and access campus services in one place. Start with the features available today; more campus tools will grow here over time.
+                Find a shared ride, coordinate outstation flatmates, connect with students, and access campus services in one place. Built as an open, modular ecosystem for NIT Srinagar.
             </p>
             <div class="mb-4">
                 <div class="d-flex flex-column flex-sm-row gap-2" style="max-width: 440px;">
-                    <a href="{% url 'apply_account' %}" class="btn btn-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
-                        <i class="bi bi-person-plus-fill me-2"></i> Create account
-                    </a>
-                    <a href="{% url 'login' %}" class="btn btn-outline-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
-                        <i class="bi bi-box-arrow-in-right me-2"></i> Sign in
-                    </a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-speedometer2 me-2"></i> Open Dashboard
+                        </a>
+                        <a href="#services" class="btn btn-outline-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-grid-fill me-2"></i> View Services
+                        </a>
+                    {% else %}
+                        <a href="{% url 'apply_account' %}" class="btn btn-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-person-plus-fill me-2"></i> Create account
+                        </a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Sign in
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -45,7 +54,7 @@
                         <i class="bi bi-mortarboard-fill me-1"></i> NIT Srinagar Campus
                     </span>
                     <span class="badge bg-info-subtle text-info px-2 py-1 rounded-pill small">
-                        <i class="bi bi-incognito me-1"></i> Guest Demo
+                        <i class="bi bi-incognito me-1"></i> Guest Demo Available
                     </span>
                 </div>
                 <h4 class="fw-bold mb-1 fs-5">Welcome to Campus Nexus</h4>
@@ -57,50 +66,52 @@
                     <div class="d-flex gap-3 align-items-start">
                         <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Create your student account</h6>
-                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Start with the features available now. You can request student verification later from the same account.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">One Unified Student Account</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Seamless single-sign-on across all present and future campus utilities.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
                         <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Verify when you’re ready</h6>
-                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Some student features require identity verification. Your account and activity stay together.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Peer Trust &amp; Verification</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Institutional gates and punctuality metrics keep interactions safe and reliable.</p>
                         </div>
                     </div>
                     <div class="d-flex gap-3 align-items-start">
                         <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(14, 165, 233, 0.15); color: #38bdf8;"><i class="bi bi-incognito"></i></div>
                         <div>
-                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">3. Not from NIT Srinagar?</h6>
-                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">This platform is exclusive to NIT Srinagar students, but you can demo all platform features using <strong>Guest Mode</strong>.</p>
+                            <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Demo &amp; Testing Access</h6>
+                            <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Non-students and evaluators can demo platform features safely using <strong>Guest Mode</strong>.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="d-grid gap-2">
-                    <a href="{% url 'apply_account' %}" class="btn btn-warning text-dark fw-bold py-2">
-                        <i class="bi bi-person-plus-fill me-1"></i> Create student account
-                    </a>
-                    <div class="row g-2 align-items-stretch">
-                        <div class="col-12">
-                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 h-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
-                                <i class="bi bi-incognito me-1"></i> Try Guest Demo
-                            </a>
-                        </div>
-                    </div>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-green fw-bold py-2">
+                            <i class="bi bi-speedometer2 me-1"></i> Go to Your Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{% url 'apply_account' %}" class="btn btn-warning text-dark fw-bold py-2">
+                            <i class="bi bi-person-plus-fill me-1"></i> Create student account
+                        </a>
+                        <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-incognito me-1"></i> Try Guest Demo
+                        </a>
+                    {% endif %}
                 </div>
 
                 <div class="p-2 px-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 mt-2">
                     <div class="d-flex align-items-center justify-content-between mb-1">
                         <span class="badge bg-secondary-subtle text-secondary small fw-semibold" style="font-size: 0.68rem;">
-                            <i class="bi bi-shield-exclamation me-1"></i> Platform Disclaimer
+                            <i class="bi bi-shield-exclamation me-1"></i> Platform Policy
                         </span>
                         <button type="button" class="btn btn-link btn-sm text-info text-decoration-none p-0 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#earlyLaunchDetailsModal">
                             <i class="bi bi-info-circle me-1"></i> More Details &rarr;
                         </button>
                     </div>
                     <div class="text-secondary small" style="font-size: 0.74rem; line-height: 1.35;">
-                        <strong class="text-light">No fees.</strong> Some student features require identity verification. You can request it later from the same account.
+                        <strong class="text-light">Free forever for students.</strong> No commercial fees or surge markups.
                     </div>
                 </div>
                 {% else %}
@@ -121,40 +132,40 @@
         </div>
     </div>
 
-    <!-- Service Catalogue Section -->
-    <div id="catalogue" class="pt-5 mb-5">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+    <!-- Campus Nexus Modular Services Section (Accented Wrapper) -->
+    <div id="services" class="glass p-4 p-md-5 mb-5 glass-glow border-success-subtle">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
-                <span class="badge bg-dark border border-secondary text-white-50 px-3 py-1 rounded-pill small mb-2">
-                    SERVICE DIRECTORY
+                <span class="badge bg-success-subtle green-accent px-3 py-1 rounded-pill small fw-semibold mb-2 border border-success-subtle d-inline-flex align-items-center">
+                    <i class="bi bi-grid-fill me-1.5"></i> CAMPUS NEXUS ECOSYSTEM
                 </span>
-                <h2 class="fw-bold mb-1">Modular Campus Services</h2>
-                <p class="text-secondary small mb-0">Built as specialized, independent services under the Campus Nexus umbrella.</p>
+                <h2 class="fw-bold text-white mb-1">Modular Campus Services</h2>
+                <p class="text-secondary small mb-0">Independent, privacy-preserving microservices built under the Campus Nexus umbrella.</p>
             </div>
             <div class="mt-3 mt-md-0">
-                <span class="text-secondary small">
-                    <i class="bi bi-broadcast text-success me-1"></i> 1 Active Service &middot; 3 In Pipeline
-                </span>
+                <a href="{% url 'service_catalogue' %}" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-grid green-accent"></i>
+                    <span>Full Service Directory &rarr;</span>
+                </a>
             </div>
         </div>
 
         <div class="row g-4">
             {% for svc in services %}
-                <div class="col-md-6 col-lg-6">
-                    <div class="glass p-4 h-100 d-flex flex-column justify-content-between {% if svc.is_active %}glass-glow border-success-subtle{% endif %}">
+                <div class="col-md-6">
+                    <div class="glass p-4 h-100 d-flex flex-column justify-content-between border-success-subtle glass-glow">
                         <div>
                             <div class="d-flex align-items-center justify-content-between mb-3">
-                                <div class="feature-icon" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                                <div class="feature-icon" style="width: 48px; height: 48px; font-size: 1.35rem;">
                                     <i class="bi {{ svc.icon }}"></i>
                                 </div>
                                 <span class="badge-status {{ svc.badge_class }}">
-                                    {% if svc.is_active %}<i class="bi bi-circle-fill me-1 small"></i>{% endif %}
-                                    {{ svc.status_badge }}
+                                    <i class="bi bi-circle-fill me-1 small"></i>{{ svc.status_badge }}
                                 </span>
                             </div>
-                            <h4 class="fw-bold mb-1">{{ svc.name }}</h4>
-                            <p class="text-secondary small fw-semibold mb-2">{{ svc.tagline }}</p>
-                            <p class="text-muted small mb-3">{{ svc.description }}</p>
+                            <h3 class="fw-bold text-white mb-1">{{ svc.name }}</h3>
+                            <p class="green-accent small fw-semibold mb-2">{{ svc.tagline }}</p>
+                            <p class="text-secondary small mb-3">{{ svc.description }}</p>
 
                             {% if svc.features %}
                             <div class="mb-3">
@@ -168,14 +179,18 @@
                             {% endif %}
                         </div>
 
-                        <div class="pt-3 border-top border-secondary">
-                            {% if svc.is_active %}
-                                <a href="{% url 'ride_list' %}" class="btn btn-green w-100">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i> Launch {{ svc.name }}
+                        <div class="pt-3 border-top border-secondary border-opacity-25 d-flex gap-2">
+                            <a href="{{ svc.url }}" class="btn btn-green flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1.5">
+                                <i class="bi bi-arrow-right-circle-fill"></i>
+                                <span>Launch {{ svc.name }}</span>
+                            </a>
+                            {% if svc.slug == 'coordinate' %}
+                                <a href="/coordinate/" class="btn btn-dark-custom text-secondary d-inline-flex align-items-center justify-content-center" title="Coordinate Overview">
+                                    <i class="bi bi-info-circle"></i>
                                 </a>
-                            {% else %}
-                                <a href="{% url 'service_gateway' svc.slug %}" class="btn btn-dark-custom w-100 text-secondary">
-                                    <i class="bi bi-hourglass-split me-1"></i> Coming Soon
+                            {% elif svc.slug == 'accommodate' %}
+                                <a href="/accommodate/" class="btn btn-dark-custom text-secondary d-inline-flex align-items-center justify-content-center" title="Accommodate Overview">
+                                    <i class="bi bi-info-circle"></i>
                                 </a>
                             {% endif %}
                         </div>
@@ -185,49 +200,316 @@
         </div>
     </div>
 
-    <!-- Flagship Service Deep-Dive: COORDINATE -->
-    <div class="pt-4 mb-4">
+    <!-- Flagship Deep-Dives: COORDINATE & ACCOMMODATE Pillars -->
+    <div class="mb-5">
+        <div class="row g-4">
+            <!-- Coordinate Highlight -->
+            <div class="col-lg-6">
+                <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-car-front-fill green-accent fs-4"></i>
+                            <h4 class="fw-bold text-white mb-0">Inside COORDINATE</h4>
+                        </div>
+                        <p class="text-secondary small mb-3">
+                            Tired of chaotic WhatsApp groups and stranded travel plans. COORDINATE provides structured cab sharing for Srinagar Airport, Railway, and TRC transit.
+                        </p>
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="bi bi-people-fill green-accent mt-1"></i>
+                                <span class="text-secondary small"><strong>Audience Visibility:</strong> Open, Boys only, Girls only, or Friends only.</span>
+                            </div>
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="bi bi-chat-dots-fill green-accent mt-1"></i>
+                                <span class="text-secondary small"><strong>Live Ride Chat:</strong> Instant WebSocket coordination for pickup spots and luggage space.</span>
+                            </div>
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="bi bi-shield-check green-accent mt-1"></i>
+                                <span class="text-secondary small"><strong>Punctuality Score:</strong> Peer reviews ensure everyone honors departure times at the gate.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/coordinate/" class="btn btn-outline-green btn-sm w-100">
+                        Explore Coordinate Module &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Accommodate Highlight -->
+            <div class="col-lg-6">
+                <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-buildings-fill green-accent fs-4"></i>
+                            <h4 class="fw-bold text-white mb-0">Inside ACCOMMODATE</h4>
+                        </div>
+                        <p class="text-secondary small mb-3">
+                            Solve outstation internship and travel housing. ACCOMMODATE helps students form verified flatmate groups and co-stay communities across major tech hubs.
+                        </p>
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="bi bi-geo-alt-fill green-accent mt-1"></i>
+                                <span class="text-secondary small"><strong>City &amp; Locality Hubs:</strong> Bengaluru, Hyderabad, NCR, Pune, and Mumbai.</span>
+                            </div>
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="bi bi-calendar-check-fill green-accent mt-1"></i>
+                                <span class="text-secondary small"><strong>Stay Range Guarantee:</strong> Non-overlapping date range validation protects group stability.</span>
+                            </div>
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="bi bi-star-fill green-accent mt-1"></i>
+                                <span class="text-secondary small"><strong>Peer Reviews:</strong> Transparent flatmate ratings build accountability for future stays.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/accommodate/" class="btn btn-outline-green btn-sm w-100">
+                        Explore Accommodate Module &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merged Section: About Campus Nexus (#about) -->
+    <div id="about" class="pt-2 mb-5">
         <div class="text-center mb-5">
-            <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold mb-2">
-                FLAGSHIP MODULE
+            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center">
+                <i class="bi bi-compass-fill me-2"></i> Built for NIT Srinagar Students
             </span>
-            <h2 class="fw-bold mb-2">Inside <span class="green-accent">COORDINATE</span></h2>
-            <p class="text-secondary small mx-auto" style="max-width: 600px;">
-                Tired of messy WhatsApp groups and stranded travel plans. COORDINATE provides structured cab sharing for Srinagar Airport, Railway, and TRC transit.
+            <h2 class="hero-title mb-3">One Platform. <span class="green-accent">All Campus Services.</span></h2>
+            <p class="hero-subtitle mx-auto text-secondary" style="max-width: 720px;">
+                Campus Nexus is a decentralized, privacy-preserving digital ecosystem connecting students across hostels, departments, and transit routes.
+            </p>
+        </div>
+
+        <!-- Core Philosophy Cards -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="glass p-4 h-100 d-flex flex-column">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">Graduated Student Verification</h4>
+                    <p class="text-secondary small mb-0 flex-grow-1">
+                        Every student account starts with campus access, while critical services like the student directory and ride coordination require institutional verification to protect student privacy and safety.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="glass p-4 h-100 d-flex flex-column">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">Zero Commercial Middlemen</h4>
+                    <p class="text-secondary small mb-0 flex-grow-1">
+                        Commercial platforms exploit students with surging commissions and high fares. Campus Nexus enables direct peer-to-peer taxi and flat sharing with transparent splits.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="glass p-4 h-100 d-flex flex-column">
+                    <div class="feature-icon mb-3">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                    <h4 class="fw-bold text-white mb-2">Modular Infrastructure</h4>
+                    <p class="text-secondary small mb-0 flex-grow-1">
+                        Built as an umbrella platform. Active with COORDINATE and ACCOMMODATE today, designed so any student builder or research group can create and plug in new services.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extensibility & Open Invitation Section -->
+        <div class="glass p-4 p-md-5 mb-5 glass-glow border-success-subtle">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill small fw-semibold mb-2">
+                        <i class="bi bi-lightbulb-fill me-1"></i> Open Invitation to Campus Builders
+                    </span>
+                    <h3 class="fw-bold text-white mb-3">Have an Idea or Utility for NIT Srinagar?</h3>
+                    <p class="text-secondary mb-3">
+                        Campus Nexus is not a static app — it is a living student collective. Whether you want to automate hostel laundry slots, digitize central library seat occupancy, track mess feedback, or organize campus hackathons:
+                    </p>
+                    <div class="row g-3 small text-white-50 mb-3">
+                        <div class="col-sm-6">
+                            <i class="bi bi-check2-circle text-success me-1"></i> Build a new Django module inside Nexus
+                        </div>
+                        <div class="col-sm-6">
+                            <i class="bi bi-check2-circle text-success me-1"></i> Integrate external apps via REST API v1
+                        </div>
+                        <div class="col-sm-6">
+                            <i class="bi bi-check2-circle text-success me-1"></i> Use verified student authentication
+                        </div>
+                        <div class="col-sm-6">
+                            <i class="bi bi-check2-circle text-success me-1"></i> Peer review code through open PRs
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 flex-wrap pt-2">
+                        <a href="{% url 'feedback' %}?type=PROPOSAL" class="btn btn-green px-4">
+                            <i class="bi bi-send-fill me-1"></i> Propose a New Module
+                        </a>
+                        <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus" target="_blank" class="btn btn-dark-custom px-4">
+                            <i class="bi bi-github me-1"></i> View GitHub Repository
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 text-center">
+                    <div class="p-4 rounded border border-secondary bg-black bg-opacity-40">
+                        <div class="feature-icon mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.8rem;">
+                            <i class="bi bi-code-slash"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">Architecture Stack</h5>
+                        <div class="d-flex flex-wrap gap-1 justify-content-center">
+                            <span class="badge bg-secondary">Python 3.12</span>
+                            <span class="badge bg-secondary">Django 5.x</span>
+                            <span class="badge bg-secondary">Channels (ASGI)</span>
+                            <span class="badge bg-secondary">WebSockets</span>
+                            <span class="badge bg-secondary">PostgreSQL</span>
+                            <span class="badge bg-secondary">Redis</span>
+                            <span class="badge bg-secondary">Bootstrap 5</span>
+                            <span class="badge bg-secondary">REST API v1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merged Section: Nexus Platform Architecture (#nexus) -->
+    <div id="nexus" class="pt-2 mb-5">
+        <div class="text-center mb-4">
+            <span class="badge bg-primary-subtle text-primary px-3 py-1.5 rounded-pill fw-semibold mb-2 border border-primary-subtle d-inline-flex align-items-center">
+                <i class="bi bi-cpu-fill me-1.5"></i> Platform Architecture
+            </span>
+            <h2 class="fw-bold text-white mb-2">The <span class="green-accent">Nexus</span> Architecture</h2>
+            <p class="text-secondary small mx-auto" style="max-width: 680px;">
+                How independent campus microservices unite under a unified identity, security boundary, and real-time event pipeline.
             </p>
         </div>
 
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="glass p-4 h-100">
-                    <div class="feature-icon mb-3"><i class="bi bi-people-fill"></i></div>
-                    <h5 class="fw-bold mb-2">Audience Visibility</h5>
+                    <div class="feature-icon mb-3"><i class="bi bi-fingerprint"></i></div>
+                    <h5 class="fw-bold text-white mb-2">Centralized Single-Sign-On</h5>
                     <p class="text-secondary small mb-0">
-                        Propose rides tailored to personal comfort: Open to all, Boys only, Girls only, or strictly for connected campus friends.
+                        Passkeys, biometric hardware security, and enrollment-based authentication work seamlessly across every present and future module.
                     </p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="glass p-4 h-100">
-                    <div class="feature-icon mb-3"><i class="bi bi-chat-dots-fill"></i></div>
-                    <h5 class="fw-bold mb-2">Live Ride Chat</h5>
+                    <div class="feature-icon mb-3"><i class="bi bi-shield-shaded"></i></div>
+                    <h5 class="fw-bold text-white mb-2">Privacy &amp; Safety Gates</h5>
                     <p class="text-secondary small mb-0">
-                        Coordinate exact pickup spots, luggage trunk space, and departure time with fellow passengers via real-time WebSocket chat.
+                        Strict role-based access control, cryptographic verification tokens, and session revocations prevent unauthorized access.
                     </p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="glass p-4 h-100">
-                    <div class="feature-icon mb-3"><i class="bi bi-star-fill"></i></div>
-                    <h5 class="fw-bold mb-2">Accountability Metrics</h5>
+                    <div class="feature-icon mb-3"><i class="bi bi-broadcast-pin"></i></div>
+                    <h5 class="fw-bold text-white mb-2">Unified Messaging &amp; Events</h5>
                     <p class="text-secondary small mb-0">
-                        Attendance confirmation, reliability scoring, and reviews ensure everyone honors departure times at the campus gate.
+                        A persistent WebSocket backbone delivers real-time notifications, peer chat, and ride departure updates with zero polling overhead.
                     </p>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Merged Section: Contributors & Open Source Community (#contributors) -->
+    <div id="contributors" class="pt-2 mb-4">
+        <div class="text-center mb-5">
+            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center">
+                <i class="bi bi-people-fill me-2"></i> Open Source Community
+            </span>
+            <h2 class="hero-title mb-3">Campus Nexus <span class="green-accent">Contributors</span></h2>
+            <p class="hero-subtitle mx-auto text-secondary" style="max-width: 680px;">
+                The engineers, designers, and students building decentralized, secure, and privacy-respecting tools for the NIT Srinagar community.
+            </p>
+        </div>
+
+        <!-- Core Architect & Creator Spotlight -->
+        <div class="glass p-4 p-md-5 mb-5 glass-glow border-success-subtle">
+            <div class="d-flex flex-column flex-md-row align-items-center gap-4">
+                <div class="position-relative">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-2 text-white bg-dark border border-success"
+                         style="width: 110px; height: 110px; box-shadow: 0 0 30px rgba(8, 183, 79, 0.35);">
+                        AS
+                    </div>
+                    <span class="position-absolute bottom-0 end-0 badge bg-success rounded-pill px-2 py-1 small" title="Lead Architect">
+                        <i class="bi bi-star-fill"></i>
+                    </span>
+                </div>
+
+                <div class="flex-grow-1 text-center text-md-start">
+                    <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-1">
+                        <h3 class="fw-bold text-white mb-0">Abdus Samad Saiyed</h3>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle small">Lead Creator &amp; Architect</span>
+                        <span class="badge bg-secondary small">NIT Srinagar &bull; CSE</span>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        Conceived the Campus Nexus umbrella platform and architected the COORDINATE ridesharing engine, ACCOMMODATE outstation housing framework, real-time WebSocket communication layer, role-gated operational dashboard, and production security hardening.
+                    </p>
+
+                    <!-- Social & Repo Links -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                        <a href="https://github.com/Abdus-Samad-Saiyed" target="_blank" class="btn btn-dark-custom btn-sm">
+                            <i class="bi bi-github me-1"></i> GitHub Profile
+                        </a>
+                        <a href="https://www.linkedin.com/in/abdussamadsaiyed" target="_blank" class="btn btn-dark-custom btn-sm text-info">
+                            <i class="bi bi-linkedin me-1"></i> LinkedIn
+                        </a>
+                        <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus" target="_blank" class="btn btn-green btn-sm">
+                            <i class="bi bi-code-slash me-1"></i> Project Repository
+                        </a>
+                        {% if can_manage_contributors %}
+                            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#nominateModal">
+                                <i class="bi bi-person-plus-fill me-1"></i> Add Contributor
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Contributors Directory -->
+        {% if contributors %}
+            <div class="mb-4">
+                <h4 class="fw-bold text-white mb-3"><i class="bi bi-people-fill green-accent me-2"></i>Recognized Contributors</h4>
+                <div class="row g-3">
+                    {% for c in contributors %}
+                        <div class="col-md-6">
+                            <div class="glass p-3 border-secondary border-opacity-25 h-100 d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4 text-white bg-dark border border-success flex-shrink-0"
+                                     style="width: 54px; height: 54px;">
+                                    {{ c.name|slice:":2"|upper }}
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <h5 class="fw-bold text-white mb-0 text-truncate">{{ c.name }}</h5>
+                                    <span class="badge bg-success-subtle text-success small mb-1">{{ c.role }}</span>
+                                    {% if c.bio %}
+                                        <p class="text-secondary small mb-0 text-truncate">{{ c.bio }}</p>
+                                    {% endif %}
+                                </div>
+                                {% if c.github_url %}
+                                    <a href="{{ c.github_url }}" target="_blank" class="btn btn-sm btn-dark-custom flex-shrink-0" title="GitHub">
+                                        <i class="bi bi-github"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
 </div>
+
 <!-- Early Launch & Verification Policy Modal -->
 <div class="modal fade" id="earlyLaunchDetailsModal" tabindex="-1" aria-labelledby="earlyLaunchDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -258,5 +540,50 @@
         </div>
     </div>
 </div>
+
+{% if can_manage_contributors %}
+<!-- Add/Nominate Contributor Modal -->
+<div class="modal fade" id="nominateModal" tabindex="-1" aria-labelledby="nominateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass border-secondary shadow-lg">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold text-light" id="nominateModalLabel">
+                    <i class="bi bi-person-plus-fill green-accent me-2"></i>Recognize Contributor
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'nominate_contributor' %}">
+                {% csrf_token %}
+                <div class="modal-body d-flex flex-column gap-3">
+                    <div>
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">Full Name</label>
+                        <input type="text" name="name" class="form-control bg-dark border-secondary text-light" required placeholder="e.g. Jane Doe">
+                    </div>
+                    <div>
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">Enrollment Number (Optional)</label>
+                        <input type="text" name="enrollment_number" class="form-control bg-dark border-secondary text-light" placeholder="e.g. 2022BCSE010">
+                    </div>
+                    <div>
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">Role / Title</label>
+                        <input type="text" name="role" class="form-control bg-dark border-secondary text-light" required placeholder="e.g. Frontend Architect">
+                    </div>
+                    <div>
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">GitHub Profile URL</label>
+                        <input type="url" name="github_url" class="form-control bg-dark border-secondary text-light" placeholder="https://github.com/username">
+                    </div>
+                    <div>
+                        <label class="form-label text-secondary small fw-semibold text-uppercase">Brief Bio / Contributions</label>
+                        <textarea name="bio" class="form-control bg-dark border-secondary text-light" rows="3" placeholder="Key contributions..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-dark-custom btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-green btn-sm px-3">Recognize</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}

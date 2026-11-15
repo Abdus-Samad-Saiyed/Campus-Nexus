@@ -4,22 +4,53 @@
 {% block title %}Campus Nexus — Service Directory{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4 py-md-5">
     <!-- Header -->
-    <div class="text-center mb-5">
-        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle">
-            <i class="bi bi-grid-3x3-gap-fill me-1"></i> Modular Campus Infrastructure
+    <div class="text-center mb-4">
+        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center gap-1.5">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+            <span>Modular Campus Infrastructure</span>
         </span>
         <h1 class="hero-title mb-3">Campus Nexus <span class="green-accent">Services</span></h1>
-        <p class="hero-subtitle mx-auto text-secondary">
+        <p class="hero-subtitle mx-auto text-secondary" style="max-width: 650px;">
             Explore dedicated digital utilities built specifically for students and staff at NIT Srinagar.
         </p>
     </div>
 
+    <!-- Search & Filter Controls (Student Directory Style) -->
+    <div class="glass p-3.5 mb-4 border-secondary border-opacity-25" style="max-width: 900px; margin-left: auto; margin-right: auto;">
+        <div class="row g-2 align-items-center">
+            <div class="col-12 col-md-7">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                    <input type="text"
+                           id="servicesSearchInput"
+                           class="form-control form-control-lg bg-dark border-secondary text-light ps-5"
+                           placeholder="Search services, features, or keywords..."
+                           autocomplete="off">
+                </div>
+            </div>
+            <div class="col-12 col-md-5 d-flex align-items-center justify-content-between justify-content-md-end gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Service status filter">
+                    <button type="button" class="btn btn-dark-custom active service-filter-btn" data-filter="all">All Services</button>
+                    <button type="button" class="btn btn-dark-custom service-filter-btn" data-filter="active">Active Now</button>
+                </div>
+                <span id="servicesFilterCount" class="badge bg-dark border border-secondary text-secondary small py-2 px-2.5">
+                    {{ services|length }} Services
+                </span>
+            </div>
+        </div>
+    </div>
+
     <!-- Service Grid -->
-    <div class="row g-4 mb-5">
+    <div class="row g-4 mb-5" id="servicesGrid">
         {% for svc in services %}
-            <div class="col-md-6 col-lg-6">
+            <div class="col-md-6 col-lg-6 service-card-col"
+                 data-service-name="{{ svc.name|lower }}"
+                 data-service-tagline="{{ svc.tagline|lower }}"
+                 data-service-desc="{{ svc.description|lower }}"
+                 data-service-features="{% for f in svc.features %}{{ f|lower }} {% endfor %}"
+                 data-service-status="{% if svc.is_active %}active{% else %}upcoming{% endif %}">
                 <div class="glass p-4 h-100 d-flex flex-column justify-content-between {% if svc.is_active %}glass-glow border-success-subtle{% endif %}">
                     <div>
                         <div class="d-flex align-items-center justify-content-between mb-3">
@@ -31,7 +62,7 @@
                                 {{ svc.status_badge }}
                             </span>
                         </div>
-                        <h4 class="fw-bold mb-1">{{ svc.name }}</h4>
+                        <h4 class="fw-bold mb-1 text-white">{{ svc.name }}</h4>
                         <p class="text-secondary small fw-semibold mb-2">{{ svc.tagline }}</p>
                         <p class="text-muted small mb-3">{{ svc.description }}</p>
 
@@ -47,14 +78,29 @@
                         {% endif %}
                     </div>
 
-                    <div class="pt-3 border-top border-secondary">
+                    <div class="pt-3 border-top border-secondary border-opacity-25 mt-3">
                         {% if svc.is_active %}
-                            <a href="{{ svc.url }}" class="btn btn-green w-100">
-                                <i class="bi bi-arrow-right-circle-fill me-1"></i> Launch {{ svc.name }}
-                            </a>
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                <a href="{{ svc.url }}" class="btn btn-green flex-grow-1 d-inline-flex align-items-center justify-content-center gap-1.5">
+                                    <i class="bi bi-arrow-right-circle-fill"></i>
+                                    <span>Launch {{ svc.name }}</span>
+                                </a>
+                                {% if svc.id == 'coordinate' %}
+                                    <a href="/coordinate/" class="btn btn-dark-custom d-inline-flex align-items-center justify-content-center gap-1" title="Overview">
+                                        <i class="bi bi-info-circle"></i>
+                                        <span>Overview</span>
+                                    </a>
+                                {% elif svc.id == 'accommodate' %}
+                                    <a href="/accommodate/" class="btn btn-dark-custom d-inline-flex align-items-center justify-content-center gap-1" title="Overview">
+                                        <i class="bi bi-info-circle"></i>
+                                        <span>Overview</span>
+                                    </a>
+                                {% endif %}
+                            </div>
                         {% else %}
-                            <a href="{% url 'service_gateway' svc.slug %}" class="btn btn-dark-custom w-100 text-secondary">
-                                <i class="bi bi-hourglass-split me-1"></i> Coming Soon
+                            <a href="{% url 'service_gateway' svc.slug %}" class="btn btn-dark-custom w-100 text-secondary d-inline-flex align-items-center justify-content-center gap-1.5">
+                                <i class="bi bi-hourglass-split"></i>
+                                <span>Roadmap &amp; Timeline</span>
                             </a>
                         {% endif %}
                     </div>
@@ -63,13 +109,99 @@
         {% endfor %}
     </div>
 
+    <!-- Empty State (Shown when search has 0 matches) -->
+    <div id="servicesEmptyState" class="glass p-5 text-center my-4 d-none" style="max-width: 600px; margin: 0 auto;">
+        <div class="feature-icon mx-auto mb-3" style="width: 50px; height: 50px; font-size: 1.5rem; color: #94a3b8; background: rgba(255, 255, 255, 0.06);">
+            <i class="bi bi-search"></i>
+        </div>
+        <h5 class="fw-bold text-white mb-2">No Matching Services</h5>
+        <p class="text-secondary small mb-3">We couldn't find any services matching your search query. Try another keyword or reset the filter.</p>
+        <button type="button" class="btn btn-outline-green btn-sm px-3" onclick="resetServicesSearch()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Search
+        </button>
+    </div>
+
     <!-- Independent Verification Disclaimer -->
-    <div class="text-center text-secondary small py-3 border-top border-secondary">
+    <div class="text-center text-secondary small py-3 border-top border-secondary border-opacity-25 mt-4">
         <p class="mb-0">
-            <i class="bi bi-info-circle me-1"></i>
+            <i class="bi bi-info-circle me-1 green-accent"></i>
             Campus Nexus is a student-built independent service platform for the NIT Srinagar community.
             Student accounts are individually verified before granting active access.
         </p>
     </div>
 </div>
+
+<script>
+(function() {
+    const searchInput = document.getElementById('servicesSearchInput');
+    const filterButtons = document.querySelectorAll('.service-filter-btn');
+    const serviceCards = document.querySelectorAll('.service-card-col');
+    const emptyState = document.getElementById('servicesEmptyState');
+    const countBadge = document.getElementById('servicesFilterCount');
+
+    let currentFilter = 'all';
+
+    function filterServices() {
+        const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        let visibleCount = 0;
+
+        serviceCards.forEach(card => {
+            const name = card.dataset.serviceName || '';
+            const tagline = card.dataset.serviceTagline || '';
+            const desc = card.dataset.serviceDesc || '';
+            const features = card.dataset.serviceFeatures || '';
+            const status = card.dataset.serviceStatus || '';
+
+            const matchesStatus = (currentFilter === 'all') || (status === currentFilter);
+            const matchesQuery = !query ||
+                name.includes(query) ||
+                tagline.includes(query) ||
+                desc.includes(query) ||
+                features.includes(query);
+
+            if (matchesStatus && matchesQuery) {
+                card.classList.remove('d-none');
+                visibleCount++;
+            } else {
+                card.classList.add('d-none');
+            }
+        });
+
+        if (countBadge) {
+            countBadge.textContent = `${visibleCount} of ${serviceCards.length} Services`;
+        }
+
+        if (emptyState) {
+            if (visibleCount === 0) {
+                emptyState.classList.remove('d-none');
+            } else {
+                emptyState.classList.add('d-none');
+            }
+        }
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterServices);
+    }
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter || 'all';
+            filterServices();
+        });
+    });
+
+    window.resetServicesSearch = function() {
+        if (searchInput) searchInput.value = '';
+        currentFilter = 'all';
+        filterButtons.forEach(b => {
+            if (b.dataset.filter === 'all') b.classList.add('active');
+            else b.classList.remove('active');
+        });
+        filterServices();
+    };
+})();
+</script>
 {% endblock %}

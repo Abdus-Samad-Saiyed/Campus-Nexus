@@ -38,6 +38,7 @@ from campus.operations import (
     admin_complete_feedback,
     admin_resolve_physical_verification,
     admin_update_phone,
+    export_accommodate_groups_csv,
     export_applications_csv,
     export_rides_csv,
     export_users_csv,
@@ -203,6 +204,7 @@ urlpatterns = [
     path('operations/export/rides/', export_rides_csv, name='export_rides_csv'),
     path('operations/export/users/', export_users_csv, name='export_users_csv'),
     path('operations/export/applications/', export_applications_csv, name='export_applications_csv'),
+    path('operations/export/accommodate-groups/', export_accommodate_groups_csv, name='export_accommodate_groups_csv'),
 
     # Autonomous Agentic & Discovery Endpoints
     path('robots.txt', robots_txt, name='robots_txt'),
@@ -277,6 +279,11 @@ urlpatterns = [
     path('rides/my/', RedirectView.as_view(url='/coordinate/my-rides/', permanent=False), name='rides_my_redirect'),
     path('rides/', RedirectView.as_view(url='/coordinate/', permanent=False), name='rides_redirect'),
     path('coordinate/', include('coordinate.urls')),
+
+    # Accommodate app (outstation internship/travel stays) & clean alias
+    path('stays/my/', RedirectView.as_view(url='/accommodate/my-groups/', permanent=False), name='stays_my_redirect'),
+    path('stays/', RedirectView.as_view(url='/accommodate/', permanent=False), name='stays_redirect'),
+    path('accommodate/', include('accommodate.urls', namespace='accommodate')),
 ]
 
 

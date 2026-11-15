@@ -100,6 +100,32 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
     cancelled_rides = RideRequest.objects.filter(status="CANCELLED").count()
     completion_rate = round((completed_rides / total_rides * 100), 1) if total_rides > 0 else 0.0
 
+    # Accommodate Metrics
+    try:
+        from accommodate.models import (
+            AccommodationGroup,
+            AccommodationMembership,
+            AccommodationJoinApplication,
+            GroupStatus,
+            RecruitmentStatus,
+            MembershipStatus,
+        )
+        total_accommodate_groups = AccommodationGroup.objects.count()
+        active_accommodate_groups = AccommodationGroup.objects.filter(group_status=GroupStatus.ACTIVE).count()
+        recruiting_accommodate_groups = AccommodationGroup.objects.filter(
+            group_status=GroupStatus.ACTIVE, recruitment_status=RecruitmentStatus.OPEN
+        ).count()
+        total_accommodate_occupants = AccommodationMembership.objects.filter(
+            status=MembershipStatus.ACTIVE
+        ).count()
+        total_accommodate_applications = AccommodationJoinApplication.objects.count()
+    except Exception:
+        total_accommodate_groups = 0
+        active_accommodate_groups = 0
+        recruiting_accommodate_groups = 0
+        total_accommodate_occupants = 0
+        total_accommodate_applications = 0
+
     # Session Metrics (Active Sessions vs Unique Concurrent Users)
     active_sessions = Session.objects.filter(expire_date__gt=now)
     active_sessions_count = active_sessions.count()
@@ -248,6 +274,11 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
             "completed_rides": completed_rides,
             "cancelled_rides": cancelled_rides,
             "completion_rate": completion_rate,
+            "total_accommodate_groups": total_accommodate_groups,
+            "active_accommodate_groups": active_accommodate_groups,
+            "recruiting_accommodate_groups": recruiting_accommodate_groups,
+            "total_accommodate_occupants": total_accommodate_occupants,
+            "total_accommodate_applications": total_accommodate_applications,
             "active_sessions_count": active_sessions_count,
             "unique_active_users_count": unique_active_users_count,
             "total_reviews": total_reviews,
@@ -809,6 +840,62 @@ def export_applications_csv(request: HttpRequest) -> HttpResponse:
         event_type="EXPORT_GENERATED",
         actor_enrollment=request.user.enrollment_number,
         description=f"Exported {apps.count()} applications to CSV (phone included: {include_phone})",
+    )
+    return response
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+def export_accommodate_groups_csv(request: HttpRequest) -> HttpResponse:
+    """Export accommodation groups with formula-injection sanitation and audit logging."""
+    if not check_step_up_or_recent_auth(request):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            return HttpResponseForbidden("Administrative session freshness check failed. Please re-authenticate before exporting platform data.")
+        messages.warning(request, "Privileged session expired. Please re-authenticate via the prompt below before exporting platform data.")
+        return redirect(f"{reverse('operational_dashboard')}?prompt_step_up=1")
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="campus_nexus_accommodate_groups_export.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Group ID", "Title", "Destination City", "Location Within City",
+        "Lodging Name", "Status", "Recruitment Status", "Admission Mode",
+        "Member Limit", "Active Occupants", "Estimated Cost", "Cost Basis",
+        "Owner Enrollment", "Created At"
+    ])
+
+    from accommodate.models import AccommodationGroup
+    groups = (
+        AccommodationGroup.objects
+        .select_related("current_owner", "stay_location")
+        .prefetch_related("memberships")
+        .order_by("-created_at")[:1000]
+    )
+
+    for g in groups:
+        owner_enrollment = g.current_owner.enrollment_number if g.current_owner else "Vacant"
+        writer.writerow([
+            str(g.id),
+            sanitize_csv_cell(g.title),
+            sanitize_csv_cell(g.destination_city),
+            sanitize_csv_cell(g.location_within_city),
+            sanitize_csv_cell(g.lodging_name),
+            sanitize_csv_cell(g.group_status),
+            sanitize_csv_cell(g.recruitment_status),
+            sanitize_csv_cell(g.admission_mode),
+            g.member_limit or "Unlimited",
+            g.active_members_count,
+            g.estimated_cost_amount or "",
+            sanitize_csv_cell(g.estimated_cost_basis or ""),
+            sanitize_csv_cell(owner_enrollment),
+            g.created_at.isoformat() if g.created_at else "",
+        ])
+
+    log_audit_event(
+        event_type="EXPORT_GENERATED",
+        actor_enrollment=request.user.enrollment_number,
+        description=f"Exported {groups.count()} accommodation groups to CSV",
     )
     return response
 

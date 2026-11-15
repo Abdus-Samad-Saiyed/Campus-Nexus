@@ -1,0 +1,96 @@
+{% extends 'accommodate/base.html' %}
+
+{% block accommodate_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="glass p-4 p-md-5 rounded-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.65);">
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                <div>
+                    <a href="{% url 'accommodate:group_manage' group.id %}" class="small text-secondary text-decoration-none mb-1 d-inline-block">
+                        &larr; Back to Owner Console
+                    </a>
+                    <h3 class="fw-bold text-white mb-0">Edit Group Settings</h3>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'accommodate:group_edit' group.id %}">
+                {% csrf_token %}
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label small text-secondary fw-semibold">Group Title *</label>
+                        <input type="text" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="title" value="{{ group.title }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Destination City *</label>
+                        <input type="text" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="destination_city" value="{{ group.destination_city }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Neighborhood / Area *</label>
+                        <input type="text" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="location_within_city" value="{{ group.location_within_city }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Lodging / Property Name</label>
+                        <input type="text" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="lodging_name" value="{{ group.lodging_name }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Google Maps URL</label>
+                        <input type="url" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="maps_url" value="{{ group.maps_url }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Target Member Limit</label>
+                        <input type="number" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="member_limit" min="1" value="{{ group.member_limit|default:'' }}" placeholder="Blank for unlimited">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Admission Mode</label>
+                        <select class="form-select bg-black bg-opacity-40 border-secondary text-white" name="admission_mode">
+                            <option value="MANUAL" {% if group.admission_mode == 'MANUAL' %}selected{% endif %}>🛡️ Peer Review (Manual)</option>
+                            <option value="AUTO" {% if group.admission_mode == 'AUTO' %}selected{% endif %}>⚡ Auto FIFO Admission</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Estimated Cost (INR)</label>
+                        <input type="number" step="0.01" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="estimated_cost_amount" value="{{ group.estimated_cost_amount|default:'' }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary fw-semibold">Cost Basis</label>
+                        <select class="form-select bg-black bg-opacity-40 border-secondary text-white" name="estimated_cost_basis">
+                            <option value="PER_PERSON_MONTH" {% if group.estimated_cost_basis == 'PER_PERSON_MONTH' %}selected{% endif %}>Per Person / Month</option>
+                            <option value="PER_PERSON_DAY" {% if group.estimated_cost_basis == 'PER_PERSON_DAY' %}selected{% endif %}>Per Person / Day</option>
+                            <option value="TOTAL_GROUP_MONTH" {% if group.estimated_cost_basis == 'TOTAL_GROUP_MONTH' %}selected{% endif %}>Total Group / Month</option>
+                            <option value="TOTAL_STAY" {% if group.estimated_cost_basis == 'TOTAL_STAY' %}selected{% endif %}>Total Stay Period</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small text-secondary fw-semibold">Cost Breakdown Note</label>
+                        <input type="text" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="cost_note" value="{{ group.cost_note }}">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small text-secondary fw-semibold">Description</label>
+                        <textarea class="form-control bg-black bg-opacity-40 border-secondary text-white" name="description" rows="4">{{ group.description }}</textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-4 border-top border-secondary border-opacity-25 mt-4">
+                    <a href="{% url 'accommodate:group_manage' group.id %}" class="btn btn-dark-custom">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-green px-4 fw-bold">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

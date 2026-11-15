@@ -576,8 +576,8 @@ class RideWorkflowTests(TestCase):
         self.assertEqual(date_filtered_resp.status_code, 200)
         self.assertTrue(date_filtered_resp.context['has_date_filter'])
         self.assertContains(date_filtered_resp, 'View All Dates (Reset Date Filter)')
-        self.assertNotContains(date_filtered_resp, '/coordinate/&order_by')
-        self.assertContains(date_filtered_resp, '/coordinate/?order_by')
+        self.assertNotContains(date_filtered_resp, f"{reverse('ride_list')}&order_by")
+        self.assertContains(date_filtered_resp, f"{reverse('ride_list')}?order_by")
 
     def test_contributor_nomination_peer_workflow(self):
         # Ordinary non-admin user cannot nominate or add

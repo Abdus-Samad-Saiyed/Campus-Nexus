@@ -209,6 +209,36 @@ def _parse_time(value: str):
 # ---------------------------------------------------------------------------
 # Ride list & My Rides
 # ---------------------------------------------------------------------------
+# Module Landing & Discovery Views
+# ---------------------------------------------------------------------------
+
+def coordinate_landing(request):
+    """Dedicated landing and overview page for the COORDINATE module."""
+    now = timezone.now()
+    active_rides_count = 0
+    upcoming_rides = []
+    try:
+        from coordinate.models import RideRequest, RideStatus
+        active_rides_count = RideRequest.objects.filter(
+            departure_time__gte=now,
+            status__in=[RideStatus.SCHEDULED, RideStatus.FULL]
+        ).count()
+        upcoming_rides = list(
+            RideRequest.objects.filter(
+                departure_time__gte=now,
+                status=RideStatus.SCHEDULED
+            )
+            .select_related('creator')
+            .order_by('departure_time')[:3]
+        )
+    except Exception:
+        pass
+
+    return render(request, 'coordinate/landing.html', {
+        'active_rides_count': active_rides_count,
+        'upcoming_rides': upcoming_rides,
+    })
+
 
 @login_required
 def ride_list(request):

@@ -1,0 +1,496 @@
+{% extends 'accommodate/base.html' %}
+
+{% block accommodate_content %}
+<div class="row g-4">
+    <!-- Left Main Column: Group Details & Occupants -->
+    <div class="col-lg-8">
+        <!-- Hero Header Card -->
+        <div class="glass p-4 p-md-5 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.65);">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold">
+                    <i class="bi bi-geo-alt-fill me-1"></i> {{ group.destination_city }}
+                </span>
+
+                <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                    {% if group.recruitment_status == 'OPEN' %}
+                        <span class="badge bg-success text-white px-2.5 py-1 rounded-pill">
+                            <i class="bi bi-door-open-fill me-1"></i> Recruitment Open
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger text-white px-2.5 py-1 rounded-pill">
+                            <i class="bi bi-door-closed-fill me-1"></i> Recruitment Closed
+                        </span>
+                    {% endif %}
+
+                    {% if group.admission_mode == 'AUTO' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
+                            <i class="bi bi-lightning-charge-fill me-0.5"></i> Auto FIFO Admission
+                        </span>
+                    {% else %}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1 rounded-pill">
+                            <i class="bi bi-shield-check me-0.5"></i> Peer Review Mode
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <h2 class="fw-bold text-white mb-2" style="letter-spacing: -0.01em;">
+                {{ group.title }}
+            </h2>
+
+            <p class="text-secondary mb-3">
+                <i class="bi bi-pin-map-fill text-danger me-1"></i>
+                <span class="text-light fw-medium">{{ group.location_within_city }}</span>
+                {% if group.lodging_name %}
+                    &middot; <strong class="text-white">{{ group.lodging_name }}</strong>
+                {% endif %}
+            </p>
+
+            <!-- Metadata Metrics Strip -->
+            <div class="row g-2 pt-3 border-top border-secondary border-opacity-25 text-center text-sm-start">
+                <div class="col-sm-4">
+                    <span class="text-secondary small d-block">Occupancy</span>
+                    <strong class="text-white">
+                        {{ active_count }}
+                        {% if group.member_limit %}
+                            / {{ group.member_limit }} slots
+                        {% else %}
+                            occupants (unlimited)
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="col-sm-4">
+                    <span class="text-secondary small d-block">Estimated Rent / Cost</span>
+                    <strong class="text-white">
+                        {% if group.estimated_cost_amount %}
+                            ₹{{ group.estimated_cost_amount|floatformat:0 }}
+                            <span class="text-secondary small fw-normal">/ {{ group.get_estimated_cost_basis_display|default:"person" }}</span>
+                        {% else %}
+                            Shared per split
+                        {% endif %}
+                    </strong>
+                </div>
+
+                <div class="col-sm-4">
+                    <span class="text-secondary small d-block">Current Group Owner</span>
+                    <strong class="text-white">
+                        {% if group.current_owner %}
+                            <a href="{% url 'profile' group.current_owner.enrollment_number %}" class="text-white text-decoration-none">
+                                {{ group.current_owner.display_name }}
+                            </a>
+                        {% else %}
+                            <span class="text-warning">Owner Vacant</span>
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stay Location & Google Maps Card -->
+        {% if group.stay_location or group.maps_url %}
+            <div class="glass p-4 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.45);">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-google text-primary"></i>
+                        <span>Verified Stay Location</span>
+                    </h5>
+                    {% if group.maps_url %}
+                        <a href="{{ group.maps_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Google Maps Link
+                        </a>
+                    {% endif %}
+                </div>
+
+                {% if group.stay_location %}
+                    <div class="p-3 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-40 mb-3">
+                        <div class="fw-bold text-white mb-1">{{ group.stay_location.name }}</div>
+                        <div class="text-secondary small mb-2">{{ group.stay_location.formatted_address }}</div>
+                        <div class="d-flex align-items-center gap-3 text-secondary small">
+                            <span><i class="bi bi-geo text-danger me-1"></i>{{ group.stay_location.city }}</span>
+                            {% if group.stay_location.latitude and group.stay_location.longitude %}
+                                <span class="font-mono" style="font-size: 0.72rem;">
+                                    Coordinates: {{ group.stay_location.latitude|floatformat:4 }}, {{ group.stay_location.longitude|floatformat:4 }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Description & Preferences -->
+        <div class="glass p-4 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.45);">
+            <h5 class="fw-bold text-white mb-3">About this Group &amp; House Rules</h5>
+            {% if group.description %}
+                <div class="text-light small mb-3" style="white-space: pre-line; line-height: 1.65;">
+                    {{ group.description }}
+                </div>
+            {% else %}
+                <p class="text-secondary small mb-3">No custom description provided by group creator.</p>
+            {% endif %}
+
+            {% if group.cost_note %}
+                <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                    <span class="small fw-semibold text-white d-block mb-1">
+                        <i class="bi bi-cash-coin green-accent me-1"></i> Cost Breakdown Details:
+                    </span>
+                    <span class="text-secondary small">{{ group.cost_note }}</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Active Occupants Roster -->
+        <div class="glass p-4 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.45);">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-people-fill green-accent"></i>
+                    <span>Confirmed Occupants ({{ active_count }})</span>
+                </h5>
+                <span class="small text-secondary">
+                    {% if group.member_limit %}
+                        {{ capacity_left }} slot{{ capacity_left|pluralize }} available
+                    {% else %}
+                        No capacity limit
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="d-flex flex-column gap-2.5">
+                {% for m in active_members %}
+                    <div class="p-3 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-30 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center text-light flex-shrink-0" style="width: 42px; height: 42px;">
+                                <i class="bi bi-person-fill fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="{% url 'profile' m.user.enrollment_number %}" class="fw-bold text-white text-decoration-none text-hover-green">
+                                        {{ m.user.display_name }}
+                                    </a>
+                                    {% if m.user == group.current_owner %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-1.5 py-0.5 rounded-pill" style="font-size: 0.65rem;">
+                                            <i class="bi bi-star-fill me-0.5"></i> Owner
+                                        </span>
+                                    {% endif %}
+                                    {% if m.user == request.user %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1.5 py-0.5 rounded-pill" style="font-size: 0.65rem;">
+                                            You
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-secondary small font-mono" style="font-size: 0.75rem;">
+                                    <code>{{ m.user.enrollment_number }}</code> &middot; {{ m.user.branch|default:"General" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Declared Stay Timeline -->
+                        <div class="text-sm-end">
+                            <span class="badge bg-dark border border-secondary text-light px-2.5 py-1 rounded-pill small">
+                                <i class="bi bi-calendar3 me-1 text-info"></i>
+                                {{ m.planned_stay.lower|date:"M d" }} &ndash; {{ m.planned_stay.upper|date:"M d, Y" }}
+                            </span>
+                            <div class="text-secondary small mt-0.5" style="font-size: 0.72rem;">
+                                Joined {{ m.joined_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-secondary small mb-0">No active occupants confirmed yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Peer Review Advisory Objections Section (Active members in MANUAL mode) -->
+        {% if viewer_membership and group.admission_mode == 'MANUAL' and inbox and inbox.pending_applications %}
+            <div class="glass p-4 rounded-4 mb-4 border border-warning-subtle" style="background: rgba(245, 158, 11, 0.04);">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-exclamation text-warning"></i>
+                        <span>Peer Review &amp; Advisory Objections</span>
+                    </h5>
+                    <span class="badge bg-warning text-dark px-2 py-0.5 rounded-pill small">
+                        {{ inbox.pending_applications|length }} Pending Candidate{{ inbox.pending_applications|length|pluralize }}
+                    </span>
+                </div>
+                <p class="text-secondary small mb-3">
+                    In MANUAL mode, all active flatmates have the right to lodge advisory objections regarding compatibility or safety before the owner confirms admission.
+                </p>
+
+                <div class="d-flex flex-column gap-3">
+                    {% for pending_app in inbox.pending_applications %}
+                        <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-40">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div>
+                                    <strong class="text-white">{{ pending_app.applicant.display_name }}</strong>
+                                    <span class="text-secondary small font-mono">({{ pending_app.applicant.enrollment_number }})</span>
+                                </div>
+                                <span class="badge bg-dark border border-secondary text-light small">
+                                    {{ pending_app.requested_stay.lower|date:"M d" }} &ndash; {{ pending_app.requested_stay.upper|date:"M d, Y" }}
+                                </span>
+                            </div>
+                            {% if pending_app.message %}
+                                <div class="text-secondary small mb-2 italic">&ldquo;{{ pending_app.message }}&rdquo;</div>
+                            {% endif %}
+
+                            <!-- Objections lodged on this candidate -->
+                            {% if pending_app.objections.all %}
+                                <div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
+                                    <span class="small fw-semibold text-warning d-block mb-1">Advisory Objections:</span>
+                                    {% for obj in pending_app.objections.all %}
+                                        <div class="small text-secondary mb-1">
+                                            <i class="bi bi-exclamation-triangle text-danger me-1"></i>
+                                            <strong>{{ obj.objector_membership.user.display_name }}</strong>: {{ obj.reason|default:"Raised concern." }}
+                                            {% if obj.objector_membership.user == request.user %}
+                                                <form action="{% url 'accommodate:withdraw_objection' obj.id %}" method="POST" class="d-inline ms-2">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-link btn-sm p-0 text-danger" style="font-size: 0.75rem;">Withdraw</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <!-- Peer Object Action Form (if not owner and not applicant) -->
+                            {% if not viewer_is_owner and pending_app.applicant != request.user %}
+                                <div class="mt-2 pt-2 border-top border-secondary border-opacity-25">
+                                    <button class="btn btn-sm btn-outline-warning py-0.5 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#objectionCollapse-{{ pending_app.id }}" style="font-size: 0.75rem;">
+                                        <i class="bi bi-hand-thumbs-down me-1"></i> Lodge Advisory Objection
+                                    </button>
+                                    <div class="collapse mt-2" id="objectionCollapse-{{ pending_app.id }}">
+                                        <form action="{% url 'accommodate:object_application' pending_app.id %}" method="POST">
+                                            {% csrf_token %}
+                                            <textarea class="form-control form-control-sm bg-black bg-opacity-50 border-secondary text-white mb-2" name="reason" rows="2" placeholder="Briefly state your concern for the group owner..."></textarea>
+                                            <button type="submit" class="btn btn-warning btn-sm py-1 px-3 fw-semibold">Submit Objection</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar: Actions & Status Cards -->
+    <div class="col-lg-4">
+        <!-- Interactive Actions Card -->
+        <div class="glass p-4 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.65);">
+            <h5 class="fw-bold text-white mb-3">Your Membership Status</h5>
+
+            {% if viewer_membership %}
+                <!-- Viewer is Active Member -->
+                <div class="p-3 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-30 mb-3 text-center">
+                    <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-1"></i>
+                    <strong class="text-white d-block">You are an Active Occupant</strong>
+                    <span class="text-secondary small">
+                        Stay: {{ viewer_membership.planned_stay.lower|date:"M d" }} &ndash; {{ viewer_membership.planned_stay.upper|date:"M d, Y" }}
+                    </span>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-dark-custom w-100 py-2 small" data-bs-toggle="modal" data-bs-target="#updateDatesModal">
+                        <i class="bi bi-calendar-event me-1"></i> Adjust My Stay Dates
+                    </button>
+
+                    {% if viewer_is_owner %}
+                        <a href="{% url 'accommodate:group_manage' group.id %}" class="btn btn-green w-100 py-2 fw-semibold">
+                            <i class="bi bi-gear-fill me-1"></i> Manage Group Console
+                        </a>
+                    {% endif %}
+
+                    <button type="button" class="btn btn-outline-danger w-100 py-2 small" data-bs-toggle="modal" data-bs-target="#leaveGroupModal">
+                        <i class="bi bi-box-arrow-right me-1"></i> Leave This Group
+                    </button>
+                </div>
+
+            {% elif viewer_application %}
+                <!-- Viewer Has Pending/Waitlisted Application -->
+                <div class="p-3 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-30 mb-3 text-center">
+                    {% if viewer_application.status == 'WAITLISTED' %}
+                        <i class="bi bi-hourglass-split text-warning fs-3 d-block mb-1"></i>
+                        <strong class="text-white d-block">Waitlisted in FIFO Queue</strong>
+                        <span class="text-secondary small">You will be admitted automatically as soon as capacity is released.</span>
+                    {% else %}
+                        <i class="bi bi-clock-history text-info fs-3 d-block mb-1"></i>
+                        <strong class="text-white d-block">Application Under Peer Review</strong>
+                        <span class="text-secondary small">The group owner and peers are reviewing your application.</span>
+                    {% endif %}
+                </div>
+
+                <form action="{% url 'accommodate:withdraw_application' viewer_application.id %}" method="POST" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary w-100 py-2 small">
+                        <i class="bi bi-x-circle me-1"></i> Withdraw Application
+                    </button>
+                </form>
+
+            {% elif group.recruitment_status == 'CLOSED' %}
+                <!-- Recruitment Closed -->
+                <div class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-30 text-center">
+                    <i class="bi bi-lock-fill text-secondary fs-3 d-block mb-1"></i>
+                    <strong class="text-white d-block">Recruitment Closed</strong>
+                    <span class="text-secondary small">This group is currently not accepting new applicants.</span>
+                </div>
+
+            {% else %}
+                <!-- Viewer Can Apply -->
+                <p class="text-secondary small mb-3">
+                    Declared dates prevent overlapping stay conflicts. In AUTO mode, applications are admitted immediately if capacity exists.
+                </p>
+
+                <button type="button" class="btn btn-green w-100 py-2.5 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#applyModal">
+                    <i class="bi bi-person-plus-fill me-1"></i> Request to Join Group
+                </button>
+            {% endif %}
+
+            <!-- If owner departed and viewer is active occupant, allow claiming ownership -->
+            {% if viewer_membership and not group.current_owner %}
+                <form action="{% url 'accommodate:group_claim_ownership' group.id %}" method="POST" class="mt-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning w-100 py-2 fw-semibold">
+                        <i class="bi bi-award-fill me-1"></i> Claim Group Ownership
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+
+        <!-- Trust & Peer Safety Card -->
+        <div class="glass p-4 rounded-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.45);">
+            <h6 class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
+                <i class="bi bi-shield-check green-accent"></i>
+                <span>Campus Coordination Guarantees</span>
+            </h6>
+            <ul class="text-secondary small ps-3 mb-0" style="line-height: 1.6;">
+                <li>Verified student accounts via NIT enrollment credentials.</li>
+                <li>PostgreSQL GiST guarantees zero overlapping active stays.</li>
+                <li>Structured peer exit reviews upon group departure.</li>
+                <li>Direct escalation channel for safety or conduct grievances.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Apply to Group -->
+<div class="modal fade" id="applyModal" tabindex="-1" aria-labelledby="applyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" id="applyModalLabel">
+                    <i class="bi bi-person-plus-fill green-accent me-2"></i>Apply to Join {{ group.title }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'accommodate:apply' group.id %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary fw-semibold">Your Intended Stay Start Date *</label>
+                        <input type="date" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="start_date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary fw-semibold">Your Intended Stay End Date *</label>
+                        <input type="date" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="end_date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary fw-semibold">Introduction / Note to Flatmates</label>
+                        <textarea class="form-control bg-black bg-opacity-40 border-secondary text-white" name="message" rows="3" placeholder="Tell the group about your internship, college branch, and daily habits..."></textarea>
+                    </div>
+
+                    <div class="p-2.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-30 small text-secondary">
+                        <i class="bi bi-info-circle text-info me-1"></i>
+                        {% if group.admission_mode == 'AUTO' %}
+                            <strong>Auto FIFO Mode:</strong> If there is open capacity, you will be admitted instantly. If full, you will be placed on the waitlist.
+                        {% else %}
+                            <strong>Peer Review Mode:</strong> Your application will be visible to active roommates for advisory review before the owner confirms admission.
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-dark-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-green px-4 fw-bold">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Adjust Stay Dates (Active Members) -->
+{% if viewer_membership %}
+<div class="modal fade" id="updateDatesModal" tabindex="-1" aria-labelledby="updateDatesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" id="updateDatesModalLabel">
+                    <i class="bi bi-calendar-event green-accent me-2"></i>Adjust Declared Stay Period
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'accommodate:update_dates' viewer_membership.id %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary fw-semibold">New Stay Start Date *</label>
+                        <input type="date" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="start_date" value="{{ viewer_membership.planned_stay.lower|date:'Y-m-d' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary fw-semibold">New Stay End Date *</label>
+                        <input type="date" class="form-control bg-black bg-opacity-40 border-secondary text-white" name="end_date" value="{{ viewer_membership.planned_stay.upper|date:'Y-m-d' }}" required>
+                    </div>
+
+                    <div class="p-2.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-30 small text-secondary">
+                        <i class="bi bi-shield-check text-success me-1"></i> Date changes are validated against any other platform stays you hold to guarantee non-overlap.
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-dark-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-green px-3 fw-semibold">Save Date Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Leave Group -->
+<div class="modal fade" id="leaveGroupModal" tabindex="-1" aria-labelledby="leaveGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-danger" id="leaveGroupModalLabel">
+                    <i class="bi bi-box-arrow-right me-2"></i>Confirm Voluntary Departure
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'accommodate:leave_group' viewer_membership.id %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="text-light small mb-3">
+                        Are you sure you want to depart from <strong>{{ group.title }}</strong>?
+                    </p>
+                    {% if viewer_is_owner and active_count > 1 and group.recruitment_status == 'OPEN' %}
+                        <div class="alert alert-warning small mb-0">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                            You are the group owner. You must transfer ownership or close recruitment before leaving.
+                        </div>
+                    {% else %}
+                        <div class="text-secondary small">
+                            Upon departure, you and your remaining flatmates will receive optional peer review invitations to celebrate good co-living conduct.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-dark-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-3 fw-bold">Confirm Departure</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

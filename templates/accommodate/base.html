@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Accommodate — Campus Nexus{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Accommodate Sub-Header & Navigation Tabs -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="feature-icon" style="width: 32px; height: 32px; font-size: 0.95rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                    <i class="bi bi-buildings-fill"></i>
+                </span>
+                <h4 class="fw-bold mb-0 text-white" style="letter-spacing: -0.01em;">
+                    ACCOMMODATE <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.68rem;">Stay Coordination</span>
+                </h4>
+            </div>
+            <p class="text-secondary small mb-0">
+                Form peer groups, coordinate declared stay dates, and find flatmates for outstation internships and travel.
+            </p>
+        </div>
+
+        <!-- Action & Navigation Pill Tabs -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'accommodate:group_list' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'group_list' %}btn-green{% else %}btn-dark-custom{% endif %}">
+                <i class="bi bi-compass me-1"></i> Explore Stays
+            </a>
+            <a href="{% url 'accommodate:group_create' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'group_create' %}btn-green{% else %}btn-dark-custom{% endif %}">
+                <i class="bi bi-plus-circle-fill me-1"></i> Form Group
+            </a>
+            <a href="{% url 'accommodate:my_groups' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'my_groups' or request.resolver_match.url_name == 'my_applications' %}btn-green{% else %}btn-dark-custom{% endif %}">
+                <i class="bi bi-collection me-1"></i> My Stays
+            </a>
+            <a href="{% url 'accommodate:my_reviews' %}" class="btn btn-sm {% if request.resolver_match.url_name == 'my_reviews' or request.resolver_match.url_name == 'submit_review' %}btn-green{% else %}btn-dark-custom{% endif %}">
+                <i class="bi bi-star me-1"></i> Reviews
+            </a>
+        </div>
+    </div>
+
+    <!-- Feedback Messages -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if message.tags == 'error' %}
+                            <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                        {% elif message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill fs-5"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill fs-5"></i>
+                        {% endif %}
+                        <div>{{ message }}</div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% block accommodate_content %}{% endblock %}
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Campus Nexus — Coordinate (Ride Sharing){% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <!-- Hero Banner -->
+    <div class="text-center mb-5">
+        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center gap-1.5">
+            <i class="bi bi-car-front-fill"></i>
+            <span>COORDINATE &bull; Campus Ride Sharing &amp; Commute</span>
+        </span>
+        <h1 class="hero-title mb-3">Share Rides. Split Fares. <span class="green-accent">Travel Safer.</span></h1>
+        <p class="hero-subtitle mx-auto text-secondary" style="max-width: 680px;">
+            Coordinate cab shares to Srinagar Airport, Railway Station, or across town exclusively with verified NIT Srinagar peers.
+        </p>
+
+        <!-- Primary Action Callouts -->
+        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+            <a href="{% url 'ride_list' %}" class="btn btn-green px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2">
+                <i class="bi bi-search"></i>
+                <span>Browse Available Rides</span>
+            </a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'create_ride' %}" class="btn btn-dark-custom px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-plus-circle-fill green-accent"></i>
+                    <span>Offer a Ride</span>
+                </a>
+                <a href="{% url 'my_rides' %}" class="btn btn-dark-custom px-4 py-2.5 text-secondary d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history"></i>
+                    <span>My Bookings</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-dark-custom px-4 py-2.5 fw-semibold d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Sign In to Coordinate</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats Metric Strip -->
+    <div class="row g-3 mb-5">
+        <div class="col-12 col-md-4">
+            <div class="glass p-3.5 text-center h-100 border-success-subtle">
+                <div class="fs-3 fw-bold text-white mb-1 font-mono">{{ active_rides_count|default:"0" }}</div>
+                <div class="text-secondary small fw-semibold text-uppercase">Active Upcoming Rides</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="glass p-3.5 text-center h-100">
+                <div class="fs-3 fw-bold green-accent mb-1 font-mono">100%</div>
+                <div class="text-secondary small fw-semibold text-uppercase">Verified NIT Student Community</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="glass p-3.5 text-center h-100">
+                <div class="fs-3 fw-bold text-info mb-1 font-mono">~60%</div>
+                <div class="text-secondary small fw-semibold text-uppercase">Average Fare Savings per Seat</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Pillars -->
+    <div class="mb-5">
+        <div class="text-center mb-4">
+            <h3 class="fw-bold text-white mb-2">Designed Specifically for <span class="green-accent">NIT Srinagar</span></h3>
+            <p class="text-secondary small">Built by students to solve real transport logistics without inflated commercial surge fares.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="feature-icon mb-3" style="width: 44px; height: 44px; font-size: 1.25rem; color: #10B981; background: rgba(16, 185, 129, 0.12);">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">Identity &amp; Gates</h5>
+                        <p class="text-secondary small mb-0">
+                            Strict student verification, gender-specific comfort gates, and friends-only visibility ensure safe travel.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="feature-icon mb-3" style="width: 44px; height: 44px; font-size: 1.25rem; color: #00D2FF; background: rgba(0, 210, 255, 0.12);">
+                            <i class="bi bi-chat-dots-fill"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">Live Group Chat</h5>
+                        <p class="text-secondary small mb-0">
+                            Integrated WebSocket coordination chat per ride keeps everybody synced on meeting points and delays without phone spam.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="feature-icon mb-3" style="width: 44px; height: 44px; font-size: 1.25rem; color: #F59E0B; background: rgba(245, 158, 11, 0.12);">
+                            <i class="bi bi-person-lines-fill"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">Standby Waitlist</h5>
+                        <p class="text-secondary small mb-0">
+                            When high-demand rides fill up, automatic standby waitlists backfill dropouts immediately in FIFO priority.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="feature-icon mb-3" style="width: 44px; height: 44px; font-size: 1.25rem; color: #818CF8; background: rgba(129, 140, 248, 0.12);">
+                            <i class="bi bi-star-half"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">Punctuality Score</h5>
+                        <p class="text-secondary small mb-0">
+                            Peer attendance tracking and transparent post-ride reviews encourage reliable departures and on-time meetups.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Campus Routes -->
+    <div class="glass p-4 mb-5">
+        <h4 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-signpost-2 green-accent"></i>
+            <span>Frequent Commute Corridors</span>
+        </h4>
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 h-100">
+                    <div class="fw-bold text-white mb-1"><i class="bi bi-airplane text-info me-1"></i> Srinagar Airport (SXR)</div>
+                    <div class="small text-secondary mb-2">Semester breaks &amp; holiday flights</div>
+                    <a href="{% url 'ride_list' %}?route=AIRPORT" class="small green-accent text-decoration-none fw-semibold">View airport rides &rarr;</a>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 h-100">
+                    <div class="fw-bold text-white mb-1"><i class="bi bi-train-front text-warning me-1"></i> Railway Station</div>
+                    <div class="small text-secondary mb-2">Nowgam &amp; Vande Bharat trains</div>
+                    <a href="{% url 'ride_list' %}?route=RAILWAY" class="small green-accent text-decoration-none fw-semibold">View train station rides &rarr;</a>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 h-100">
+                    <div class="fw-bold text-white mb-1"><i class="bi bi-geo-alt text-success me-1"></i> Lal Chowk / TRC</div>
+                    <div class="small text-secondary mb-2">Weekend markets &amp; city errands</div>
+                    <a href="{% url 'ride_list' %}?route=CITY" class="small green-accent text-decoration-none fw-semibold">View city rides &rarr;</a>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="p-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 h-100">
+                    <div class="fw-bold text-white mb-1"><i class="bi bi-compass text-primary me-1"></i> Outstation &amp; Trips</div>
+                    <div class="small text-secondary mb-2">Gulmarg, Pahalgam &amp; excursions</div>
+                    <a href="{% url 'ride_list' %}" class="small green-accent text-decoration-none fw-semibold">Browse all destinations &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Safety & Conduct Reminder -->
+    <div class="p-3.5 rounded border border-secondary border-opacity-25 text-secondary small text-center" style="background: rgba(0, 0, 0, 0.2);">
+        <i class="bi bi-info-circle me-1 green-accent"></i>
+        Always verify driver and co-passenger identities via their Campus Nexus verified profile before boarding.
+        In case of any emergency or conduct violation, use the in-app <strong>Report Incident SOS</strong> on the ride details page.
+    </div>
+</div>
+{% endblock %}

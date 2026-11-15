@@ -1,0 +1,88 @@
+{% extends 'accommodate/base.html' %}
+
+{% block accommodate_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="glass p-4 p-md-5 rounded-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.65);">
+            <div class="mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                <a href="{% url 'accommodate:my_reviews' %}" class="small text-secondary text-decoration-none mb-1 d-inline-block">
+                    &larr; Back to Reviews Hub
+                </a>
+                <h3 class="fw-bold text-white mb-1">
+                    Peer Review for {{ departed_user.display_name }}
+                </h3>
+                <p class="text-secondary small mb-0">
+                    Shared Stay: <strong class="text-white">{{ group.title }}</strong> &middot; {{ group.destination_city }}
+                </p>
+            </div>
+
+            <form method="POST" action="{% url 'accommodate:submit_review' invitation.id %}">
+                {% csrf_token %}
+
+                <!-- Dimension 1: Reliability -->
+                <div class="mb-4 p-3 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div>
+                            <label class="form-label small text-white fw-bold mb-0">1. Reliability &amp; Agreements</label>
+                            <span class="text-secondary small d-block">Punctuality on shared utility bills, honoring house agreements.</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success fs-6 fw-bold" id="valReliability">5 / 5</span>
+                    </div>
+                    <input type="range" class="form-range" name="reliability_score" min="1" max="5" value="5" oninput="document.getElementById('valReliability').innerText = this.value + ' / 5'">
+                </div>
+
+                <!-- Dimension 2: Communication -->
+                <div class="mb-4 p-3 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div>
+                            <label class="form-label small text-white fw-bold mb-0">2. Communication &amp; Responsiveness</label>
+                            <span class="text-secondary small d-block">Prompt coordination on group chats, clear notice before visitors or plans.</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success fs-6 fw-bold" id="valCommunication">5 / 5</span>
+                    </div>
+                    <input type="range" class="form-range" name="communication_score" min="1" max="5" value="5" oninput="document.getElementById('valCommunication').innerText = this.value + ' / 5'">
+                </div>
+
+                <!-- Dimension 3: Cooperation & Harmony -->
+                <div class="mb-4 p-3 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div>
+                            <label class="form-label small text-white fw-bold mb-0">3. Cooperation &amp; Shared Living</label>
+                            <span class="text-secondary small d-block">Cleanliness in shared spaces, fair division of daily flat responsibilities.</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success fs-6 fw-bold" id="valCooperation">5 / 5</span>
+                    </div>
+                    <input type="range" class="form-range" name="cooperation_score" min="1" max="5" value="5" oninput="document.getElementById('valCooperation').innerText = this.value + ' / 5'">
+                </div>
+
+                <!-- Dimension 4: Respect & Boundaries -->
+                <div class="mb-4 p-3 rounded-3 bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div>
+                            <label class="form-label small text-white fw-bold mb-0">4. Respect for Privacy &amp; Boundaries</label>
+                            <span class="text-secondary small d-block">Respect for quiet study hours, personal space, and sleep schedules.</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success fs-6 fw-bold" id="valRespect">5 / 5</span>
+                    </div>
+                    <input type="range" class="form-range" name="respect_score" min="1" max="5" value="5" oninput="document.getElementById('valRespect').innerText = this.value + ' / 5'">
+                </div>
+
+                <!-- Private Context Note -->
+                <div class="mb-4">
+                    <label class="form-label small text-secondary fw-semibold">Private Note / Endorsement (Optional)</label>
+                    <textarea class="form-control bg-black bg-opacity-40 border-secondary text-white" name="private_context" rows="3" placeholder="Add any personal appreciation or constructive thoughts..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-25">
+                    <a href="{% url 'accommodate:my_reviews' %}" class="btn btn-dark-custom">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-green px-4 fw-bold">
+                        <i class="bi bi-check-circle-fill me-1"></i> Submit Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

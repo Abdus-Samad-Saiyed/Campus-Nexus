@@ -1,0 +1,98 @@
+<div class="col-md-6 col-lg-4">
+    <div class="glass p-3.5 rounded-3 h-100 d-flex flex-column justify-content-between position-relative transition-base border border-secondary border-opacity-25 hover-border-green" style="background: rgba(15, 23, 42, 0.45);">
+        <div>
+            <!-- Top Badges Row -->
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2.5">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                    <i class="bi bi-geo-alt-fill me-1"></i> {{ group.destination_city }}
+                </span>
+                
+                <div class="d-flex align-items-center gap-1">
+                    {% if group.admission_mode == 'AUTO' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;" title="Instant admission as long as capacity exists">
+                            <i class="bi bi-lightning-charge-fill me-0.5"></i> Auto FIFO
+                        </span>
+                    {% else %}
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;" title="Admissions reviewed manually with advisory peer objections">
+                            <i class="bi bi-shield-check me-0.5"></i> Peer Review
+                        </span>
+                    {% endif %}
+
+                    {% if group.has_available_capacity %}
+                        <span class="badge bg-success bg-opacity-25 text-white border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                            Open
+                        </span>
+                    {% else %}
+                        <span class="badge bg-warning bg-opacity-25 text-warning border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">
+                            Full (Waitlist)
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Group Title -->
+            <h5 class="fw-bold text-white mb-1.5 text-truncate" style="letter-spacing: -0.01em;">
+                <a href="{% url 'accommodate:group_detail' group.id %}" class="text-white text-decoration-none text-hover-green">
+                    {{ group.title }}
+                </a>
+            </h5>
+
+            <!-- Locality & Lodging -->
+            <p class="text-secondary small mb-2 text-truncate">
+                <i class="bi bi-pin-map text-danger me-1"></i>
+                <span class="text-light fw-medium">{{ group.location_within_city }}</span>
+                {% if group.lodging_name %}
+                    &middot; <span class="text-secondary">{{ group.lodging_name }}</span>
+                {% endif %}
+            </p>
+
+            <!-- Stay Location Pin Pill (if linked to verified Google Maps stay) -->
+            {% if group.stay_location %}
+                <div class="mb-2.5">
+                    <span class="badge bg-black bg-opacity-40 border border-secondary border-opacity-50 text-light py-1 px-2 rounded-2 small text-truncate d-inline-block mw-100" title="{{ group.stay_location.formatted_address }}">
+                        <i class="bi bi-google text-primary me-1"></i> {{ group.stay_location.name }}
+                    </span>
+                </div>
+            {% endif %}
+
+            <!-- Description Snippet -->
+            {% if group.description %}
+                <p class="text-secondary small mb-3 line-clamp-2" style="font-size: 0.82rem; line-height: 1.45; min-height: 2.4em;">
+                    {{ group.description }}
+                </p>
+            {% else %}
+                <p class="text-secondary opacity-50 small mb-3 italic" style="font-size: 0.82rem; min-height: 2.4em;">
+                    No specific preferences declared. Open for peer inquiry.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- Bottom Footer Metrics Row -->
+        <div class="pt-2.5 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between gap-2">
+            <div>
+                <!-- Member Capacity -->
+                <div class="d-flex align-items-center gap-1 small text-light fw-semibold">
+                    <i class="bi bi-people-fill green-accent"></i>
+                    <span>{{ group.active_members_count }}</span>
+                    {% if group.member_limit %}
+                        <span class="text-secondary fw-normal">/ {{ group.member_limit }} slots</span>
+                    {% else %}
+                        <span class="text-secondary fw-normal">members (no limit)</span>
+                    {% endif %}
+                </div>
+
+                <!-- Cost Metric -->
+                {% if group.estimated_cost_amount %}
+                    <div class="text-secondary" style="font-size: 0.75rem;">
+                        <span class="text-light fw-medium">₹{{ group.estimated_cost_amount|floatformat:0 }}</span>
+                        <span>/ {{ group.get_estimated_cost_basis_display|default:"person" }}</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <a href="{% url 'accommodate:group_detail' group.id %}" class="btn btn-sm btn-outline-green py-1 px-3">
+                Details &rarr;
+            </a>
+        </div>
+    </div>
+</div>

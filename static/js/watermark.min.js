@@ -663,6 +663,25 @@ document.querySelectorAll('.dropdown-toggle.show').forEach(b => {
 b.classList.remove('show');
 b.setAttribute('aria-expanded', 'false');
 });
+try {
+document.querySelectorAll('.modal.show').forEach(m => {
+if (window.bootstrap && bootstrap.Modal) {
+const inst = bootstrap.Modal.getInstance(m);
+if (inst) inst.hide();
+}
+m.classList.remove('show');
+m.style.display = 'none';
+m.setAttribute('aria-hidden', 'true');
+});
+document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+document.body.classList.remove('modal-open');
+document.body.style.removeProperty('overflow');
+document.body.style.removeProperty('padding-right');
+const navCollapse = document.getElementById('navbarMain');
+if (navCollapse && navCollapse.classList.contains('show')) {
+navCollapse.classList.remove('show');
+}
+} catch (e) {}
 if (startledTimeoutId) {
 clearTimeout(startledTimeoutId);
 startledTimeoutId = null;
@@ -887,6 +906,25 @@ document.querySelectorAll('.dropdown-toggle.show').forEach(b => {
 b.classList.remove('show');
 b.setAttribute('aria-expanded', 'false');
 });
+try {
+document.querySelectorAll('.modal.show').forEach(m => {
+if (window.bootstrap && bootstrap.Modal) {
+const inst = bootstrap.Modal.getInstance(m);
+if (inst) inst.hide();
+}
+m.classList.remove('show');
+m.style.display = 'none';
+m.setAttribute('aria-hidden', 'true');
+});
+document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+document.body.classList.remove('modal-open');
+document.body.style.removeProperty('overflow');
+document.body.style.removeProperty('padding-right');
+const navCollapse = document.getElementById('navbarMain');
+if (navCollapse && navCollapse.classList.contains('show')) {
+navCollapse.classList.remove('show');
+}
+} catch (e) {}
 const targets = getScatterTargets();
 const navbar = document.querySelector('.navbar-custom');
 const watermark = document.getElementById('clockwork-watermark');

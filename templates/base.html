@@ -670,6 +670,173 @@
         [data-theme="light"] .pwa-mobile-badge .badge {
             color: #ffffff !important;
         }
+
+        /* ==========================================================================
+           MICROSOFT REFERENCE SERVICES MEGA-DROPDOWN & BOTTOM NAVIGATION BAR
+           ========================================================================== */
+        .dropdown-services-mega {
+            position: relative;
+        }
+
+        .services-mega-menu {
+            position: absolute !important;
+            top: 100% !important;
+            right: 0 !important;
+            min-width: 520px;
+            max-width: calc(100vw - 24px);
+            background: var(--surface-solid, #0a0e0a) !important;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border, rgba(255, 255, 255, 0.12)) !important;
+            border-radius: 16px !important;
+            overflow: hidden;
+            margin-top: 8px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px var(--primary-glow, rgba(8, 183, 79, 0.12));
+            z-index: 1060;
+        }
+
+        [data-bs-theme="light"] .services-mega-menu,
+        [data-theme="light"] .services-mega-menu {
+            background: var(--surface-solid, #ffffff) !important;
+            border-color: var(--border, rgba(0, 0, 0, 0.12)) !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .navbar-services-trigger {
+            color: var(--text, #f8fafc) !important;
+            transition: all 0.2s ease;
+        }
+
+        .navbar-services-trigger:hover,
+        .navbar-services-trigger[aria-expanded="true"] {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: var(--green, #08B74F) !important;
+        }
+
+        .mega-menu-link {
+            text-decoration: none;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: background 0.18s ease, transform 0.18s ease;
+        }
+
+        .mega-menu-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(3px);
+        }
+
+        [data-bs-theme="light"] .mega-menu-link:hover,
+        [data-theme="light"] .mega-menu-link:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .services-mega-footer {
+            background: rgba(0, 0, 0, 0.35);
+            transition: background 0.2s ease;
+        }
+
+        .services-mega-footer:hover {
+            background: rgba(8, 183, 79, 0.08);
+        }
+
+        [data-bs-theme="light"] .services-mega-footer,
+        [data-theme="light"] .services-mega-footer {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Floating Service Bottom Navigation Dock */
+        .service-bottom-nav-wrap {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1040;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        .service-bottom-nav {
+            pointer-events: auto;
+            background: rgba(10, 16, 26, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(8, 183, 79, 0.12);
+            border-radius: 40px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            max-width: 580px;
+            width: 100%;
+            justify-content: space-around;
+        }
+
+        [data-bs-theme="light"] .service-bottom-nav,
+        [data-theme="light"] .service-bottom-nav {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .service-bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+            font-size: 0.72rem;
+            font-weight: 500;
+            min-width: 54px;
+        }
+
+        .service-bottom-nav-item i {
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+
+        .service-bottom-nav-item:hover {
+            color: #f8fafc;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .service-bottom-nav-item.active {
+            color: var(--green, #08B74F);
+            background: rgba(8, 183, 79, 0.14);
+            font-weight: 600;
+        }
+
+        .service-bottom-nav-item.active i {
+            color: var(--green, #08B74F);
+            filter: drop-shadow(0 0 6px rgba(8, 183, 79, 0.4));
+        }
+
+        [data-bs-theme="light"] .service-bottom-nav-item,
+        [data-theme="light"] .service-bottom-nav-item {
+            color: #64748b;
+        }
+
+        [data-bs-theme="light"] .service-bottom-nav-item:hover,
+        [data-theme="light"] .service-bottom-nav-item:hover {
+            color: #0f172a;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-bs-theme="light"] .service-bottom-nav-item.active,
+        [data-theme="light"] .service-bottom-nav-item.active {
+            color: #059669;
+            background: rgba(5, 150, 105, 0.12);
+        }
     </style>
     <script>
         (function() {
@@ -979,22 +1146,24 @@
 
                 <!-- Mobile Quick Actions & Hamburger Toggle (strictly hidden on desktop, pinned right on mobile) -->
                 <div class="navbar-mobile-actions d-flex align-items-center gap-1 gap-sm-2 d-lg-none ms-auto flex-shrink-0">
-                    {% if user.is_authenticated %}
-                    <button class="btn btn-icon-nav position-relative btn-device-notifs-btn" id="btn-device-notifs-mobile" type="button" data-bs-toggle="modal" data-bs-target="#notificationsModal" title="Notifications Center" aria-label="Open Notifications">
-                        <i class="bi bi-bell text-secondary icon-device-notifs-icon" id="icon-device-notifs-mobile"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark notif-badge d-none" style="font-size: 0.65rem; padding: 0.25em 0.45em;">0</span>
-                    </button>
-                    {% endif %}
                     <!-- Pinned Mobile Install Button (Direct Native Install on Android; Share Sheet on iOS) -->
                     <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center green-accent d-none" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
                         <i class="bi bi-download" id="pwa-pinned-icon"></i>
                     </button>
+                    {% if user.is_authenticated and not is_guest_demo %}
+                    <!-- Mobile Messages Direct Action with Unread Badge -->
+                    <a href="{% url 'messages_inbox' %}" class="btn btn-icon-nav position-relative d-inline-flex align-items-center justify-content-center text-decoration-none" title="Messages" aria-label="Messages">
+                        <i class="bi bi-chat-left-dots-fill green-accent"></i>
+                        {% if unread_messages_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark" style="font-size: 0.65rem; padding: 0.25em 0.45em;">
+                                {{ unread_messages_count }}
+                            </span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
                     <!-- Mobile Dedicated Visual Controls & Accent Colours Button -->
                     <button class="btn btn-icon-nav" type="button" data-bs-toggle="modal" data-bs-target="#uiSettingsModal" title="Visual Controls & Accent Colours" aria-label="Visual Controls & Accent Colours">
                         <i class="bi bi-palette2 green-accent"></i>
-                    </button>
-                    <button class="btn btn-icon-nav theme-toggle-btn" type="button" onclick="window.toggleNexusTheme()" title="Switch Theme" aria-label="Toggle theme">
-                        <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i>
                     </button>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
                         <i class="bi bi-list navbar-toggler-icon-open"></i>
@@ -1004,82 +1173,47 @@
             </div>
 
             <div class="collapse navbar-collapse" id="navbarMain">
-                <!-- Primary Nav Navigation Links -->
+                <!-- Left-Aligned Navigation Links: Messages, Student Directory, Explore -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-1 align-items-lg-center">
-                    {% if user.is_authenticated %}
+                    {% if user.is_authenticated and not is_guest_demo %}
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active fw-semibold{% endif %}" href="{% url 'dashboard' %}">
-                                <i class="bi bi-speedometer2 me-1"></i> Dashboard
-                                {% if incoming_friend_requests_count > 0 %}
-                                    <span class="badge rounded-pill bg-warning text-dark ms-1" style="font-size: 0.65rem;" title="{{ incoming_friend_requests_count }} incoming friend request{{ incoming_friend_requests_count|pluralize }}">
-                                        {{ incoming_friend_requests_count }}
+                            <a class="nav-link position-relative d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'messages_inbox' or request.resolver_match.url_name == 'direct_chat' %}active fw-semibold{% endif %}" href="{% url 'messages_inbox' %}">
+                                <i class="bi bi-chat-left-dots-fill me-1 green-accent"></i> Messages
+                                {% if unread_messages_count > 0 %}
+                                    <span class="badge rounded-pill bg-danger border border-dark ms-1" style="font-size: 0.65rem; padding: 0.2em 0.5em;">
+                                        {{ unread_messages_count }}
                                     </span>
                                 {% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'ride_list' %}active fw-semibold{% endif %}" href="{% url 'ride_list' %}">
-                                <i class="bi bi-car-front-fill me-1"></i> Browse Rides
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'my_rides' %}active fw-semibold{% endif %}" href="{% url 'my_rides' %}">
-                                <i class="bi bi-clock-history me-1"></i> My Rides
-                            </a>
-                        </li>
-                        {% if not is_guest_demo %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'messages_inbox' or request.resolver_match.url_name == 'direct_chat' %}active fw-semibold{% endif %}" href="{% url 'messages_inbox' %}">
-                                <i class="bi bi-chat-left-dots-fill me-1"></i> Messages
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-compass me-1"></i> Explore
-                            </a>
-                            <ul class="dropdown-menu shadow">
-                                {% if not is_guest_demo %}
-                                <li><a class="dropdown-item" href="{% url 'user_search' %}"><i class="bi bi-search me-2 text-primary"></i>Student Directory</a></li>
-                                {% endif %}
-                                <li><a class="dropdown-item" href="{% url 'service_catalogue' %}"><i class="bi bi-grid me-2 text-success"></i>All Services</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'contributors' %}"><i class="bi bi-people me-2 text-info"></i>Contributors</a></li>
-                                <li><a class="dropdown-item" href="{% url 'about' %}"><i class="bi bi-info-circle me-2 text-secondary"></i>About Nexus</a></li>
-                                <li><a class="dropdown-item" href="{% url 'contact' %}"><i class="bi bi-envelope me-2 text-warning"></i>Contact Desk</a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'service_catalogue' or request.resolver_match.url_name == 'landing' %}active fw-semibold{% endif %}" href="{% url 'service_catalogue' %}">
-                                <i class="bi bi-grid me-1"></i> Services
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active fw-semibold{% endif %}" href="{% url 'about' %}">
-                                <i class="bi bi-info-circle me-1"></i> About
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'contributors' %}active fw-semibold{% endif %}" href="{% url 'contributors' %}">
-                                <i class="bi bi-people me-1"></i> Contributors
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active fw-semibold{% endif %}" href="{% url 'contact' %}">
-                                <i class="bi bi-envelope me-1"></i> Contact
+                            <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'user_search' %}active fw-semibold{% endif %}" href="{% url 'user_search' %}" title="Verified Student Directory">
+                                <i class="bi bi-people-fill me-1 text-info"></i> Student Directory
                             </a>
                         </li>
                     {% endif %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-inline-flex align-items-center gap-1 {% if request.resolver_match.url_name == 'about' or request.resolver_match.url_name == 'contributors' or request.resolver_match.url_name == 'contact' or request.resolver_match.url_name == 'feedback' %}active fw-semibold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-compass me-1"></i> Explore
+                        </a>
+                        <ul class="dropdown-menu shadow">
+                            <li><a class="dropdown-item py-2" href="/#contributors"><i class="bi bi-people me-2 text-info"></i>Contributors</a></li>
+                            <li><a class="dropdown-item py-2" href="/#about"><i class="bi bi-info-circle me-2 text-secondary"></i>About Nexus</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'contact' %}"><i class="bi bi-envelope me-2 text-warning"></i>Contact Desk</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'feedback' %}"><i class="bi bi-chat-left-heart me-2 green-accent"></i>Feedback &amp; Bug Tracker</a></li>
+                        </ul>
+                    </li>
                 </ul>
 
-                <!-- Right Utility Bar & User Controls -->
+                <!-- Right Utility Bar: Services (Mega-Menu), Visual Options, User Profile -->
                 <div class="d-none d-lg-flex align-items-center gap-2 ms-lg-auto pt-2 pt-lg-0 navbar-utility-bar">
                     <!-- PWA Universal Install Button (Desktop) -->
                     <button class="btn btn-pwa-install d-none align-items-center gap-2" id="btn-pwa-install" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
                         <i class="bi bi-download pwa-install-icon"></i>
                         <span class="pwa-install-label">Install App</span>
                     </button>
+
                     {% if user.is_staff or user.is_superuser %}
                         <!-- Admin Quick Pending Applications Badge Button -->
                         <a href="{% url 'application_list' %}"
@@ -1095,90 +1229,135 @@
                             {% endif %}
                         </a>
                     {% endif %}
-                    {% if user.is_authenticated %}
-                    <!-- System Push & Notifications Center Button -->
-                    <button class="btn btn-icon-nav position-relative btn-device-notifs-btn" id="btn-device-notifs" type="button" data-bs-toggle="modal" data-bs-target="#notificationsModal" title="Notifications Center" aria-label="Open Notifications">
-                        <i class="bi bi-bell text-secondary icon-device-notifs-icon" id="icon-device-notifs"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-dark notif-badge d-none" style="font-size: 0.65rem; padding: 0.25em 0.45em;">0</span>
-                    </button>
-                    {% endif %}
 
-                    <!-- Direct Dedicated Theme Toggle Button -->
-                    <button class="btn btn-icon-nav theme-toggle-btn" id="theme-toggle-btn" type="button" onclick="window.toggleNexusTheme()" title="Switch Light/Dark Mode" aria-label="Toggle theme">
-                        <i class="bi bi-sun-fill text-warning theme-toggle-icon" id="theme-toggle-icon"></i>
-                    </button>
+                    <!-- Services Mega-Dropdown (Theme Accented, Dual-Service Grid) -->
+                    <div class="dropdown dropdown-services-mega">
+                        <button class="btn btn-link text-decoration-none dropdown-toggle d-inline-flex align-items-center px-3 py-1.5 rounded-2 navbar-services-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Explore Campus Nexus Services">
+                            <i class="bi bi-grid-fill green-accent me-2"></i>
+                            <span class="fw-semibold">Services</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow-2xl p-0 services-mega-menu">
+                            <div class="p-4">
+                                <div class="row g-4" style="min-width: 520px;">
+                                    <!-- Column 1: Commute & Transit (COORDINATE) -->
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                                            <i class="bi bi-car-front-fill green-accent fs-5"></i>
+                                            <h6 class="mb-0 text-uppercase fw-bold text-white small" style="letter-spacing: 0.05em;">Coordinate</h6>
+                                        </div>
+                                        <ul class="list-unstyled d-flex flex-column gap-2 mb-0 mega-menu-list">
+                                            <li>
+                                                <a href="{% url 'ride_list' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">Browse Rides</span>
+                                                    <span class="text-secondary small">Airport &amp; city commute</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'create_ride' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">Offer a Ride</span>
+                                                    <span class="text-secondary small">Post your seat &amp; vehicle</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'my_rides' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">My Rides</span>
+                                                    <span class="text-secondary small">Active bookings &amp; history</span>
+                                                </a>
+                                            </li>
+                                            <li class="pt-1">
+                                                <a href="/coordinate/" class="mega-menu-link">
+                                                    <span class="green-accent small d-inline-flex align-items-center gap-1 fw-semibold">
+                                                        <i class="bi bi-info-circle"></i> Coordinate Overview &rarr;
+                                                    </span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
 
-                    <!-- Direct Zen Clock Reveal Button -->
-                    <button class="zen-nav-btn" type="button" onclick="window.toggleForegroundScatter()" title="Zen Mode (Reveal Floating Clock)" aria-label="Zen Mode">
-                        <i class="bi bi-clock-history"></i>
-                    </button>
+                                    <!-- Column 2: Housing & Stay (ACCOMMODATE) -->
+                                    <div class="col-6">
+                                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                                            <i class="bi bi-buildings-fill green-accent fs-5"></i>
+                                            <h6 class="mb-0 text-uppercase fw-bold text-white small" style="letter-spacing: 0.05em;">Accommodate</h6>
+                                        </div>
+                                        <ul class="list-unstyled d-flex flex-column gap-2 mb-0 mega-menu-list">
+                                            <li>
+                                                <a href="{% url 'accommodate:group_list' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">Explore Stays</span>
+                                                    <span class="text-secondary small">Internship &amp; PG flatmates</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'accommodate:group_create' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">Create Listing</span>
+                                                    <span class="text-secondary small">List room or find flatmates</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'accommodate:my_groups' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">My Stays</span>
+                                                    <span class="text-secondary small">Your groups &amp; applications</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{% url 'accommodate:my_reviews' %}" class="mega-menu-link">
+                                                    <span class="fw-semibold text-white d-block">Stay Reviews</span>
+                                                    <span class="text-secondary small">Reputation &amp; ratings</span>
+                                                </a>
+                                            </li>
+                                            <li class="pt-1">
+                                                <a href="/accommodate/" class="mega-menu-link">
+                                                    <span class="green-accent small d-inline-flex align-items-center gap-1 fw-semibold">
+                                                        <i class="bi bi-info-circle"></i> Accommodate Overview &rarr;
+                                                    </span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <!-- Visual Effects & Custom Accents Dropdown -->
+                            <!-- Bottom Sitemap Footer -->
+                            <div class="services-mega-footer py-2.5 px-4 border-top border-secondary border-opacity-25 d-flex justify-content-center align-items-center">
+                                <a href="{% url 'service_catalogue' %}" class="text-decoration-none small fw-semibold green-accent d-inline-flex align-items-center gap-1.5 py-1">
+                                    <span>Explore All Services &amp; Capabilities</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visual Options Dropdown (Palette Icon) -->
                     <div class="dropdown">
-                        <button class="btn btn-icon-nav" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Visual Controls & Custom Accents">
+                        <button class="btn btn-icon-nav" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Visual Controls & Custom Accents" aria-label="Visual Controls">
                             <i class="bi bi-palette2 green-accent"></i>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-end shadow p-3 visual-controls-menu">
-                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary">
-                                <h6 class="mb-0 text-uppercase small fw-bold">
+                        <div class="dropdown-menu dropdown-menu-end shadow-xl p-3 visual-controls-menu" style="min-width: 300px; width: 310px;">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                                <h6 class="mb-0 text-uppercase small fw-bold text-white">
                                     <i class="bi bi-sliders me-1 green-accent"></i> Visual Controls
                                 </h6>
-                                <button type="button" class="btn btn-sm btn-icon-nav" onclick="window.toggleNexusTheme()" title="Switch Light/Dark Mode">
-                                    <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i>
-                                </button>
                             </div>
 
-                            <!-- Watermark Mode -->
-                            <div class="mb-3">
-                                <label class="form-label small text-secondary d-flex justify-content-between mb-1">
-                                    <span>Watermark Canvas</span>
-                                </label>
-                                <select id="fx-watermark-mode" class="form-select form-select-sm" onchange="window.setNexusWatermarkMode(this.value)">
-                                    <option value="off">Off / Hidden (Default)</option>
-                                    <option value="both">Gears &amp; Clockwork</option>
-                                    <option value="gears">Corner &amp; Edge Gears Only</option>
-                                    <option value="clock">Center Clockwork Only</option>
-                                </select>
-                            </div>
-
-                            <!-- Gear Complexity Level -->
-                            <div class="mb-3">
-                                <label class="form-label small text-secondary d-flex justify-content-between mb-1">
-                                    <span>Gear Complexity Level</span>
-                                </label>
-                                <select id="fx-gear-complexity" class="form-select form-select-sm" onchange="window.setNexusGearComplexity(this.value)">
-                                    <option value="high">Complex (All Edge + Corner Gears)</option>
-                                    <option value="med">Medium (Edges & Corners)</option>
-                                    <option value="low">Minimal (Corners Only)</option>
-                                </select>
-                            </div>
-
-                            <!-- Random Gear Spread Option -->
-                            <div class="mb-3">
-                                <label class="form-label small text-secondary d-flex justify-content-between mb-1">
-                                    <span>Random Gear Spread</span>
-                                    <span id="fx-gear-spread-badge" class="badge bg-success-subtle green-accent px-2 py-0.5" style="font-size: 0.65rem;">Constellation</span>
-                                </label>
-                                <select id="fx-gear-spread" class="form-select form-select-sm" onchange="window.setNexusGearSpread(this.value)">
-                                    <option value="constellation">Constellation (12+ Scattered Gears)</option>
-                                    <option value="subtle">Subtle Drift (5 Scattered Gears)</option>
-                                    <option value="off">Off (Corners & Edges Only)</option>
-                                </select>
-                            </div>
-
-                            <!-- Watermark Transparency / Opacity Slider -->
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between small text-secondary mb-1">
-                                    <span>Watermark Transparency</span>
-                                    <span id="fx-opacity-val" class="fw-bold green-accent">22%</span>
+                            <!-- Theme Toggle & Zen Mode Inside Visual Controls -->
+                            <div class="p-2 rounded mb-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-secondary fw-semibold">Display Theme</span>
+                                    <button type="button" class="btn btn-sm btn-dark-custom py-1 px-2.5 d-flex align-items-center justify-content-center theme-toggle-btn" onclick="window.toggleNexusTheme()" title="Switch Light/Dark Mode" aria-label="Switch Light/Dark Mode">
+                                        <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i>
+                                    </button>
                                 </div>
-                                <input type="range" class="form-range" id="fx-opacity-slider" min="0" max="60" value="22"
-                                       oninput="window.setNexusWatermarkOpacity(this.value)">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small text-secondary fw-semibold">Zen Clock</span>
+                                    <button type="button" class="btn btn-sm btn-dark-custom py-1 px-2.5 d-flex align-items-center justify-content-center" onclick="window.toggleForegroundScatter()" title="Reveal floating zen clock" aria-label="Reveal floating zen clock">
+                                        <i class="bi bi-clock-history text-info"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Accent Color Swatches Grid -->
                             <div class="mb-3">
-                                <label class="form-label small text-secondary mb-2 d-block">Curated Accent Palettes</label>
+                                <label class="form-label small text-secondary mb-2 d-block fw-semibold text-uppercase" style="font-size: 0.7rem;">Curated Accent Palettes</label>
                                 <div class="row g-1 mb-1">
                                     <div class="col-3">
                                         <button type="button" class="btn btn-dark-custom p-1 w-100 d-flex flex-column align-items-center" onclick="window.setNexusAccent('emerald')" title="Emerald">
@@ -1234,8 +1413,8 @@
                             </div>
 
                             <!-- Custom Hexadecimal Color Picker -->
-                            <div class="pt-2 border-top border-secondary">
-                                <label class="form-label small text-secondary d-flex justify-content-between mb-1">
+                            <div class="pt-2 border-top border-secondary border-opacity-25">
+                                <label class="form-label small text-secondary d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
                                     <span>Custom Hex Accent</span>
                                     <span id="fx-hex-label" class="font-mono text-muted small">#08B74F</span>
                                 </label>
@@ -1246,12 +1425,59 @@
                                 </div>
                             </div>
 
-                            <!-- Zen Page Transitions Toggle (Off by default for instant snappy navigation) -->
-                            <div class="pt-2 border-top border-secondary">
+                            <!-- Watermark Section (Dropped on iOS and Android only) -->
+                            <div id="watermark-controls-container" class="pt-2 border-top border-secondary border-opacity-25">
+                                <div class="mb-3">
+                                    <label class="form-label small text-secondary d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
+                                        <span>Watermark Canvas</span>
+                                    </label>
+                                    <select id="fx-watermark-mode" class="form-select form-select-sm" onchange="window.setNexusWatermarkMode(this.value)">
+                                        <option value="off">Off / Hidden (Default)</option>
+                                        <option value="both">Gears &amp; Clockwork</option>
+                                        <option value="gears">Corner &amp; Edge Gears Only</option>
+                                        <option value="clock">Center Clockwork Only</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small text-secondary d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
+                                        <span>Gear Complexity Level</span>
+                                    </label>
+                                    <select id="fx-gear-complexity" class="form-select form-select-sm" onchange="window.setNexusGearComplexity(this.value)">
+                                        <option value="high">Complex (All Edge + Corner Gears)</option>
+                                        <option value="med">Medium (Edges &amp; Corners)</option>
+                                        <option value="low">Minimal (Corners Only)</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small text-secondary d-flex justify-content-between mb-1" style="font-size: 0.7rem;">
+                                        <span>Random Gear Spread</span>
+                                        <span id="fx-gear-spread-badge" class="badge bg-success-subtle green-accent px-2 py-0.5" style="font-size: 0.65rem;">Constellation</span>
+                                    </label>
+                                    <select id="fx-gear-spread" class="form-select form-select-sm" onchange="window.setNexusGearSpread(this.value)">
+                                        <option value="constellation">Constellation (12+ Scattered Gears)</option>
+                                        <option value="subtle">Subtle Drift (5 Scattered Gears)</option>
+                                        <option value="off">Off (Corners &amp; Edges Only)</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between small text-secondary mb-1" style="font-size: 0.7rem;">
+                                        <span>Watermark Transparency</span>
+                                        <span id="fx-opacity-val" class="fw-bold green-accent">22%</span>
+                                    </div>
+                                    <input type="range" class="form-range" id="fx-opacity-slider" min="0" max="60" value="22"
+                                           oninput="window.setNexusWatermarkOpacity(this.value)">
+                                </div>
+                            </div>
+
+                            <!-- Zen Page Transitions Toggle -->
+                            <div class="pt-2 border-top border-secondary border-opacity-25">
                                 <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0 mb-0">
                                     <label class="form-check-label small text-secondary" for="fx-zen-transitions-switch">
                                         <span class="d-block fw-semibold text-white"><i class="bi bi-hourglass-split green-accent me-1"></i> Cinematic Transitions</span>
-                                        <span style="font-size: 0.7rem;" class="text-secondary">Animated scatter between page changes (experimental)</span>
+                                        <span style="font-size: 0.7rem;" class="text-secondary">Animated scatter on page change</span>
                                     </label>
                                     <input class="form-check-input ms-2 flex-shrink-0" type="checkbox" role="switch" id="fx-zen-transitions-switch"
                                            onchange="window.setNexusZenTransitions(this.checked)">
@@ -1261,9 +1487,9 @@
                     </div>
 
                     {% if user.is_authenticated %}
-                        <!-- Consolidated User Profile & Governance Dropdown -->
+                        <!-- Consolidated User Profile Dropdown -->
                         <div class="dropdown">
-                            <button class="btn btn-user-menu dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="btn btn-user-menu dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="User Menu" aria-label="User Menu">
                                 {% if user.profile_photo %}
                                     <img src="{{ user.profile_photo.url }}" alt="{{ user.enrollment_number }}" class="rounded-circle object-fit-cover user-avatar-nav" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                                     <span class="user-avatar-placeholder" style="display:none;"><i class="bi bi-person-fill"></i></span>
@@ -1279,9 +1505,9 @@
                                     <span class="badge bg-success-subtle green-accent py-0 px-1 d-none d-md-inline" style="font-size: 0.62rem;">STAFF</span>
                                 {% endif %}
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg py-2" style="min-width: 240px;">
-                                <li class="px-3 py-2 border-bottom border-secondary mb-1">
-                                    <div class="fw-bold text-truncate">{{ user.get_full_name|default:user.enrollment_number }}</div>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg py-2" style="min-width: 250px;">
+                                <li class="px-3 py-2 border-bottom border-secondary border-opacity-25 mb-1">
+                                    <div class="fw-bold text-truncate text-white">{{ user.get_full_name|default:user.enrollment_number }}</div>
                                     <div class="small text-secondary font-mono">{{ user.enrollment_number }}</div>
                                     {% if user.is_superuser %}
                                         <span class="badge bg-danger-subtle text-danger mt-1" style="font-size: 0.65rem;">Superuser Authority</span>
@@ -1289,6 +1515,7 @@
                                         <span class="badge bg-success-subtle green-accent mt-1" style="font-size: 0.65rem;">Institute Staff</span>
                                     {% endif %}
                                 </li>
+
                                 {% if is_guest_demo %}
                                 <li>
                                     <span class="dropdown-item py-2 text-muted">
@@ -1297,31 +1524,11 @@
                                 </li>
                                 {% else %}
                                 <li>
-                                    <a class="dropdown-item py-2" href="{% url 'profile' user.enrollment_number %}">
-                                        <i class="bi bi-person-circle me-2 text-primary"></i>My Profile
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item py-2" href="{% url 'account_settings' %}">
-                                        <i class="bi bi-gear me-2 text-secondary"></i>Account Settings
+                                    <a class="dropdown-item py-2 d-flex align-items-center justify-content-between" href="{% url 'profile' user.enrollment_number %}">
+                                        <span><i class="bi bi-person-circle me-2 text-primary"></i>My Profile</span>
                                     </a>
                                 </li>
                                 {% endif %}
-                                <li>
-                                    <a class="dropdown-item py-2" href="{% url 'dashboard' %}">
-                                        <i class="bi bi-speedometer2 me-2 text-success"></i>Dashboard
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item py-2" href="{% url 'my_rides' %}">
-                                        <i class="bi bi-clock-history me-2 text-info"></i>My Rides
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item py-2" href="{% url 'messages_inbox' %}">
-                                        <i class="bi bi-chat-left-dots me-2 text-warning"></i>Messages
-                                    </a>
-                                </li>
 
                                 {% if user.is_staff or user.is_superuser %}
                                     <li><hr class="dropdown-divider"></li>
@@ -1388,7 +1595,7 @@
                     {% endif %}
                 </div>
 
-                <!-- Mobile-Only Action & Account Section (strictly hidden on desktop) -->
+                <!-- Mobile-Only Action & Account Drawer Section (strictly hidden on desktop) -->
                 <div class="d-lg-none border-top border-secondary border-opacity-25 pt-3 mt-3">
                     {% if user.is_authenticated %}
                         <div class="d-flex align-items-center gap-3 p-2 rounded mb-3" style="background: rgba(255, 255, 255, 0.04);">
@@ -1411,22 +1618,41 @@
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2 mb-3">
-                            <a href="{% url 'create_ride' %}" class="btn btn-green btn-sm py-2 fw-semibold">
-                                <i class="bi bi-plus-circle-fill me-1"></i> Offer a Ride
-                            </a>
+                        <!-- Mobile Services Quick Grid -->
+                        <div class="mb-3">
+                            <div class="small text-uppercase fw-bold text-secondary mb-2 px-1">
+                                <i class="bi bi-grid-fill green-accent me-1"></i> Services
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="{% url 'ride_list' %}" class="btn btn-dark-custom w-100 py-2 d-flex flex-column align-items-center text-center">
+                                        <i class="bi bi-car-front-fill green-accent mb-1 fs-5"></i>
+                                        <span class="small fw-semibold">Browse Rides</span>
+                                        <span class="text-secondary" style="font-size: 0.68rem;">Coordinate</span>
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{% url 'accommodate:group_list' %}" class="btn btn-dark-custom w-100 py-2 d-flex flex-column align-items-center text-center">
+                                        <i class="bi bi-buildings-fill text-primary mb-1 fs-5"></i>
+                                        <span class="small fw-semibold">Explore Stays</span>
+                                        <span class="text-secondary" style="font-size: 0.68rem;">Accommodate</span>
+                                    </a>
+                                </div>
+                                <div class="col-12">
+                                    <a href="{% url 'service_catalogue' %}" class="btn btn-dark-custom w-100 py-1.5 d-flex align-items-center justify-content-center gap-1.5 small text-secondary">
+                                        <i class="bi bi-grid"></i>
+                                        <span>View All Services Directory</span>
+                                        <i class="bi bi-arrow-right small"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
 
                         <ul class="list-unstyled d-flex flex-column gap-1 mb-3">
                             {% if not is_guest_demo %}
                             <li>
                                 <a href="{% url 'profile' user.enrollment_number %}" class="nav-link px-2 py-2 rounded d-flex align-items-center">
-                                <i class="bi bi-person-circle me-2 text-primary"></i> My Profile
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{% url 'account_settings' %}" class="nav-link px-2 py-2 rounded d-flex align-items-center">
-                                    <i class="bi bi-gear me-2 text-secondary"></i> Account Settings
+                                    <i class="bi bi-person-circle me-2 text-primary"></i> My Profile
                                 </a>
                             </li>
                             {% endif %}
@@ -1455,12 +1681,12 @@
                         <!-- Mobile Appearance & UI Settings Section -->
                         <div class="mb-3 pt-2 border-top border-secondary border-opacity-25">
                             <div class="small text-uppercase fw-bold text-secondary mb-2 px-1">
-                                <i class="bi bi-palette2 green-accent me-1"></i> Appearance & UI Settings
+                                <i class="bi bi-palette2 green-accent me-1"></i> Appearance &amp; UI Settings
                             </div>
                             <button type="button" class="btn btn-dark-custom w-100 py-2.5 d-flex align-items-center justify-content-between px-3" data-bs-toggle="modal" data-bs-target="#uiSettingsModal">
                                 <span class="d-flex align-items-center gap-2">
                                     <span class="rounded-circle d-inline-block mobile-drawer-accent-dot" id="mobileDrawerAccentDot" style="width: 14px; height: 14px; background: var(--green, #08B74F);"></span>
-                                    <span>Accent Colours & Visuals</span>
+                                    <span>Accent Colours &amp; Visuals</span>
                                 </span>
                                 <span class="badge bg-dark border border-secondary text-secondary small" id="mobileDrawerAccentName">Emerald</span>
                             </button>
@@ -1485,7 +1711,7 @@
                             <button type="button" class="btn btn-dark-custom w-100 py-2 d-flex align-items-center justify-content-between px-3" data-bs-toggle="modal" data-bs-target="#uiSettingsModal">
                                 <span class="d-flex align-items-center gap-2">
                                     <span class="rounded-circle d-inline-block mobile-drawer-accent-dot" style="width: 14px; height: 14px; background: var(--green, #08B74F);"></span>
-                                    <span>Accent Colours & Visuals</span>
+                                    <span>Accent Colours &amp; Visuals</span>
                                 </span>
                                 <span class="badge bg-dark border border-secondary text-secondary small">Customise</span>
                             </button>
@@ -1609,6 +1835,10 @@
     <!-- Main Content Block -->
     <main class="main-content">
         {% block content %}{% endblock %}
+        {% if '/coordinate/' in request.path or '/accommodate/' in request.path %}
+            <!-- Scroll Clearance Spacer: Ensures all cards and forms can scroll fully above the floating bottom dock -->
+            <div class="service-bottom-spacer" style="height: calc(85px + env(safe-area-inset-bottom, 16px)); pointer-events: none;" aria-hidden="true"></div>
+        {% endif %}
     </main>
 
     <!-- Footer -->
@@ -1638,6 +1868,57 @@
             </div>
         </div>
     </footer>
+
+    <!-- Service Persistent Floating Bottom Navigation Dock -->
+    {% block bottom_nav %}
+        {% if '/coordinate/' in request.path %}
+        <div class="service-bottom-nav-wrap">
+            <nav class="service-bottom-nav" aria-label="Coordinate Navigation">
+                <a href="/coordinate/" class="service-bottom-nav-item {% if request.path == '/coordinate/' or request.resolver_match.url_name == 'coordinate_landing' %}active{% endif %}">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="{% url 'ride_list' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'ride_list' or request.resolver_match.url_name == 'ride_list_alias' or request.resolver_match.url_name == 'ride_detail' %}active{% endif %}">
+                    <i class="bi bi-car-front-fill"></i>
+                    <span>Browse</span>
+                </a>
+                <a href="{% url 'create_ride' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'create_ride' %}active{% endif %}">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    <span>Offer</span>
+                </a>
+                <a href="{% url 'my_rides' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'my_rides' %}active{% endif %}">
+                    <i class="bi bi-clock-history"></i>
+                    <span>My Rides</span>
+                </a>
+            </nav>
+        </div>
+        {% elif '/accommodate/' in request.path %}
+        <div class="service-bottom-nav-wrap">
+            <nav class="service-bottom-nav" aria-label="Accommodate Navigation">
+                <a href="/accommodate/" class="service-bottom-nav-item {% if request.path == '/accommodate/' or request.resolver_match.url_name == 'landing' %}active{% endif %}">
+                    <i class="bi bi-info-circle"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="{% url 'accommodate:group_list' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_detail' %}active{% endif %}">
+                    <i class="bi bi-buildings-fill"></i>
+                    <span>Stays</span>
+                </a>
+                <a href="{% url 'accommodate:group_create' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'group_create' %}active{% endif %}">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    <span>New Stay</span>
+                </a>
+                <a href="{% url 'accommodate:my_groups' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'my_groups' or request.resolver_match.url_name == 'my_applications' %}active{% endif %}">
+                    <i class="bi bi-person-check-fill"></i>
+                    <span>My Stays</span>
+                </a>
+                <a href="{% url 'accommodate:my_reviews' %}" class="service-bottom-nav-item {% if request.resolver_match.url_name == 'my_reviews' %}active{% endif %}">
+                    <i class="bi bi-star-fill"></i>
+                    <span>Reviews</span>
+                </a>
+            </nav>
+        </div>
+        {% endif %}
+    {% endblock %}
  
     <!-- Floating Zen Clock Reveal Restore Banner -->
     <div id="zen-restore-banner" class="zen-restore-banner" aria-hidden="true" style="display: none;">
@@ -3108,72 +3389,6 @@
     </script>
 
 
-    <!-- Campus Nexus Notification Center (Modern Slide/Modal Tray) -->
-    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-            <div class="modal-content glass border shadow-2xl text-white notif-modal-surface" style="border-radius: 20px; border-color: rgba(255, 255, 255, 0.08); overflow: hidden;">
-                
-                <!-- Sleek Header -->
-                <div class="modal-header border-0 pb-2 pt-3 px-3 px-sm-4 d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-2.5">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; background: var(--green-dim, rgba(8, 183, 79, 0.12)); color: var(--green, #08B74F);">
-                            <i class="bi bi-bell-fill fs-5"></i>
-                        </div>
-                        <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h5 class="modal-title fw-bold text-white mb-0 fs-6" id="notificationsModalLabel">Notifications</h5>
-                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle py-0.5 px-2 d-none" id="notif-unread-pill" style="font-size: 0.68rem;">0 new</span>
-                            </div>
-                            <small class="text-secondary" id="notif-modal-subtext" style="font-size: 0.75rem;">Your campus activity &amp; alerts</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-1">
-                        <button type="button" class="btn btn-sm notif-action-btn py-1 px-2" onclick="window.markAllNotificationsRead()" title="Mark all as read">
-                            <i class="bi bi-check2-all me-1"></i><span class="d-none d-sm-inline small">Mark read</span>
-                        </button>
-                        <button type="button" class="btn btn-sm notif-action-btn py-1 px-2" onclick="window.clearNotificationHistory()" title="Clear history">
-                            <i class="bi bi-trash3 small"></i>
-                        </button>
-                        <button type="button" class="btn-close btn-close-white ms-1" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                </div>
-
-                <!-- Modern Segmented Filter Navigation -->
-                <div class="px-3 px-sm-4 pt-1 pb-2">
-                    <div class="notif-tab-track p-1 rounded-pill d-flex gap-1">
-                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn active" data-filter="all" onclick="window.filterNotificationList('all', this)">
-                            All
-                        </button>
-                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn" data-filter="ride" onclick="window.filterNotificationList('ride', this)">
-                            Rides
-                        </button>
-                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn" data-filter="social" onclick="window.filterNotificationList('social', this)">
-                            Messages
-                        </button>
-                        <button type="button" class="btn btn-sm flex-fill rounded-pill py-1 px-2 border-0 notif-tab-btn" data-filter="announcement" onclick="window.filterNotificationList('announcement', this)">
-                            Announcements
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Notification Feed Body -->
-                <div class="modal-body p-3 px-sm-4 pt-1" id="notif-modal-feed" style="max-height: 440px; overflow-y: auto;">
-                    <!-- Dynamically populated or empty state -->
-                </div>
-
-                <!-- Clean Ambient Status Footer (No Clunky Done Button) -->
-                <div class="px-3 px-sm-4 py-2.5 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center" style="background: rgba(0, 0, 0, 0.2); font-size: 0.75rem;">
-                    <span class="text-secondary" id="notif-footer-summary">0 notifications</span>
-                    <div class="d-flex align-items-center gap-1.5 text-secondary" id="notif-footer-perm-indicator">
-                        <span class="d-inline-block rounded-circle" id="notif-footer-status-dot" style="width: 7px; height: 7px; background: #10B981;"></span>
-                        <span id="notif-footer-status-text">Push alerts active</span>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
     <!-- Global Appearance & UI Settings Modal (Accessible across Android, Mobile, Tablet & Desktop) -->
     <div class="modal fade" id="uiSettingsModal" tabindex="-1" aria-labelledby="uiSettingsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -3199,11 +3414,11 @@
                             <span class="text-secondary small">Toggle between dark obsidian and light mode</span>
                         </div>
                         <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-dark-custom d-flex align-items-center gap-1" onclick="window.toggleForegroundScatter()" title="Reveal floating zen clock">
-                                <i class="bi bi-clock-history text-info"></i> <span class="d-none d-sm-inline">Zen Clock</span>
+                            <button type="button" class="btn btn-sm btn-dark-custom d-flex align-items-center justify-content-center px-2.5 py-1.5" onclick="window.toggleForegroundScatter()" title="Reveal floating zen clock" aria-label="Reveal floating zen clock">
+                                <i class="bi bi-clock-history text-info"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-dark-custom d-flex align-items-center gap-1" onclick="window.toggleNexusTheme()">
-                                <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i> <span>Theme</span>
+                            <button type="button" class="btn btn-sm btn-dark-custom d-flex align-items-center justify-content-center px-2.5 py-1.5" onclick="window.toggleNexusTheme()" title="Switch Light/Dark Mode" aria-label="Switch Light/Dark Mode">
+                                <i class="bi bi-sun-fill text-warning theme-toggle-icon"></i>
                             </button>
                         </div>
                     </div>
@@ -3289,8 +3504,8 @@
                         </div>
                     </div>
 
-                    <!-- Watermark Canvas & Visual Controls -->
-                    <div class="border-top border-secondary border-opacity-25 pt-3 mb-3">
+                    <!-- Watermark Canvas & Visual Controls (Dropped on iOS and Android Only) -->
+                    <div id="modal-watermark-controls-container" class="border-top border-secondary border-opacity-25 pt-3 mb-3">
                         <label class="form-label small text-secondary fw-semibold text-uppercase mb-2">Watermark &amp; Background Visuals</label>
                         
                         <div class="mb-3">
@@ -3331,12 +3546,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="modal-footer border-top border-secondary border-opacity-25 py-2">
-                    <button type="button" class="btn btn-green w-100 fw-semibold" data-bs-dismiss="modal">
-                        Done
-                    </button>
                 </div>
             </div>
         </div>
@@ -3385,7 +3594,19 @@
     }
     window.syncAccentUIElements = syncAccentUIElements;
 
+    function applyPlatformWatermarkFiltering() {
+        const isMobileOS = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || navigator.vendor || window.opera) ||
+                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isMobileOS) {
+            const deskWm = document.getElementById('watermark-controls-container');
+            if (deskWm) deskWm.remove();
+            const modalWm = document.getElementById('modal-watermark-controls-container');
+            if (modalWm) modalWm.remove();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        applyPlatformWatermarkFiltering();
         syncAccentUIElements();
 
         // Mark standalone downloaded app on client if in standalone mode

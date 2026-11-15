@@ -1,0 +1,131 @@
+{% extends 'accommodate/base.html' %}
+
+{% block accommodate_content %}
+<div class="row g-4">
+    <div class="col-12">
+        <h3 class="fw-bold text-white mb-1">Peer Reviews &amp; Coordination Reputation</h3>
+        <p class="text-secondary small mb-4">
+            Constructive, two-way feedback celebrating positive outstation flatmate habits and cooperation.
+        </p>
+    </div>
+
+    <!-- Pending Review Invitations -->
+    <div class="col-12">
+        <div class="glass p-4 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.65);">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-envelope-paper-fill green-accent"></i>
+                    <span>Pending Review Invitations ({{ pending_invitations|length }})</span>
+                </h5>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill small">
+                    Action Requested
+                </span>
+            </div>
+
+            <div class="row g-3">
+                {% for inv in pending_invitations %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="p-3.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-40 h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5" style="font-size: 0.72rem;">
+                                        Departed Peer
+                                    </span>
+                                    <span class="text-secondary small font-mono">
+                                        Deadline: {{ inv.deadline_at|date:"M d" }}
+                                    </span>
+                                </div>
+                                <h6 class="fw-bold text-white mb-1">
+                                    {{ inv.subject_membership.user.display_name }}
+                                </h6>
+                                <p class="text-secondary small mb-3">
+                                    Group: <strong class="text-light">{{ inv.subject_membership.group.title }}</strong>
+                                </p>
+                            </div>
+
+                            <div class="d-flex gap-2 pt-2 border-top border-secondary border-opacity-25">
+                                <form action="{% url 'accommodate:skip_review' inv.id %}" method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm px-2.5">
+                                        Skip
+                                    </button>
+                                </form>
+                                <a href="{% url 'accommodate:submit_review' inv.id %}" class="btn btn-green btn-sm flex-grow-1 fw-semibold text-center">
+                                    <i class="bi bi-star-fill me-1 text-warning"></i> Review Peer
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12 py-3 text-center">
+                        <p class="text-secondary small mb-0">No pending review invitations. Invitations arrive automatically when a flatmate departs from your group.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Submitted & Received Grid -->
+    <div class="col-lg-6">
+        <div class="glass p-4 rounded-4 border border-secondary border-opacity-25 h-100" style="background: rgba(15, 23, 42, 0.45);">
+            <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-hand-thumbs-up-fill text-primary"></i>
+                <span>Reviews Given ({{ submitted_reviews|length }})</span>
+            </h5>
+
+            <div class="d-flex flex-column gap-2.5">
+                {% for rev in submitted_reviews %}
+                    <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <strong class="text-white">{{ rev.invitation.subject_membership.user.display_name }}</strong>
+                            <span class="text-secondary small">{{ rev.submitted_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="text-secondary small mb-2">
+                            Group: {{ rev.invitation.subject_membership.group.title }}
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 text-secondary small">
+                            <span>Reliability: <strong class="text-light">{{ rev.reliability_score|default:"—" }}/5</strong></span>
+                            <span>Communication: <strong class="text-light">{{ rev.communication_score|default:"—" }}/5</strong></span>
+                            <span>Cooperation: <strong class="text-light">{{ rev.cooperation_score|default:"—" }}/5</strong></span>
+                            <span>Respect: <strong class="text-light">{{ rev.respect_score|default:"—" }}/5</strong></span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-secondary small mb-0">You have not submitted any reviews yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="glass p-4 rounded-4 border border-secondary border-opacity-25 h-100" style="background: rgba(15, 23, 42, 0.45);">
+            <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-award-fill text-warning"></i>
+                <span>Reviews Received ({{ reviews_received|length }})</span>
+            </h5>
+
+            <div class="d-flex flex-column gap-2.5">
+                {% for rev in reviews_received %}
+                    <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-30">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">Verified Peer Review</span>
+                            <span class="text-secondary small">{{ rev.submitted_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="text-secondary small mb-2">
+                            Group: {{ rev.invitation.subject_membership.group.title }}
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 text-secondary small">
+                            <span>Reliability: <strong class="text-light">{{ rev.reliability_score|default:"—" }}/5</strong></span>
+                            <span>Communication: <strong class="text-light">{{ rev.communication_score|default:"—" }}/5</strong></span>
+                            <span>Cooperation: <strong class="text-light">{{ rev.cooperation_score|default:"—" }}/5</strong></span>
+                            <span>Respect: <strong class="text-light">{{ rev.respect_score|default:"—" }}/5</strong></span>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-secondary small mb-0">No reviews received yet. Reviews are aggregated to build your campus accommodation reputation.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

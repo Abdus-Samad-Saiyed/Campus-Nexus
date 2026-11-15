@@ -7,6 +7,7 @@ from .views import (
     approve_join_request,
     cancel_join_request,
     complete_ride,
+    coordinate_landing,
     create_ride,
     decline_join_request,
     join_ride,
@@ -26,8 +27,9 @@ from .views import (
 )
 
 urlpatterns = [
-    path('',                                                     ride_list,             name='ride_list'),
-    path('rides/',                                               ride_list,             name='ride_list_alias'),
+    path('',                                                     coordinate_landing,    name='coordinate_landing'),
+    path('rides/',                                               ride_list,             name='ride_list'),
+    path('rides/all/',                                           ride_list,             name='ride_list_alias'),
     path('my-rides/',                                            my_rides,              name='my_rides'),
     path('create/',                                              create_ride,           name='create_ride'),
     path('<int:ride_id>/',                                       ride_detail,           name='ride_detail'),

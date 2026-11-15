@@ -2,6 +2,8 @@ from accounts.throttling import rate_limit
 """Campus Nexus platform views: About, Contributors, and Feedback/Bug Reporting."""
 
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
@@ -125,7 +127,7 @@ def remove_contributor(request: HttpRequest, contributor_id: int) -> HttpRespons
 
 @rate_limit(key_prefix='feedback', limit=5, period_seconds=60)
 def feedback_view(request: HttpRequest) -> HttpResponse:
-    """Feedback & Bug Reporting: Allows students and staff to submit bugs, feature ideas, and proposals."""
+    """Feedback & Bug Reporting: Allows students and staff to submit bugs, feature ideas, and proposals, and browse public tracker."""
     if request.method == "POST":
         feedback_type = request.POST.get("feedback_type", "GENERAL").strip()
         title = request.POST.get("title", "").strip()
@@ -137,33 +139,15 @@ def feedback_view(request: HttpRequest) -> HttpResponse:
         valid_feedback_types = dict(PlatformFeedback.FEEDBACK_TYPES)
         if feedback_type not in valid_feedback_types:
             messages.error(request, "Invalid feedback category selected.")
-            return render(request, "nexus/feedback.html", {
-                "feedback_type": feedback_type,
-                "title": title,
-                "description": description,
-                "submitter_name": submitter_name,
-                "submitter_contact": submitter_contact,
-            }, status=400)
+            return redirect("feedback")
 
         if len(title) > 200 or len(submitter_name) > 100 or len(submitter_contact) > 100 or len(description) > 5000:
             messages.error(request, "One or more feedback fields exceeded maximum allowed length.")
-            return render(request, "nexus/feedback.html", {
-                "feedback_type": feedback_type,
-                "title": title,
-                "description": description,
-                "submitter_name": submitter_name,
-                "submitter_contact": submitter_contact,
-            }, status=400)
+            return redirect("feedback")
 
         if not title or not description:
             messages.error(request, "Title and description are required to submit feedback.")
-            return render(request, "nexus/feedback.html", {
-                "feedback_type": feedback_type,
-                "title": title,
-                "description": description,
-                "submitter_name": submitter_name,
-                "submitter_contact": submitter_contact,
-            })
+            return redirect("feedback")
 
         feedback = PlatformFeedback.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -191,7 +175,46 @@ def feedback_view(request: HttpRequest) -> HttpResponse:
         )
         return redirect("feedback")
 
-    return render(request, "nexus/feedback.html")
+    # GET: Dedicated Searchable Bug & Feedback Tracker
+    qs = PlatformFeedback.objects.all().order_by('-created_at')
+
+    # Metrics
+    total_count = qs.count()
+    bugs_count = qs.filter(feedback_type='BUG').count()
+    features_count = qs.filter(feedback_type='FEATURE').count()
+    proposals_count = qs.filter(feedback_type='PROPOSAL').count()
+    resolved_count = qs.filter(status='RESOLVED').count()
+
+    search_query = request.GET.get('q', '').strip()
+    selected_type = request.GET.get('type', '').strip()
+    selected_status = request.GET.get('status', '').strip()
+
+    if search_query:
+        qs = qs.filter(Q(title__icontains=search_query) | Q(description__icontains=search_query))
+
+    if selected_type and selected_type in dict(PlatformFeedback.FEEDBACK_TYPES):
+        qs = qs.filter(feedback_type=selected_type)
+
+    if selected_status and selected_status in dict(PlatformFeedback.STATUS_CHOICES):
+        qs = qs.filter(status=selected_status)
+
+    paginator = Paginator(qs, 12)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "nexus/feedback.html", {
+        "feedbacks": page_obj,
+        "total_count": total_count,
+        "bugs_count": bugs_count,
+        "features_count": features_count,
+        "proposals_count": proposals_count,
+        "resolved_count": resolved_count,
+        "search_query": search_query,
+        "selected_type": selected_type,
+        "selected_status": selected_status,
+        "feedback_types": PlatformFeedback.FEEDBACK_TYPES,
+        "status_choices": PlatformFeedback.STATUS_CHOICES,
+    })
 
 
 def contact_view(request: HttpRequest) -> HttpResponse:

@@ -532,6 +532,60 @@
         </div>
     {% endif %}
 
+    <!-- Active Accommodation Groups Card -->
+    {% if active_accommodation_memberships %}
+        <div class="glass p-4 mb-4 border-success-subtle glass-glow position-relative" style="background: rgba(8, 183, 79, 0.05); border: 1.5px solid rgba(8, 183, 79, 0.4); box-shadow: 0 0 28px rgba(8, 183, 79, 0.1);">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="feature-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                        <i class="bi bi-buildings-fill"></i>
+                    </span>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-white">Active Accommodation Stay{{ active_accommodation_memberships|length|pluralize }}</h5>
+                        <span class="text-secondary small">Your confirmed internship and outstation travel stay plans</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'accommodate:my_groups' %}" class="btn btn-dark-custom btn-sm">
+                        <i class="bi bi-collection me-1"></i> My Stay Hub
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                {% for m in active_accommodation_memberships %}
+                    <div class="col-lg-6">
+                        <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 0.72rem;">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Active Occupant
+                                    </span>
+                                    <span class="text-secondary small">
+                                        <i class="bi bi-calendar3 me-1"></i> {{ m.planned_stay.lower|date:"M d" }} &ndash; {{ m.planned_stay.upper|date:"M d, Y" }}
+                                    </span>
+                                </div>
+                                <h6 class="fw-bold text-white mb-1">{{ m.group.title }}</h6>
+                                <p class="text-secondary small mb-2">
+                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ m.group.destination_city }} &middot; {{ m.group.location_within_city }}
+                                    {% if m.group.stay_location %} &middot; <span class="text-light">{{ m.group.stay_location.name }}</span>{% endif %}
+                                </p>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                                <span class="small text-secondary">
+                                    <i class="bi bi-people-fill me-1"></i> {{ m.group.active_members_count }} occupant{{ m.group.active_members_count|pluralize }}
+                                </span>
+                                <a href="{% url 'accommodate:group_detail' m.group.id %}" class="btn btn-sm btn-outline-success py-1 px-3">
+                                    View Group Room &rarr;
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
     <!-- Overview Stats & Quick Actions Grid -->
     <div class="row g-4">
         <div class="col-md-4">
@@ -706,136 +760,59 @@
         {% endif %}
     </div>
 
-    <!-- Quick Shortcuts Card -->
-    <div class="glass p-4 mt-4">
-        <h5 class="fw-bold mb-3"><i class="bi bi-grid-fill green-accent me-2"></i>Campus Utilities</h5>
-        <div class="row g-3">
-            <div class="col-sm-6 col-lg-3">
-                <a href="{% url 'ride_list' %}" class="d-block text-decoration-none glass p-3 app-card h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="feature-icon"><i class="bi bi-compass"></i></div>
-                        <div>
-                            <div class="fw-bold text-white">Find Rides</div>
-                            <div class="text-secondary small">Filter routes & departures</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <a href="{% url 'create_ride' %}" class="d-block text-decoration-none glass p-3 app-card h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="feature-icon"><i class="bi bi-plus-lg"></i></div>
-                        <div>
-                            <div class="fw-bold text-white">Offer Ride</div>
-                            <div class="text-secondary small">Share your taxi/cab</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <a href="{% url 'messages_inbox' %}" class="d-block text-decoration-none glass p-3 app-card h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="feature-icon position-relative">
-                            <i class="bi bi-chat-left-dots"></i>
-                            {% if total_unread_messages > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 0.6rem;">
-                                    {{ total_unread_messages }}
-                                </span>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <div class="fw-bold text-white">Direct Messages</div>
-                            <div class="text-secondary small">Friend chat & inbox</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <a href="{% url 'profile' user.enrollment_number %}" class="d-block text-decoration-none glass p-3 app-card h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="feature-icon"><i class="bi bi-person"></i></div>
-                        <div>
-                            <div class="fw-bold text-white">My Profile</div>
-                            <div class="text-secondary small">Reviews & campus friends</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {% if user.is_superuser or user.is_staff %}
-            <div class="col-sm-6 col-lg-3">
-                <a href="{% url 'application_list' %}" class="d-block text-decoration-none glass p-3 app-card h-100 position-relative">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="feature-icon position-relative">
-                            <i class="bi bi-card-checklist text-info"></i>
-                            {% if pending_applications_count > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
-                                    {{ pending_applications_count }}
-                                </span>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <div class="fw-bold text-white d-flex align-items-center gap-2">
-                                Applications
-                                {% if pending_applications_count > 0 %}
-                                    <span class="badge bg-danger rounded-pill" style="font-size: 0.68rem;">{{ pending_applications_count }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="text-secondary small">Pending student IDs</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <a href="{% url 'admin_analytics' %}" class="d-block text-decoration-none glass p-3 app-card h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="feature-icon"><i class="bi bi-graph-up"></i></div>
-                        <div>
-                            <div class="fw-bold text-white">Analytics</div>
-                            <div class="text-secondary small">Ride & safety stats</div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
     <!-- Campus Nexus Modular Services Directory -->
-    <div class="mt-5">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="glass p-4 p-md-5 mt-4 glass-glow border-success-subtle">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4 pb-2 border-bottom border-secondary border-opacity-25">
             <div>
-                <h5 class="fw-bold mb-0">Campus Nexus Services</h5>
-                <p class="text-secondary small mb-0">Modular utilities for NIT Srinagar students</p>
+                <span class="badge bg-success-subtle green-accent px-3 py-1 rounded-pill small fw-semibold mb-2 border border-success-subtle">
+                    <i class="bi bi-grid-fill me-1"></i> PLATFORM SERVICES
+                </span>
+                <h4 class="fw-bold text-white mb-1">Campus Nexus Services</h4>
+                <p class="text-secondary small mb-0">Modular, decentralized utilities built for NIT Srinagar students</p>
             </div>
-            <a href="{% url 'service_catalogue' %}" class="btn btn-dark-custom btn-sm">
-                <i class="bi bi-grid me-1"></i> Full Directory
-            </a>
+            <div>
+                <a href="{% url 'service_catalogue' %}" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-grid green-accent"></i>
+                    <span>Full Directory</span>
+                </a>
+            </div>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-4">
             {% for svc in services %}
-                <div class="col-md-6 col-lg-3">
-                    <div class="glass p-3 h-100 d-flex flex-column justify-content-between">
+                <div class="col-md-6">
+                    <div class="glass p-4 h-100 d-flex flex-column justify-content-between border-success-subtle glass-glow">
                         <div>
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="feature-icon" style="width: 38px; height: 38px; font-size: 1.1rem;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="feature-icon" style="width: 44px; height: 44px; font-size: 1.25rem;">
                                     <i class="bi {{ svc.icon }}"></i>
                                 </div>
-                                <span class="badge-status {{ svc.badge_class }}" style="font-size: 0.65rem;">
-                                    {{ svc.status_badge }}
+                                <span class="badge-status {{ svc.badge_class }}">
+                                    <i class="bi bi-circle-fill me-1 small"></i>{{ svc.status_badge }}
                                 </span>
                             </div>
-                            <h6 class="fw-bold text-white mb-1">{{ svc.name }}</h6>
-                            <p class="text-secondary small mb-2" style="font-size: 0.8rem;">{{ svc.tagline }}</p>
+                            <h5 class="fw-bold text-white mb-1">{{ svc.name }}</h5>
+                            <p class="green-accent small fw-semibold mb-2">{{ svc.tagline }}</p>
+                            <p class="text-secondary small mb-3">{{ svc.description }}</p>
+                            {% if svc.features %}
+                            <ul class="text-secondary small ps-3 mb-3">
+                                {% for feat in svc.features %}
+                                    <li>{{ feat }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
                         </div>
-                        <div class="pt-2">
-                            {% if svc.is_active %}
-                                <a href="{{ svc.url }}" class="btn btn-green btn-sm w-100">
-                                    Launch Service
+                        <div class="pt-3 border-top border-secondary border-opacity-25 d-flex gap-2">
+                            <a href="{{ svc.url }}" class="btn btn-green flex-grow-1">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> Launch Service
+                            </a>
+                            {% if svc.slug == 'coordinate' %}
+                                <a href="/coordinate/" class="btn btn-dark-custom text-secondary">
+                                    <i class="bi bi-info-circle"></i>
                                 </a>
-                            {% else %}
-                                <a href="{% url 'service_gateway' svc.slug %}" class="btn btn-dark-custom btn-sm w-100 text-secondary">
-                                    Coming Soon
+                            {% elif svc.slug == 'accommodate' %}
+                                <a href="/accommodate/" class="btn btn-dark-custom text-secondary">
+                                    <i class="bi bi-info-circle"></i>
                                 </a>
                             {% endif %}
                         </div>

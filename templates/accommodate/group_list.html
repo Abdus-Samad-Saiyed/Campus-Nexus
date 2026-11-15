@@ -1,0 +1,111 @@
+{% extends 'accommodate/base.html' %}
+
+{% block accommodate_content %}
+<!-- Search & Filter Controls Header -->
+<div class="glass p-4 rounded-4 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.55);">
+    <form id="accommodateFilterForm"
+          hx-get="{% url 'accommodate:group_search_partial' %}"
+          hx-target="#groupResultsContainer"
+          hx-trigger="change, keyup changed delay:350ms from:#searchInput, change from:#citySelect, change from:#modeSelect"
+          hx-push-url="true">
+        
+        <div class="row g-3 align-items-center mb-3">
+            <!-- Search Query Box -->
+            <div class="col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-black bg-opacity-40 border-secondary text-secondary">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           class="form-control bg-black bg-opacity-40 border-secondary text-white"
+                           id="searchInput"
+                           name="q"
+                           value="{{ search_query }}"
+                           placeholder="Search by area, landmark, PG name, or group title...">
+                </div>
+            </div>
+
+            <!-- Destination City Selector -->
+            <div class="col-md-4 col-lg-3">
+                <select class="form-select bg-black bg-opacity-40 border-secondary text-white" id="citySelect" name="city">
+                    <option value="">All Destination Cities</option>
+                    {% for c in active_cities %}
+                        <option value="{{ c.city }}" {% if selected_city == c.city %}selected{% endif %}>
+                            {{ c.city }} ({{ c.count }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Admission Mode Selector -->
+            <div class="col-md-4 col-lg-2">
+                <select class="form-select bg-black bg-opacity-40 border-secondary text-white" id="modeSelect" name="mode">
+                    <option value="">All Admission Modes</option>
+                    <option value="AUTO" {% if selected_mode == 'AUTO' %}selected{% endif %}>Auto FIFO</option>
+                    <option value="MANUAL" {% if selected_mode == 'MANUAL' %}selected{% endif %}>Peer Review</option>
+                </select>
+            </div>
+
+            <!-- Has Slots Checkbox -->
+            <div class="col-md-4 col-lg-2 d-flex align-items-center">
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="hasSlotsSwitch" name="has_slots" value="1" {% if has_slots %}checked{% endif %} onchange="htmx.trigger('#accommodateFilterForm', 'change')">
+                    <label class="form-check-label text-light small fw-medium" for="hasSlotsSwitch">
+                        Open Slots Only
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Destination City Chips -->
+        {% if active_cities %}
+            <div class="d-flex align-items-center gap-1.5 flex-wrap pt-2 border-top border-secondary border-opacity-25">
+                <span class="small text-secondary me-1">Popular Hubs:</span>
+                <button type="button"
+                        class="btn btn-sm py-0.5 px-2.5 rounded-pill {% if not selected_city %}btn-green{% else %}btn-dark-custom{% endif %}"
+                        style="font-size: 0.75rem;"
+                        onclick="document.getElementById('citySelect').value=''; htmx.trigger('#accommodateFilterForm', 'change');">
+                    All Cities
+                </button>
+                {% for c in active_cities %}
+                    <button type="button"
+                            class="btn btn-sm py-0.5 px-2.5 rounded-pill {% if selected_city == c.city %}btn-green{% else %}btn-dark-custom{% endif %}"
+                            style="font-size: 0.75rem;"
+                            onclick="document.getElementById('citySelect').value='{{ c.city }}'; htmx.trigger('#accommodateFilterForm', 'change');">
+                        {{ c.city }} <span class="badge bg-black bg-opacity-30 ms-0.5">{{ c.count }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Curated Top Student Stays Bar -->
+{% if popular_stays %}
+    <div class="glass p-3 rounded-3 mb-4 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.35);">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="small text-uppercase fw-bold text-secondary">
+                <i class="bi bi-star-fill text-warning me-1"></i> Top Student Stays &amp; Verified PG Hubs
+            </span>
+            <span class="small text-secondary" style="font-size: 0.75rem;">1-click filter</span>
+        </div>
+        <div class="d-flex gap-2 overflow-x-auto pb-1" style="scrollbar-width: thin;">
+            {% for stay in popular_stays %}
+                <button type="button"
+                        class="btn btn-sm btn-dark-custom text-nowrap py-1 px-2.5 rounded-2 d-flex align-items-center gap-1.5"
+                        style="font-size: 0.78rem;"
+                        onclick="document.getElementById('searchInput').value='{{ stay.name }}'; htmx.trigger('#accommodateFilterForm', 'change');">
+                    <i class="bi bi-building text-info"></i>
+                    <span class="text-light fw-medium">{{ stay.name }}</span>
+                    <span class="text-secondary small">({{ stay.city }})</span>
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- Dynamic Results Deck Container (HTMX Target) -->
+<div id="groupResultsContainer">
+    {% include 'accommodate/partials/group_results.html' %}
+</div>
+{% endblock %}
