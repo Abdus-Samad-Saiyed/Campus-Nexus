@@ -30,10 +30,13 @@ def accommodate_landing_view(request: HttpRequest) -> HttpResponse:
     active_groups_count = 0
     cities = []
     popular_stays = []
+    user_stays_count = 0
     try:
         active_groups_count = AccommodationGroup.objects.filter(status=GroupStatus.ACTIVE).count()
         cities = get_active_cities()
         popular_stays = get_popular_stays(limit=4)
+        if request.user.is_authenticated:
+            user_stays_count = request.user.accommodation_memberships.count()
     except Exception:
         pass
 
@@ -41,6 +44,7 @@ def accommodate_landing_view(request: HttpRequest) -> HttpResponse:
         'active_groups_count': active_groups_count,
         'cities': cities,
         'popular_stays': popular_stays,
+        'user_stays_count': user_stays_count,
     })
 
 

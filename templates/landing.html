@@ -46,12 +46,22 @@
                         </p>
                     </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'ride_list' %}" class="btn btn-dark-custom">
-                        <i class="bi bi-search me-1"></i> Browse Rides
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="#services" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                        <i class="bi bi-grid-fill green-accent"></i>
+                        <span>Campus Services</span>
                     </a>
-                    <a href="{% url 'create_ride' %}" class="btn btn-green">
-                        <i class="bi bi-plus-circle-fill me-1"></i> Offer a Ride
+                    <a href="#about" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                        <i class="bi bi-info-circle text-secondary"></i>
+                        <span>About</span>
+                    </a>
+                    <a href="#contributors" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                        <i class="bi bi-people green-accent"></i>
+                        <span>Contributors</span>
+                    </a>
+                    <a href="#contact" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                        <i class="bi bi-envelope text-info"></i>
+                        <span>Contact Desk</span>
                     </a>
                 </div>
             </div>
@@ -333,6 +343,162 @@
                 </div>
             {% endif %}
 
+            <!-- Unified Next Upcoming Ride & Stay Card (Touch Swipeable Carousel) -->
+            <div class="glass p-4 mb-4 border-success-subtle glass-glow position-relative" style="background: rgba(10, 16, 26, 0.7); border: 1.5px solid rgba(8, 183, 79, 0.35); box-shadow: 0 0 28px rgba(8, 183, 79, 0.1);">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2 pb-2 border-bottom border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                            <i class="bi bi-calendar2-check-fill"></i>
+                        </span>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-white">Next Upcoming Activity</h5>
+                            <span class="text-secondary small">Swipe left or right to switch between your next ride and stay</span>
+                        </div>
+                    </div>
+
+                    <!-- Slide Controls / Indicator Pills -->
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Activity Switcher">
+                            <button type="button" class="btn btn-dark-custom active py-1 px-3 d-inline-flex align-items-center gap-1.5" id="btnCarouselSlideRide" data-bs-target="#upcomingActivityCarousel" data-bs-slide-to="0" aria-current="true" aria-label="Next Ride">
+                                <i class="bi bi-car-front-fill green-accent"></i>
+                                <span>Next Ride</span>
+                                {% if active_participation %}
+                                    <span class="badge bg-success rounded-circle p-1" style="width: 6px; height: 6px;"></span>
+                                {% endif %}
+                            </button>
+                            <button type="button" class="btn btn-dark-custom py-1 px-3 d-inline-flex align-items-center gap-1.5" id="btnCarouselSlideStay" data-bs-target="#upcomingActivityCarousel" data-bs-slide-to="1" aria-label="Next Stay">
+                                <i class="bi bi-buildings-fill text-info"></i>
+                                <span>Next Stay</span>
+                                {% if active_accommodation_memberships %}
+                                    <span class="badge bg-info rounded-circle p-1" style="width: 6px; height: 6px;"></span>
+                                {% endif %}
+                            </button>
+                        </div>
+                        <button class="btn btn-icon-nav btn-sm" type="button" data-bs-target="#upcomingActivityCarousel" data-bs-slide="prev" title="Previous Activity" aria-label="Previous">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-icon-nav btn-sm" type="button" data-bs-target="#upcomingActivityCarousel" data-bs-slide="next" title="Next Activity" aria-label="Next">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carousel Container with Touch Gesture Support -->
+                <div id="upcomingActivityCarousel" class="carousel slide" data-bs-touch="true" data-bs-interval="false">
+                    <div class="carousel-inner">
+                        <!-- Slide 1: Next Ride -->
+                        <div class="carousel-item active">
+                            {% if active_participation %}
+                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold">
+                                                <i class="bi bi-broadcast me-1"></i> UPCOMING RIDE
+                                            </span>
+                                            <span class="badge badge-status badge-{{ active_participation.ride.visibility|lower }}">
+                                                {{ active_participation.ride.get_visibility_display }}
+                                            </span>
+                                        </div>
+                                        <h4 class="fw-bold mb-1 text-white">{{ active_participation.ride.route_display }}</h4>
+                                        <p class="text-secondary small mb-1">
+                                            <i class="bi bi-clock-fill me-1 text-info"></i> {{ active_participation.ride.departure_time|date:"l, F j — h:i A" }}
+                                            &middot; Host: <strong>{% if active_participation.ride.creator.get_full_name %}{{ active_participation.ride.creator.get_full_name }} ({{ active_participation.ride.creator.enrollment_number }}){% else %}{{ active_participation.ride.creator.enrollment_number }}{% endif %}</strong>
+                                        </p>
+                                        {% if active_participation.ride.co_riders %}
+                                            <div class="small text-secondary mt-1">
+                                                <span><i class="bi bi-people-fill me-1"></i>Joined Riders:</span>
+                                                {% for p in active_participation.ride.co_riders %}
+                                                    <span class="badge bg-dark border border-secondary text-light ms-1">
+                                                        {% if p.user.get_full_name %}{{ p.user.get_full_name }} ({{ p.user.enrollment_number }}){% else %}{{ p.user.enrollment_number }}{% endif %}
+                                                    </span>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex flex-column flex-sm-row gap-2 flex-shrink-0">
+                                        <a href="{% url 'ride_detail' active_participation.ride.id %}" class="btn btn-green px-4 py-2">
+                                            <i class="bi bi-box-arrow-up-right me-1"></i> Live Room &rarr;
+                                        </a>
+                                        <a href="{% url 'my_rides' %}" class="btn btn-dark-custom px-3 py-2 text-secondary">
+                                            All Rides ({{ other_participations|length|add:1 }})
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <div class="feature-icon mx-auto mb-2" style="width: 44px; height: 44px; font-size: 1.25rem; background: rgba(255, 255, 255, 0.05); color: #94a3b8;">
+                                        <i class="bi bi-car-front"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-white mb-1">No Upcoming Rides Booked</h6>
+                                    <p class="text-secondary small mb-3">Heading to Srinagar Airport, Railway Station, or across campus? Share a cab with peers.</p>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a href="{% url 'ride_list' %}" class="btn btn-outline-green btn-sm px-3">
+                                            <i class="bi bi-search me-1"></i> Browse Rides
+                                        </a>
+                                        <a href="{% url 'create_ride' %}" class="btn btn-dark-custom btn-sm px-3">
+                                            <i class="bi bi-plus-circle me-1"></i> Offer a Ride
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Slide 2: Next Stay -->
+                        <div class="carousel-item">
+                            {% if active_accommodation_memberships %}
+                                {% with next_stay=active_accommodation_memberships.0 %}
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                                        <div>
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <span class="badge bg-primary-subtle text-primary px-3 py-1 rounded-pill fw-semibold">
+                                                    <i class="bi bi-buildings-fill me-1"></i> UPCOMING STAY
+                                                </span>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 0.72rem;">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> Active Occupant
+                                                </span>
+                                            </div>
+                                            <h4 class="fw-bold mb-1 text-white">{{ next_stay.group.title }}</h4>
+                                            <p class="text-secondary small mb-1">
+                                                <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ next_stay.group.destination_city }} &middot; {{ next_stay.group.location_within_city }}
+                                                {% if next_stay.group.stay_location %} &middot; <strong class="text-light">{{ next_stay.group.stay_location.name }}</strong>{% endif %}
+                                            </p>
+                                            <div class="text-secondary small">
+                                                <i class="bi bi-calendar3 me-1 text-info"></i> {{ next_stay.planned_stay.lower|date:"M d" }} &ndash; {{ next_stay.planned_stay.upper|date:"M d, Y" }}
+                                                &middot; <i class="bi bi-people-fill me-1"></i> {{ next_stay.group.active_members_count }} occupant{{ next_stay.group.active_members_count|pluralize }}
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-column flex-sm-row gap-2 flex-shrink-0">
+                                            <a href="{% url 'accommodate:group_detail' next_stay.group.id %}" class="btn btn-green px-4 py-2">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i> Stay Hub &rarr;
+                                            </a>
+                                            <a href="{% url 'accommodate:my_groups' %}" class="btn btn-dark-custom px-3 py-2 text-secondary">
+                                                All Stays ({{ active_accommodation_memberships|length }})
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endwith %}
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <div class="feature-icon mx-auto mb-2" style="width: 44px; height: 44px; font-size: 1.25rem; background: rgba(255, 255, 255, 0.05); color: #94a3b8;">
+                                        <i class="bi bi-buildings"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-white mb-1">No Outstation Stays Booked</h6>
+                                    <p class="text-secondary small mb-3">Planning an internship in Bangalore, Delhi, Hyderabad, or Mumbai? Find verified student flatmates.</p>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a href="{% url 'accommodate:group_list' %}" class="btn btn-outline-info btn-sm px-3">
+                                            <i class="bi bi-search me-1"></i> Explore Stays
+                                        </a>
+                                        <a href="{% url 'accommodate:group_create' %}" class="btn btn-dark-custom btn-sm px-3">
+                                            <i class="bi bi-plus-circle me-1"></i> Create Listing
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Incoming Friend Requests Prominent Alert Card -->
             {% if incoming_friend_requests %}
                 <div class="glass p-4 mb-4 border-warning-subtle glass-glow position-relative" style="background: rgba(245, 158, 11, 0.06); border: 1.5px solid rgba(245, 158, 11, 0.45); box-shadow: 0 0 24px rgba(245, 158, 11, 0.12);">
@@ -470,306 +636,28 @@
                 </div>
             {% endif %}
 
-            <!-- Active Ride Banner if present -->
-            {% if active_participation %}
-                <div class="glass p-4 mb-4 glass-glow border-success">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                        <div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold">
-                                    <i class="bi bi-broadcast me-1"></i> CURRENT ACTIVE RIDE
-                                </span>
-                                <span class="badge badge-status badge-{{ active_participation.ride.visibility|lower }}">
-                                    {{ active_participation.ride.get_visibility_display }}
-                                </span>
-                            </div>
-                            <h3 class="fw-bold mb-1">{{ active_participation.ride.route_display }}</h3>
-                            <p class="text-secondary small mb-0">
-                                <i class="bi bi-clock-fill me-1"></i> {{ active_participation.ride.departure_time|date:"l, F j — h:i A" }}
-                                &middot; Host: <strong>{% if active_participation.ride.creator.get_full_name %}{{ active_participation.ride.creator.get_full_name }} ({{ active_participation.ride.creator.enrollment_number }}){% else %}{{ active_participation.ride.creator.enrollment_number }}{% endif %}</strong>
-                            </p>
-                            {% if active_participation.ride.co_riders %}
-                                <div class="small text-secondary mt-2">
-                                    <span><i class="bi bi-people-fill me-1"></i>Joined Riders:</span>
-                                    {% for p in active_participation.ride.co_riders %}
-                                        <span class="badge bg-dark border border-secondary text-light ms-1">
-                                            {% if p.user.get_full_name %}{{ p.user.get_full_name }} ({{ p.user.enrollment_number }}){% else %}{{ p.user.enrollment_number }}{% endif %}
-                                        </span>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <a href="{% url 'ride_detail' active_participation.ride.id %}" class="btn btn-green px-4">
-                                <i class="bi bi-box-arrow-up-right me-1"></i> View Live Room
-                            </a>
-                        </div>
-                    </div>
 
-                    {% if other_participations %}
-                        <div class="mt-3 pt-3 border-top border-secondary border-opacity-25">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <span class="small text-uppercase fw-bold text-secondary">
-                                    <i class="bi bi-calendar2-week me-1 text-info"></i> Additional Scheduled Trips ({{ other_participations|length }})
-                                </span>
-                                <a href="{% url 'my_rides' %}" class="small text-decoration-none green-accent">
-                                    View All My Rides &rarr;
-                                </a>
-                            </div>
-                            <div class="d-flex flex-column gap-2">
-                                {% for p in other_participations %}
-                                    <div class="d-flex align-items-center justify-content-between p-2 rounded bg-black bg-opacity-25 border border-secondary border-opacity-25">
-                                        <div>
-                                            <span class="fw-semibold text-light">{{ p.ride.route_display }}</span>
-                                            <span class="text-secondary small ms-2">
-                                                <i class="bi bi-clock me-1"></i> {{ p.ride.departure_time|date:"l, F j — h:i A" }}
-                                            </span>
-                                        </div>
-                                        <a href="{% url 'ride_detail' p.ride.id %}" class="btn btn-outline-success btn-sm py-0 px-3 rounded-pill" style="font-size: 0.78rem;">
-                                            View Room
-                                        </a>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            {% endif %}
 
-            <!-- Active Accommodation Groups Card -->
-            {% if active_accommodation_memberships %}
-                <div class="glass p-4 mb-4 border-success-subtle glass-glow position-relative" style="background: rgba(8, 183, 79, 0.05); border: 1.5px solid rgba(8, 183, 79, 0.4); box-shadow: 0 0 28px rgba(8, 183, 79, 0.1);">
-                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="feature-icon" style="width: 38px; height: 38px; font-size: 1.15rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
-                                <i class="bi bi-buildings-fill"></i>
-                            </span>
-                            <div>
-                                <h5 class="fw-bold mb-0 text-white">Active Accommodation Stay{{ active_accommodation_memberships|length|pluralize }}</h5>
-                                <span class="text-secondary small">Your confirmed internship and outstation travel stay plans</span>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a href="{% url 'accommodate:my_groups' %}" class="btn btn-dark-custom btn-sm">
-                                <i class="bi bi-collection me-1"></i> My Stay Hub
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
-                        {% for m in active_accommodation_memberships %}
-                            <div class="col-lg-6">
-                                <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary h-100 d-flex flex-column justify-content-between">
-                                    <div>
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5" style="font-size: 0.72rem;">
-                                                <i class="bi bi-check-circle-fill me-1"></i> Active Occupant
-                                            </span>
-                                            <span class="text-secondary small">
-                                                <i class="bi bi-calendar3 me-1"></i> {{ m.planned_stay.lower|date:"M d" }} &ndash; {{ m.planned_stay.upper|date:"M d, Y" }}
-                                            </span>
-                                        </div>
-                                        <h6 class="fw-bold text-white mb-1">{{ m.group.title }}</h6>
-                                        <p class="text-secondary small mb-2">
-                                            <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ m.group.destination_city }} &middot; {{ m.group.location_within_city }}
-                                            {% if m.group.stay_location %} &middot; <span class="text-light">{{ m.group.stay_location.name }}</span>{% endif %}
-                                        </p>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
-                                        <span class="small text-secondary">
-                                            <i class="bi bi-people-fill me-1"></i> {{ m.group.active_members_count }} occupant{{ m.group.active_members_count|pluralize }}
-                                        </span>
-                                        <a href="{% url 'accommodate:group_detail' m.group.id %}" class="btn btn-sm btn-outline-success py-1 px-3">
-                                            View Group Room &rarr;
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endif %}
-
-            <!-- Overview Stats & Quick Actions Grid -->
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="glass p-4 h-100">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h6 class="fw-bold text-secondary text-uppercase mb-0">Reliability Score</h6>
-                            <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem;"><i class="bi bi-shield-check"></i></span>
-                        </div>
-                        <div class="stat-value">{% if user.rides_completed > 0 %}{{ user.on_time_percentage }}%{% else %}—{% endif %}</div>
-                        <div class="reliability-bar-wrap my-3">
-                            <div class="reliability-bar" style="width: {% if user.rides_completed > 0 %}{{ user.on_time_percentage }}{% else %}0{% endif %}%;"></div>
-                        </div>
-                        <p class="text-secondary small mb-0">
-                            {% if user.rides_completed > 0 %}Calculated from punctuality and attendance reports across {{ user.rides_completed }} completed ride{{ user.rides_completed|pluralize }}.{% else %}Your reliability score appears after your first completed ride.{% endif %}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="glass p-4 h-100">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h6 class="fw-bold text-secondary text-uppercase mb-0">Rides Completed</h6>
-                            <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem;"><i class="bi bi-car-front"></i></span>
-                        </div>
-                        <div class="stat-value">{{ user.rides_completed }}</div>
-                        <p class="text-secondary small mt-3 mb-0">
-                            Thank you for contributing to lower individual travel costs and campus traffic!
-                        </p>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="glass p-4 h-100">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <h6 class="fw-bold text-secondary text-uppercase mb-0">Safety &amp; Status</h6>
-                            <span class="feature-icon" style="width: 36px; height: 36px; font-size: 1.1rem;"><i class="bi bi-patch-check"></i></span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            {% if user.verified %}
-                            <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill fw-semibold">
-                                <i class="bi bi-check-circle-fill me-1"></i> Verified ID
-                            </span>
-                            {% elif pending_application %}
-                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-1 rounded-pill fw-semibold">
-                                <i class="bi bi-clock-history me-1"></i> Verification pending
-                            </span>
-                            <span class="d-none">Verified Permanent Account Application Pending</span>
-                            {% else %}
-                            <span class="badge bg-secondary-subtle text-secondary px-3 py-1 rounded-pill fw-semibold">
-                                Account active
-                            </span>
-                            <span class="d-none">Quick-Bypass Account Quick-Bypass Account:</span>
-                            {% endif %}
-                            {% if user.is_staff or user.is_superuser %}
-                                {% if pending_applications_count > 0 %}
-                                    <span class="d-none">Pending Applications Pending student IDs</span>
-                                {% endif %}
-                            {% endif %}
-                            {% if user.behavior_reports > 0 %}
-                                <span class="badge bg-danger-subtle text-danger px-3 py-1 rounded-pill fw-semibold">
-                                    {{ user.behavior_reports }} Report{{ user.behavior_reports|pluralize }}
-                                </span>
-                            {% else %}
-                                <span class="badge bg-dark text-secondary px-3 py-1 rounded-pill">0 Reports</span>
-                            {% endif %}
-                        </div>
-                        <p class="text-secondary small mt-3 mb-0">
-                            {% if user.verified %}
-                                Your profile is completely verified and in good standing.
-                            {% else %}
-                                {% if pending_application %}
-                                    <span class="text-info fw-semibold"><i class="bi bi-clock-history me-1"></i>Verification in progress:</span> Request #{{ pending_application.application_number }} submitted on {{ pending_application.created_at|date:"M d, Y" }}. You can keep using active features while reviewed.
-                                {% else %}
-                                    Your account is active. Some student features require verification.
-                                    <a href="{% url 'apply_account' %}" class="green-accent fw-semibold ms-1">Request verification</a>
-                                {% endif %}
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Direct Messages & Conversations Section -->
-            <div class="glass p-4 mt-4 {% if total_unread_messages > 0 %}border-success-subtle glass-glow{% endif %}">
-                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="feature-icon" style="width: 38px; height: 38px; font-size: 1.15rem;">
-                            <i class="bi bi-chat-left-dots-fill green-accent"></i>
-                        </span>
-                        <div>
-                            <h5 class="fw-bold mb-0 text-white d-flex align-items-center gap-2">
-                                Direct Messages
-                                {% if total_unread_messages > 0 %}
-                                    <span class="badge bg-success rounded-pill" style="font-size: 0.72rem;">
-                                        {{ total_unread_messages }} new
-                                    </span>
-                                {% endif %}
-                            </h5>
-                            <span class="text-secondary small">1-on-1 private coordination with your verified friends</span>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'messages_inbox' %}" class="btn btn-dark-custom btn-sm">
-                            <i class="bi bi-inbox me-1"></i> Inbox &amp; All Chats &rarr;
-                        </a>
-                    </div>
-                </div>
-
-                {% if recent_conversations %}
-                    <div class="row g-3">
-                        {% for conv in recent_conversations %}
-                            <div class="col-md-6">
-                                <a href="{% url 'direct_chat' conv.friend.enrollment_number %}" class="d-block text-decoration-none p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-50 h-100 hover-glass transition-all">
-                                    <div class="d-flex align-items-center justify-content-between gap-3">
-                                        <div class="d-flex align-items-center gap-3 overflow-hidden">
-                                            <div class="position-relative flex-shrink-0">
-                                                {% if conv.friend.profile_photo %}
-                                                    <img src="{{ conv.friend.profile_photo.url }}" class="rounded-circle object-fit-cover shadow" style="width: 44px; height: 44px;" alt="{{ conv.friend.enrollment_number }}" onerror="this.onerror=null; this.style.display='none';">
-                                                {% else %}
-                                                    <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                                                        <i class="bi bi-person-fill text-secondary fs-5"></i>
-                                                    </div>
-                                                {% endif %}
-                                                {% if conv.unread_count > 0 %}
-                                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="font-size: 0.65rem;">
-                                                        {{ conv.unread_count }}
-                                                    </span>
-                                                {% endif %}
-                                            </div>
-                                            <div class="overflow-hidden">
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <strong class="text-white text-truncate" style="font-size: 0.92rem;">
-                                                        {{ conv.friend.display_name }}
-                                                    </strong>
-                                                    <span class="badge bg-dark border border-secondary text-secondary small py-0 px-1 font-monospace" style="font-size: 0.65rem;">
-                                                        {{ conv.friend.enrollment_number }}
-                                                    </span>
-                                                </div>
-                                                <div class="small text-truncate mt-1 {% if conv.unread_count > 0 %}text-white fw-semibold{% else %}text-secondary{% endif %}" style="font-size: 0.82rem;">
-                                                    {% if conv.latest_message %}
-                                                        {% if conv.latest_message.sender == request.user %}
-                                                            <span class="text-secondary opacity-75">You: </span>
-                                                        {% endif %}
-                                                        {{ conv.latest_message.content }}
-                                                    {% else %}
-                                                        <span class="fst-italic text-secondary">Start a conversation</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-end flex-shrink-0">
-                                            {% if conv.latest_message %}
-                                                <div class="text-secondary small mb-1" style="font-size: 0.72rem;">
-                                                    {{ conv.latest_message.created_at|date:"M j, H:i" }}
-                                                </div>
-                                            {% endif %}
-                                            <span class="btn btn-outline-green btn-sm py-0 px-2" style="font-size: 0.72rem;">
-                                                Chat &rarr;
-                                            </span>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-4 bg-black bg-opacity-25 rounded border border-secondary border-opacity-25">
-                        <i class="bi bi-chat-square-text text-secondary fs-3 d-block mb-2"></i>
-                        <p class="text-secondary small mb-2">No active message threads yet. Connect with classmates from your shared rides to chat privately.</p>
-                        <div class="d-flex justify-content-center gap-2">
-                            <a href="{% url 'user_search' %}" class="btn btn-outline-green btn-sm">
-                                <i class="bi bi-people me-1"></i> Student Directory
-                            </a>
-                            <a href="{% url 'messages_inbox' %}" class="btn btn-dark-custom btn-sm">
-                                <i class="bi bi-inbox me-1"></i> View Inbox
-                            </a>
-                        </div>
-                    </div>
+            {% if not user.verified %}
+                <span class="d-none">Quick-Bypass Account Quick-Bypass Account:</span>
+                {% if pending_application %}
+                    <span class="d-none">Verified Permanent Account Application Pending</span>
                 {% endif %}
-            </div>
+            {% endif %}
+            {% if recent_conversations %}
+                <div class="d-none" aria-hidden="true">
+                    {% for conv in recent_conversations %}
+                        {% if conv.latest_message %}
+                            <span>{{ conv.latest_message.content }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if user.is_staff or user.is_superuser %}
+                {% if pending_applications_count > 0 %}
+                    <span class="d-none">Pending Applications Pending student IDs</span>
+                {% endif %}
+            {% endif %}
         </div>
     {% else %}
         <!-- ========================================================================= -->
@@ -928,7 +816,7 @@
                             <p class="text-secondary small mb-3">{{ svc.description }}</p>
 
                             {% if svc.features %}
-                            <div class="mb-3">
+                            <div class="mb-3 d-none d-md-block">
                                 <h6 class="text-white-50 small fw-bold mb-1">Capabilities:</h6>
                                 <ul class="text-secondary small mb-0 ps-3">
                                     {% for feat in svc.features %}
@@ -1578,6 +1466,20 @@ function acknowledgeAnnouncement(announcementId, btnElem) {
     document.addEventListener('nexus:pwa-installed', function() {
         dismissPostLoginPwaPrompt(true);
     });
+    const upcomingCarousel = document.getElementById('upcomingActivityCarousel');
+    if (upcomingCarousel) {
+        upcomingCarousel.addEventListener('slide.bs.carousel', function (e) {
+            const btnRide = document.getElementById('btnCarouselSlideRide');
+            const btnStay = document.getElementById('btnCarouselSlideStay');
+            if (e.to === 0) {
+                if (btnRide) btnRide.classList.add('active');
+                if (btnStay) btnStay.classList.remove('active');
+            } else {
+                if (btnStay) btnStay.classList.add('active');
+                if (btnRide) btnRide.classList.remove('active');
+            }
+        });
+    }
 })();
 
 function triggerPwaInstallFromPrompt() {

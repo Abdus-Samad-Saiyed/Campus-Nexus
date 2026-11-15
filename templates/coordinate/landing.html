@@ -40,6 +40,41 @@
         </div>
     </div>
 
+    {% if user.is_authenticated %}
+    <!-- Authenticated Student Driver & Rider Performance Strip -->
+    <div class="glass p-4 mb-4 border-success-subtle glass-glow">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="feature-icon" style="width: 44px; height: 44px; font-size: 1.25rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-white">Your Coordinate Metrics</h5>
+                    <span class="text-secondary small">Calculated from punctuality and peer reviews across your shared rides</span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-4 flex-wrap">
+                <div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="fs-4 fw-bold green-accent font-mono">{% if user.rides_completed > 0 %}{{ user.on_time_percentage }}%{% else %}—{% endif %}</span>
+                        <span class="text-secondary small text-uppercase" style="font-size: 0.7rem;">Reliability Score</span>
+                    </div>
+                    <div class="reliability-bar-wrap mt-1" style="width: 120px; height: 4px;">
+                        <div class="reliability-bar" style="width: {% if user.rides_completed > 0 %}{{ user.on_time_percentage }}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="fs-4 fw-bold text-white font-mono">{{ user.rides_completed }}</div>
+                    <div class="text-secondary small text-uppercase" style="font-size: 0.7rem;">Rides Completed</div>
+                </div>
+                <a href="{% url 'my_rides' %}" class="btn btn-outline-green btn-sm px-3">
+                    <i class="bi bi-clock-history me-1"></i> My Rides &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Quick Stats Metric Strip -->
     <div class="row g-3 mb-5">
         <div class="col-12 col-md-4">
