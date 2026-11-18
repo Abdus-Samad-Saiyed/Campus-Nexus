@@ -104,6 +104,55 @@ class AboutContributorsFeedbackTests(TestCase):
         self.assertIsNone(fb.user)
         self.assertEqual(fb.feedback_type, "PROPOSAL")
 
+    def test_feedback_submit_and_report_bug_pages_render_directly(self):
+        """Dedicated /feedback/submit/ and /report-bug/ routes render the post form with the expected default category."""
+        res_submit = self.client.get(reverse("feedback_submit"))
+        self.assertEqual(res_submit.status_code, 200)
+        self.assertContains(res_submit, 'id="feedbackForm"')
+        self.assertContains(res_submit, 'value="GENERAL" selected')
+        self.assertContains(res_submit, reverse("feedback"))
+
+        res_proposal = self.client.get(reverse("feedback_submit") + "?type=PROPOSAL")
+        self.assertEqual(res_proposal.status_code, 200)
+        self.assertContains(res_proposal, 'value="PROPOSAL" selected')
+
+        res_bug = self.client.get(reverse("report_bug"))
+        self.assertEqual(res_bug.status_code, 200)
+        self.assertContains(res_bug, 'id="feedbackForm"')
+        self.assertContains(res_bug, 'value="BUG" selected')
+        self.assertContains(res_bug, "Report a Bug")
+
+    def test_feedback_submit_post_creates_entry_and_redirects(self):
+        """POST to /feedback/submit/ creates PlatformFeedback, logs audit event, and redirects to tracker."""
+        self.client.force_login(self.user)
+        res = self.client.post(reverse("feedback_submit"), {
+            "feedback_type": "GENERAL",
+            "title": "Navbar anchor clearance feedback",
+            "description": "Anchors now land cleanly below the sticky navbar on mobile.",
+            "submitter_name": "Raza Khan",
+            "submitter_contact": "2024BCSE002",
+        })
+        self.assertRedirects(res, reverse("feedback"))
+
+        fb = PlatformFeedback.objects.filter(title="Navbar anchor clearance feedback").first()
+        self.assertIsNotNone(fb)
+        self.assertEqual(fb.user, self.user)
+        self.assertEqual(fb.feedback_type, "GENERAL")
+
+    def test_tracker_and_info_pages_link_to_direct_post_options(self):
+        """Feedback tracker, landing, about, contact, and footer link directly to post bug/feedback routes."""
+        tracker_res = self.client.get(reverse("feedback"))
+        self.assertEqual(tracker_res.status_code, 200)
+        self.assertContains(tracker_res, f'href="{reverse("report_bug")}"')
+        self.assertContains(tracker_res, f'href="{reverse("feedback_submit")}?type=GENERAL"')
+
+        for url_name in ("landing", "about", "contact"):
+            res = self.client.get(reverse(url_name))
+            self.assertEqual(res.status_code, 200)
+            self.assertContains(res, reverse("feedback_submit"))
+            self.assertContains(res, reverse("report_bug"))
+
+
 
 class RideMisconductReportingTests(TestCase):
     """Verify in-ride misconduct reporting, chat log snapshot, and institute escalation."""

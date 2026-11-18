@@ -283,6 +283,7 @@
                 justify-content: space-between !important;
                 padding-left: max(10px, env(safe-area-inset-left)) !important;
                 padding-right: max(10px, env(safe-area-inset-right)) !important;
+                overflow: visible !important;
             }
 
             .navbar-header-row {
@@ -368,10 +369,8 @@
                 margin-top: 6px !important;
                 padding-top: 5px !important;
                 padding-bottom: 2px !important;
-                overflow-x: auto !important;
+                overflow: visible !important;
                 white-space: nowrap !important;
-                -webkit-overflow-scrolling: touch !important;
-                scrollbar-width: none !important;
             }
 
             .navbar-mobile-layer-2::-webkit-scrollbar {
@@ -559,7 +558,7 @@
 
     </style>
     <!-- Custom Theme & Watermark Styles -->
-    <link rel="stylesheet" href="{% static 'css/main.min.css' %}?v=3.2.4">
+    <link rel="stylesheet" href="{% static 'css/main.min.css' %}?v=3.2.6">
     <link rel="stylesheet" href="{% static 'css/watermark.min.css' %}?v=3.2.4" data-asset="watermark.css">
 
     <!-- PWA Installation Button Dynamic Accent Styles -->
@@ -1389,7 +1388,7 @@
                                 <i class="bi bi-grid-fill green-accent me-1"></i>
                                 <span>Services</span>
                             </button>
-                            <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25" style="min-width: 250px; background: rgba(10, 16, 26, 0.96); backdrop-filter: blur(20px);">
+                            <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25">
                                 <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
                                     <i class="bi bi-car-front-fill green-accent"></i> Coordinate
                                 </div>
@@ -1439,7 +1438,7 @@
                         </a>
 
                         <!-- Feedback & Bug Tracker Quick-Action Pill -->
-                        <a href="{% url 'feedback' %}" class="mobile-nav-pill flex-fill justify-content-center {% if request.resolver_match.url_name == 'feedback' %}active{% endif %}" title="Feedback & Bug Tracker">
+                        <a href="{% url 'feedback' %}" class="mobile-nav-pill flex-fill justify-content-center {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active{% endif %}" title="Feedback & Bug Tracker">
                             <i class="bi bi-bug-fill green-accent me-1"></i>
                             <span>Feedback</span>
                         </a>
@@ -1499,7 +1498,7 @@
                         </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'feedback' %}active fw-semibold{% endif %}" href="{% url 'feedback' %}" title="Feedback &amp; Bug Tracker">
+                        <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active fw-semibold{% endif %}" href="{% url 'feedback' %}" title="Feedback &amp; Bug Tracker">
                             <i class="bi bi-bug-fill me-1 green-accent"></i> Feedback &amp; Bugs
                         </a>
                     </li>
@@ -2009,8 +2008,8 @@
                     <a href="{% url 'about' %}" class="text-secondary text-decoration-none">About Nexus</a>
                     <a href="{% url 'contact' %}" class="text-secondary text-decoration-none">Contact Us</a>
                     <a href="{% url 'contributors' %}" class="text-secondary text-decoration-none">Contributors</a>
-                    <a href="{% url 'feedback' %}" class="text-secondary text-decoration-none">Submit Feedback</a>
-                    <a href="{% url 'report_bug' %}?type=BUG" class="text-danger text-decoration-none">Report a Bug</a>
+                    <a href="{% url 'feedback_submit' %}?type=GENERAL" class="text-secondary text-decoration-none">Submit Feedback</a>
+                    <a href="{% url 'report_bug' %}" class="text-danger text-decoration-none">Report a Bug</a>
                     <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus" target="_blank" class="text-secondary text-decoration-none">
                         <i class="bi bi-github me-1"></i> GitHub
                     </a>
@@ -3744,7 +3743,34 @@
         }
     }
 
+    function syncNavbarScrollOffset() {
+        const nav = document.querySelector('nav.navbar-custom');
+        if (!nav) return;
+        const offset = Math.ceil(nav.offsetHeight + 6);
+        document.documentElement.style.setProperty('--navbar-scroll-offset', offset + 'px');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        syncNavbarScrollOffset();
+        window.addEventListener('resize', syncNavbarScrollOffset, { passive: true });
+        const navbarEl = document.querySelector('nav.navbar-custom');
+        if (navbarEl && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(syncNavbarScrollOffset).observe(navbarEl);
+        }
+        if (window.location.hash && window.location.hash.length > 1) {
+            const targetId = decodeURIComponent(window.location.hash.slice(1));
+            const targetEl = document.getElementById(targetId);
+            if (targetEl && navbarEl) {
+                requestAnimationFrame(function() {
+                    const navBottom = navbarEl.getBoundingClientRect().bottom;
+                    const rect = targetEl.getBoundingClientRect();
+                    if (rect.top < navBottom + 2 && rect.top > -rect.height) {
+                        window.scrollBy({ top: rect.top - (navBottom + 6), behavior: 'auto' });
+                    }
+                });
+            }
+        }
+
         applyPlatformWatermarkFiltering();
         syncAccentUIElements();
 

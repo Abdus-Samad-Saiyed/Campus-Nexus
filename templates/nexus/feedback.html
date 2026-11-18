@@ -6,7 +6,7 @@
 {% block content %}
 <div class="container py-4 py-md-5">
     <!-- Header -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <span class="badge bg-success-subtle text-success px-3 py-1.5 rounded-pill fw-semibold mb-2 border border-success-subtle d-inline-flex align-items-center">
                 <i class="bi bi-bug-fill me-1.5 green-accent"></i> Public Platform Issue &amp; Feedback Tracker
@@ -16,21 +16,31 @@
                 Track open issues, explore community proposals, and report bugs directly to platform maintainers.
             </p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-green d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#feedbackFormCollapse" aria-expanded="false" aria-controls="feedbackFormCollapse">
-                <i class="bi bi-plus-circle-fill"></i>
-                <span class="fw-semibold">Report Bug / Feedback</span>
-            </button>
-            <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom d-inline-flex align-items-center gap-1.5">
-                <i class="bi bi-github"></i>
-                <span>Route Directly to Repository Issues</span>
-            </a>
-            {% if is_admin %}
-                <a href="{% url 'operational_dashboard' %}" class="btn btn-outline-warning d-inline-flex align-items-center gap-1.5">
-                    <i class="bi bi-speedometer2"></i>
-                    <span>Operations Console</span>
+        <div class="d-flex flex-column align-items-stretch align-items-lg-end gap-2 flex-shrink-0">
+            <!-- Primary Submission Actions -->
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'feedback_submit' %}?type=GENERAL" class="btn btn-green flex-grow-1 flex-lg-grow-0 d-inline-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-chat-dots-fill"></i>
+                    <span class="fw-semibold">Give Feedback</span>
                 </a>
-            {% endif %}
+                <a href="{% url 'report_bug' %}" class="btn btn-outline-danger flex-grow-1 flex-lg-grow-0 d-inline-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-bug-fill"></i>
+                    <span class="fw-semibold">Report a Bug</span>
+                </a>
+            </div>
+            <!-- Secondary Utility Links -->
+            <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues" target="_blank" rel="noopener noreferrer" class="btn btn-dark-custom btn-sm flex-grow-1 flex-lg-grow-0 d-inline-flex align-items-center justify-content-center gap-1.5">
+                    <i class="bi bi-github"></i>
+                    <span>Route Directly to Repository Issues</span>
+                </a>
+                {% if is_admin %}
+                    <a href="{% url 'operational_dashboard' %}" class="btn btn-outline-warning btn-sm flex-grow-1 flex-lg-grow-0 d-inline-flex align-items-center justify-content-center gap-1.5">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Operations Console</span>
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -126,17 +136,32 @@
                     {% endif %}
                 </div>
 
-                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex gap-2">
-                    <button class="btn btn-green btn-sm flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#feedbackFormCollapse">
-                        <i class="bi bi-plus-circle me-1"></i> Report a Bug
-                    </button>
-                    {% if user.is_authenticated %}
-                        {% if view_filter == 'mine' %}
-                            <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm">Show All Reports</a>
-                        {% else %}
-                            <a href="{% url 'feedback' %}?view=mine" class="btn btn-outline-info btn-sm">Filter My Reports</a>
+                <div class="pt-3 border-top border-secondary border-opacity-25">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'feedback_submit' %}?type=GENERAL" class="btn btn-green btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-chat-dots-fill"></i> Give Feedback
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'report_bug' %}" class="btn btn-outline-danger btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1">
+                                <i class="bi bi-bug-fill"></i> Report a Bug
+                            </a>
+                        </div>
+                        {% if user.is_authenticated %}
+                            <div class="col-12">
+                                {% if view_filter == 'mine' %}
+                                    <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1">
+                                        <i class="bi bi-list-ul"></i> Show All Reports
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'feedback' %}?view=mine" class="btn btn-outline-info btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-1">
+                                        <i class="bi bi-funnel-fill"></i> Filter My Reports
+                                    </a>
+                                {% endif %}
+                            </div>
                         {% endif %}
-                    {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -440,12 +465,29 @@
             <i class="bi bi-inbox fs-1 text-secondary mb-3 d-block"></i>
             <h5 class="fw-bold text-white mb-2">No Reports or Feedback Found</h5>
             <p class="text-secondary small mb-4">No submissions match your search and filter criteria.</p>
-            <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm">Clear All Filters</a>
+            <div class="d-flex justify-content-center flex-wrap gap-2">
+                <a href="{% url 'feedback_submit' %}?type=GENERAL" class="btn btn-green btn-sm">
+                    <i class="bi bi-chat-dots-fill me-1"></i> Give Feedback
+                </a>
+                <a href="{% url 'report_bug' %}" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-bug-fill me-1"></i> Report a Bug
+                </a>
+                {% if search_query or selected_type or selected_status or view_filter %}
+                    <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm">Clear All Filters</a>
+                {% endif %}
+            </div>
         </div>
     {% endif %}
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseEl = document.getElementById('feedbackFormCollapse');
+    if (collapseEl && collapseEl.classList.contains('show')) {
+        collapseEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+
 function routeToGitHubIssue() {
     const title = document.getElementById('feedbackTitle').value.trim() || 'Bug report / Feature proposal';
     const type = document.getElementById('feedbackType').value;

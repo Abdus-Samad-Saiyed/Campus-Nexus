@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if selected_type == 'BUG' %}Report a Bug — Campus Nexus{% elif selected_type == 'PROPOSAL' %}Propose a New Module — Campus Nexus{% elif selected_type == 'FEATURE' %}Request a Feature — Campus Nexus{% else %}Submit Feedback — Campus Nexus{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Back Navigation & Tracker Link -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Back to Feedback &amp; Bug Tracker</span>
+                </a>
+                <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-github"></i>
+                    <span>GitHub Issues</span>
+                </a>
+            </div>
+
+            <!-- Header -->
+            <div class="mb-4">
+                <span id="submitCategoryBadge" class="badge {% if selected_type == 'BUG' %}bg-danger-subtle text-danger border border-danger-subtle{% elif selected_type == 'FEATURE' %}bg-info-subtle text-info border border-info-subtle{% elif selected_type == 'PROPOSAL' %}bg-warning-subtle text-warning border border-warning-subtle{% else %}bg-success-subtle text-success border border-success-subtle{% endif %} px-3 py-1.5 rounded-pill fw-semibold mb-2 d-inline-flex align-items-center gap-1.5">
+                    <i class="bi {% if selected_type == 'BUG' %}bi-bug-fill{% elif selected_type == 'FEATURE' %}bi-lightbulb-fill{% elif selected_type == 'PROPOSAL' %}bi-rocket-takeoff-fill{% else %}bi-chat-left-heart-fill{% endif %}"></i>
+                    <span id="submitCategoryBadgeText">
+                        {% if selected_type == 'BUG' %}Bug Report Desk{% elif selected_type == 'FEATURE' %}Feature Request Desk{% elif selected_type == 'PROPOSAL' %}New Module Proposal{% else %}Student Feedback Desk{% endif %}
+                    </span>
+                </span>
+                <h1 class="hero-title mb-2" id="submitPageHeading">
+                    {% if selected_type == 'BUG' %}
+                        Report a <span class="green-accent">Bug</span>
+                    {% elif selected_type == 'PROPOSAL' %}
+                        Propose a <span class="green-accent">New Module</span>
+                    {% elif selected_type == 'FEATURE' %}
+                        Request a <span class="green-accent">Feature</span>
+                    {% else %}
+                        Share Your <span class="green-accent">Feedback</span>
+                    {% endif %}
+                </h1>
+                <p class="hero-subtitle text-secondary small mb-0" id="submitPageSubtitle">
+                    {% if selected_type == 'BUG' %}
+                        Found a layout glitch, broken link, or unexpected behavior? Log it here so maintainers can reproduce and fix it quickly.
+                    {% elif selected_type == 'PROPOSAL' %}
+                        Pitch a new student service or campus utility module to plug into Campus Nexus.
+                    {% elif selected_type == 'FEATURE' %}
+                        Suggest an improvement or capability to make existing Campus Nexus tools work better for students.
+                    {% else %}
+                        Tell us what works well, what feels clunky, or what you want to see improved across Campus Nexus.
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Quick Category Switcher Pills -->
+            <div class="row g-2 mb-4" role="group" aria-label="Quick submission type switcher">
+                <div class="col-6 col-sm-3">
+                    <button type="button" class="btn btn-sm w-100 {% if selected_type == 'GENERAL' %}btn-green{% else %}btn-dark-custom{% endif %} d-inline-flex align-items-center justify-content-center gap-1.5 feedback-type-pill" data-type="GENERAL">
+                        <i class="bi bi-chat-quote-fill"></i>
+                        <span>Feedback</span>
+                    </button>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <button type="button" class="btn btn-sm w-100 {% if selected_type == 'BUG' %}btn-danger{% else %}btn-dark-custom{% endif %} d-inline-flex align-items-center justify-content-center gap-1.5 feedback-type-pill" data-type="BUG">
+                        <i class="bi bi-bug-fill"></i>
+                        <span>Report Bug</span>
+                    </button>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <button type="button" class="btn btn-sm w-100 {% if selected_type == 'FEATURE' %}btn-outline-info{% else %}btn-dark-custom{% endif %} d-inline-flex align-items-center justify-content-center gap-1.5 feedback-type-pill" data-type="FEATURE">
+                        <i class="bi bi-lightbulb-fill"></i>
+                        <span>Feature Idea</span>
+                    </button>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <button type="button" class="btn btn-sm w-100 {% if selected_type == 'PROPOSAL' %}btn-outline-warning{% else %}btn-dark-custom{% endif %} d-inline-flex align-items-center justify-content-center gap-1.5 feedback-type-pill" data-type="PROPOSAL">
+                        <i class="bi bi-rocket-takeoff-fill"></i>
+                        <span>New Module</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Submission Form Card -->
+            <div class="glass p-4 p-md-5 glass-glow border-success-subtle">
+                <form id="feedbackForm" method="POST" action="{% url 'feedback_submit' %}" class="d-flex flex-column gap-3">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label for="feedbackType" class="form-label text-secondary small fw-semibold text-uppercase">Submission Category</label>
+                            <select id="feedbackType" name="feedback_type" class="form-select bg-dark border-secondary text-light" required>
+                                <option value="GENERAL" {% if selected_type == 'GENERAL' %}selected{% endif %}>
+                                    General Feedback
+                                </option>
+                                <option value="BUG" {% if selected_type == 'BUG' %}selected{% endif %}>
+                                    Bug Report (Error or issue)
+                                </option>
+                                <option value="FEATURE" {% if selected_type == 'FEATURE' %}selected{% endif %}>
+                                    Feature Request (Enhancement)
+                                </option>
+                                <option value="PROPOSAL" {% if selected_type == 'PROPOSAL' %}selected{% endif %}>
+                                    New Service Proposal (Module)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-7">
+                            <label for="feedbackTitle" class="form-label text-secondary small fw-semibold text-uppercase">Subject / Title</label>
+                            <input type="text"
+                                   id="feedbackTitle"
+                                   name="title"
+                                   value="{{ title|default:'' }}"
+                                   class="form-control bg-dark border-secondary text-light"
+                                   placeholder="{% if selected_type == 'BUG' %}e.g. Mobile navbar dropdown pushes page down{% else %}Short summary of your feedback or idea{% endif %}"
+                                   maxlength="200"
+                                   required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="feedbackDesc" class="form-label text-secondary small fw-semibold text-uppercase">Detailed Description</label>
+                        <textarea id="feedbackDesc"
+                                  name="description"
+                                  class="form-control bg-dark border-secondary text-light"
+                                  rows="6"
+                                  placeholder="{% if selected_type == 'BUG' %}Describe what happened, steps to reproduce, and your device/browser...{% else %}Share details, context, or suggestions clearly...{% endif %}"
+                                  maxlength="5000"
+                                  required>{{ description|default:'' }}</textarea>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="submitterName" class="form-label text-secondary small fw-semibold text-uppercase">Your Name (Optional)</label>
+                            <input type="text"
+                                   id="submitterName"
+                                   name="submitter_name"
+                                   value="{% if user.is_authenticated %}{{ user.get_full_name }}{% else %}{{ submitter_name|default:'' }}{% endif %}"
+                                   class="form-control bg-dark border-secondary text-light"
+                                   maxlength="100"
+                                   placeholder="Your name or alias">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="submitterContact" class="form-label text-secondary small fw-semibold text-uppercase">Contact / Enrollment (Optional)</label>
+                            <input type="text"
+                                   id="submitterContact"
+                                   name="submitter_contact"
+                                   value="{% if user.is_authenticated %}{{ user.enrollment_number }}{% else %}{{ submitter_contact|default:'' }}{% endif %}"
+                                   class="form-control bg-dark border-secondary text-light"
+                                   maxlength="100"
+                                   placeholder="Enrollment no. or phone">
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 pt-3 border-top border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center gap-1" onclick="routeToGitHubIssue()">
+                            <i class="bi bi-github"></i>
+                            <span>Pre-fill &amp; Route to GitHub Issue &rarr;</span>
+                        </button>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'feedback' %}" class="btn btn-dark-custom flex-grow-1 flex-sm-grow-0 text-center">Cancel</a>
+                            <button type="submit" id="submitReportBtn" class="btn btn-green px-4 flex-grow-1 flex-sm-grow-0 d-inline-flex align-items-center justify-content-center gap-1.5">
+                                <i class="bi bi-send-fill"></i>
+                                <span id="submitBtnText">{% if selected_type == 'BUG' %}Post Bug Report{% else %}Post Feedback{% endif %}</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const metaByType = {
+        BUG: {
+            badgeClass: 'badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1.5 rounded-pill fw-semibold mb-2 d-inline-flex align-items-center gap-1.5',
+            badgeIcon: 'bi-bug-fill',
+            badgeText: 'Bug Report Desk',
+            heading: 'Report a <span class="green-accent">Bug</span>',
+            subtitle: 'Found a layout glitch, broken link, or unexpected behavior? Log it here so maintainers can reproduce and fix it quickly.',
+            titlePlaceholder: 'e.g. Mobile navbar dropdown pushes page down',
+            descPlaceholder: 'Describe what happened, steps to reproduce, and your device/browser...',
+            btnText: 'Post Bug Report',
+            pillActiveClass: 'btn-danger'
+        },
+        GENERAL: {
+            badgeClass: 'badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold mb-2 d-inline-flex align-items-center gap-1.5',
+            badgeIcon: 'bi-chat-left-heart-fill',
+            badgeText: 'Student Feedback Desk',
+            heading: 'Share Your <span class="green-accent">Feedback</span>',
+            subtitle: 'Tell us what works well, what feels clunky, or what you want to see improved across Campus Nexus.',
+            titlePlaceholder: 'Short summary of your feedback or experience',
+            descPlaceholder: 'Share details, context, or suggestions clearly...',
+            btnText: 'Post Feedback',
+            pillActiveClass: 'btn-green'
+        },
+        FEATURE: {
+            badgeClass: 'badge bg-info-subtle text-info border border-info-subtle px-3 py-1.5 rounded-pill fw-semibold mb-2 d-inline-flex align-items-center gap-1.5',
+            badgeIcon: 'bi-lightbulb-fill',
+            badgeText: 'Feature Request Desk',
+            heading: 'Request a <span class="green-accent">Feature</span>',
+            subtitle: 'Suggest an improvement or capability to make existing Campus Nexus tools work better for students.',
+            titlePlaceholder: 'e.g. Add fare split calculator to Coordinate rides',
+            descPlaceholder: 'Explain the feature, who it helps, and how you envision it working...',
+            btnText: 'Post Feature Request',
+            pillActiveClass: 'btn-outline-info'
+        },
+        PROPOSAL: {
+            badgeClass: 'badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1.5 rounded-pill fw-semibold mb-2 d-inline-flex align-items-center gap-1.5',
+            badgeIcon: 'bi-rocket-takeoff-fill',
+            badgeText: 'New Module Proposal',
+            heading: 'Propose a <span class="green-accent">New Module</span>',
+            subtitle: 'Pitch a new student service or campus utility module to plug into Campus Nexus.',
+            titlePlaceholder: 'e.g. Campus Mess Menu & Crowd Tracker module',
+            descPlaceholder: 'Describe the campus problem, proposed module scope, and key features...',
+            btnText: 'Post Module Proposal',
+            pillActiveClass: 'btn-outline-warning'
+        }
+    };
+
+    const selectEl = document.getElementById('feedbackType');
+    const pills = document.querySelectorAll('.feedback-type-pill');
+
+    function syncSubmitUI(type) {
+        const cfg = metaByType[type] || metaByType.GENERAL;
+        if (selectEl && selectEl.value !== type) selectEl.value = type;
+
+        const badge = document.getElementById('submitCategoryBadge');
+        if (badge) {
+            badge.className = cfg.badgeClass;
+            const icon = badge.querySelector('i');
+            if (icon) icon.className = 'bi ' + cfg.badgeIcon;
+        }
+        const badgeText = document.getElementById('submitCategoryBadgeText');
+        if (badgeText) badgeText.textContent = cfg.badgeText;
+
+        const heading = document.getElementById('submitPageHeading');
+        if (heading) heading.innerHTML = cfg.heading;
+
+        const subtitle = document.getElementById('submitPageSubtitle');
+        if (subtitle) subtitle.textContent = cfg.subtitle;
+
+        const titleInput = document.getElementById('feedbackTitle');
+        if (titleInput) titleInput.placeholder = cfg.titlePlaceholder;
+
+        const descInput = document.getElementById('feedbackDesc');
+        if (descInput) descInput.placeholder = cfg.descPlaceholder;
+
+        const btnText = document.getElementById('submitBtnText');
+        if (btnText) btnText.textContent = cfg.btnText;
+
+        pills.forEach(function(pill) {
+            const pType = pill.getAttribute('data-type');
+            pill.classList.remove('btn-danger', 'btn-green', 'btn-outline-info', 'btn-outline-warning', 'btn-dark-custom');
+            if (pType === type) {
+                pill.classList.add(cfg.pillActiveClass);
+            } else {
+                pill.classList.add('btn-dark-custom');
+            }
+        });
+    }
+
+    pills.forEach(function(pill) {
+        pill.addEventListener('click', function() {
+            syncSubmitUI(this.getAttribute('data-type'));
+        });
+    });
+
+    if (selectEl) {
+        selectEl.addEventListener('change', function() {
+            syncSubmitUI(this.value);
+        });
+    }
+})();
+
+function routeToGitHubIssue() {
+    const title = document.getElementById('feedbackTitle').value.trim() || 'Bug report / Feature proposal';
+    const type = document.getElementById('feedbackType').value;
+    const desc = document.getElementById('feedbackDesc').value.trim() || 'No description provided';
+    const name = document.getElementById('submitterName').value.trim() || 'Anonymous Student';
+
+    const label = (type === 'BUG') ? 'bug' : (type === 'FEATURE' ? 'enhancement' : 'documentation');
+    const issueBody = `### Category\n${type}\n\n### Description\n${desc}\n\n### Submitter\n${name}\n\n*Routed from Campus Nexus Web Portal*`;
+
+    const githubUrl = 'https://github.com/Abdus-Samad-Saiyed/Campus-Nexus/issues/new?' +
+        'title=' + encodeURIComponent(`[${type}] ${title}`) +
+        '&labels=' + encodeURIComponent(label) +
+        '&body=' + encodeURIComponent(issueBody);
+
+    window.open(githubUrl, '_blank', 'noopener,noreferrer');
+}
+</script>
+{% endblock %}

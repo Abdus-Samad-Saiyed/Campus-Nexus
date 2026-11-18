@@ -51,6 +51,7 @@ from campus.views import (
     about_view,
     contact_view,
     contributors_view,
+    feedback_submit_view,
     feedback_view,
     nominate_contributor,
     remove_contributor,
@@ -232,7 +233,8 @@ urlpatterns = [
     path('contributors/nominate/', nominate_contributor, name='nominate_contributor'),
     path('contributors/<int:contributor_id>/remove/', remove_contributor, name='remove_contributor'),
     path('feedback/', feedback_view, name='feedback'),
-    path('report-bug/', feedback_view, name='report_bug'),
+    path('feedback/submit/', feedback_submit_view, name='feedback_submit'),
+    path('report-bug/', feedback_submit_view, {'default_type': 'BUG'}, name='report_bug'),
     # Learn More interactive technical guides
     path('learn-more/', learn_more_view, name='learn_more_default'),
     path('learn-more/<slug:topic>/', learn_more_view, name='learn_more'),

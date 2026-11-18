@@ -130,6 +130,31 @@ class MobileAccentAndUISettingsTests(TestCase):
         self.assertNotIn('background: #0b140f !important', main_css)
         self.assertNotIn('background-color: #0c1611 !important', main_css)
 
+        # Mobile dropdowns float above content instead of forcing position:static on .navbar-custom
+        self.assertNotIn('.navbar-custom .dropdown-menu{position:static !important', main_css)
+        self.assertIn('#navbarMain .dropdown-menu{position:static !important', main_css)
+        self.assertIn('.navbar-mobile-actions .dropdown-menu,', main_css)
+        self.assertIn('.navbar-mobile-layer-2 .dropdown-menu {', main_css)
+        self.assertIn('position: absolute !important;', main_css)
+
+        # Sticky navbar scroll clearance uses scroll-padding-top only (no double-stacked scroll-margin-top)
+        self.assertIn('--navbar-scroll-offset', main_css)
+        self.assertIn('scroll-padding-top: var(--navbar-scroll-offset, 66px);', main_css)
+        self.assertNotIn('scroll-margin-top: var(--navbar-scroll-offset', main_css)
+
+    def test_mobile_navbar_overlay_and_scroll_offset_script_rendered(self):
+        """Base template renders overflow-visible mobile sub-bar and dynamic navbar scroll offset helper."""
+        res = self.client.get(reverse('dashboard'))
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+        self.assertIn('syncNavbarScrollOffset()', html)
+        self.assertIn('--navbar-scroll-offset', html)
+        layer2_idx = html.index('.navbar-mobile-layer-2 {')
+        layer2_block = html[layer2_idx:html.index('}', layer2_idx) + 1]
+        self.assertIn('overflow: visible !important;', layer2_block)
+        self.assertNotIn('overflow-x: auto', layer2_block)
+
+
 
 class DownloadedAppTwoWeekSessionTests(TestCase):
     """Test 2-week persistent sessions and passkey-only authentication on downloaded app."""

@@ -133,55 +133,78 @@ def remove_contributor(request: HttpRequest, contributor_id: int) -> HttpRespons
     return _redirect_contributors_target(request)
 
 
+def _handle_feedback_post(request: HttpRequest, error_redirect: str = "feedback") -> HttpResponse:
+    """Shared POST handler for submitting platform feedback, bug reports, and proposals."""
+    feedback_type = request.POST.get("feedback_type", "GENERAL").strip().upper()
+    title = request.POST.get("title", "").strip()
+    description = request.POST.get("description", "").strip()
+    submitter_name = request.POST.get("submitter_name", "").strip()
+    submitter_contact = request.POST.get("submitter_contact", "").strip()
+    system_info = request.META.get("HTTP_USER_AGENT", "")[:250]
+
+    valid_feedback_types = dict(PlatformFeedback.FEEDBACK_TYPES)
+    if feedback_type not in valid_feedback_types:
+        messages.error(request, "Invalid feedback category selected.")
+        return redirect(error_redirect)
+
+    if len(title) > 200 or len(submitter_name) > 100 or len(submitter_contact) > 100 or len(description) > 5000:
+        messages.error(request, "One or more feedback fields exceeded maximum allowed length.")
+        return redirect(error_redirect)
+
+    if not title or not description:
+        messages.error(request, "Title and description are required to submit feedback.")
+        return redirect(error_redirect)
+
+    feedback = PlatformFeedback.objects.create(
+        user=request.user if request.user.is_authenticated else None,
+        submitter_name=submitter_name or (request.user.get_full_name() if request.user.is_authenticated else "Anonymous Student"),
+        submitter_contact=submitter_contact or (request.user.phone_number if request.user.is_authenticated else ""),
+        feedback_type=feedback_type,
+        title=title,
+        description=description,
+        system_info=system_info,
+        status="OPEN",
+    )
+
+    actor_enrollment = request.user.enrollment_number if request.user.is_authenticated else "Guest"
+    log_audit_event(
+        event_type="FEEDBACK_SUBMITTED",
+        actor_enrollment=actor_enrollment,
+        description=f"[{feedback.get_feedback_type_display()}] {title[:100]}",
+        target_id=str(feedback.id),
+    )
+
+    messages.success(
+        request,
+        f"Thank you! Your {feedback.get_feedback_type_display().lower()} has been recorded. "
+        f"Our student maintenance team will review it."
+    )
+    return redirect("feedback")
+
+
+@rate_limit(key_prefix='feedback', limit=5, period_seconds=60)
+def feedback_submit_view(request: HttpRequest, default_type: str = "GENERAL") -> HttpResponse:
+    """Dedicated Feedback & Bug Report Submission Page."""
+    valid_types = dict(PlatformFeedback.FEEDBACK_TYPES)
+    fallback_type = default_type if default_type in valid_types else "GENERAL"
+
+    if request.method == "POST":
+        return _handle_feedback_post(request, error_redirect=request.get_full_path())
+
+    requested_type = request.GET.get("type", "").strip().upper()
+    selected_type = requested_type if requested_type in valid_types else fallback_type
+
+    return render(request, "nexus/feedback_submit.html", {
+        "selected_type": selected_type,
+        "feedback_types": PlatformFeedback.FEEDBACK_TYPES,
+    })
+
+
 @rate_limit(key_prefix='feedback', limit=5, period_seconds=60)
 def feedback_view(request: HttpRequest) -> HttpResponse:
     """Feedback & Bug Reporting: Allows students and staff to submit bugs, feature ideas, and proposals, and browse public tracker."""
     if request.method == "POST":
-        feedback_type = request.POST.get("feedback_type", "GENERAL").strip()
-        title = request.POST.get("title", "").strip()
-        description = request.POST.get("description", "").strip()
-        submitter_name = request.POST.get("submitter_name", "").strip()
-        submitter_contact = request.POST.get("submitter_contact", "").strip()
-        system_info = request.META.get("HTTP_USER_AGENT", "")[:250]
-
-        valid_feedback_types = dict(PlatformFeedback.FEEDBACK_TYPES)
-        if feedback_type not in valid_feedback_types:
-            messages.error(request, "Invalid feedback category selected.")
-            return redirect("feedback")
-
-        if len(title) > 200 or len(submitter_name) > 100 or len(submitter_contact) > 100 or len(description) > 5000:
-            messages.error(request, "One or more feedback fields exceeded maximum allowed length.")
-            return redirect("feedback")
-
-        if not title or not description:
-            messages.error(request, "Title and description are required to submit feedback.")
-            return redirect("feedback")
-
-        feedback = PlatformFeedback.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            submitter_name=submitter_name or (request.user.get_full_name() if request.user.is_authenticated else "Anonymous Student"),
-            submitter_contact=submitter_contact or (request.user.phone_number if request.user.is_authenticated else ""),
-            feedback_type=feedback_type,
-            title=title,
-            description=description,
-            system_info=system_info,
-            status="OPEN",
-        )
-
-        actor_enrollment = request.user.enrollment_number if request.user.is_authenticated else "Guest"
-        log_audit_event(
-            event_type="FEEDBACK_SUBMITTED",
-            actor_enrollment=actor_enrollment,
-            description=f"[{feedback.get_feedback_type_display()}] {title[:100]}",
-            target_id=str(feedback.id),
-        )
-
-        messages.success(
-            request,
-            f"Thank you! Your {feedback.get_feedback_type_display().lower()} has been recorded. "
-            f"Our student maintenance team will review it."
-        )
-        return redirect("feedback")
+        return _handle_feedback_post(request, error_redirect="feedback")
 
     # GET: Dedicated Searchable Bug & Feedback Tracker
     qs = PlatformFeedback.objects.all().order_by('-created_at')

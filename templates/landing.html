@@ -939,7 +939,7 @@
                     </div>
 
                     <div class="d-flex gap-3 flex-wrap pt-2">
-                        <a href="{% url 'feedback' %}?type=PROPOSAL" class="btn btn-green px-4">
+                        <a href="{% url 'feedback_submit' %}?type=PROPOSAL" class="btn btn-green px-4">
                             <i class="bi bi-send-fill me-1"></i> Propose a New Module
                         </a>
                         <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus" target="_blank" class="btn btn-dark-custom px-4">
@@ -1209,7 +1209,7 @@
                     </div>
 
                     <div class="pt-2 border-top border-secondary border-opacity-25">
-                        <a href="{% url 'feedback' %}?type=BUG" class="btn btn-outline-warning btn-sm w-100 fw-semibold">
+                        <a href="{% url 'report_bug' %}" class="btn btn-outline-warning btn-sm w-100 fw-semibold">
                             <i class="bi bi-bug me-1"></i> Report a Bug &amp; Contribute
                         </a>
                     </div>
@@ -1306,7 +1306,7 @@
                         <a href="mailto:asaiyed_2024bcse065@nitsri.ac.in" class="btn btn-green btn-sm px-3">
                             <i class="bi bi-envelope-fill me-1"></i> Send Email
                         </a>
-                        <a href="{% url 'feedback' %}" class="btn btn-dark-custom btn-sm px-3">
+                        <a href="{% url 'feedback_submit' %}" class="btn btn-dark-custom btn-sm px-3">
                             <i class="bi bi-chat-dots-fill me-1"></i> Submit Feedback / Bug Report
                         </a>
                         <a href="#about" class="btn btn-outline-green btn-sm px-3">

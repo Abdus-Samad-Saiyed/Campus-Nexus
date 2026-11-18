@@ -82,7 +82,7 @@
                 </div>
 
                 <div class="d-flex gap-3 flex-wrap pt-2">
-                    <a href="{% url 'feedback' %}?type=PROPOSAL" class="btn btn-green px-4">
+                    <a href="{% url 'feedback_submit' %}?type=PROPOSAL" class="btn btn-green px-4">
                         <i class="bi bi-send-fill me-1"></i> Propose a New Module
                     </a>
                     <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus" target="_blank" class="btn btn-dark-custom px-4">
@@ -129,7 +129,7 @@
                 <p class="text-secondary small mb-3">
                     Notice a layout glitch, authentication anomaly, or calculation bug? Submit an actionable report with your device context.
                 </p>
-                <a href="{% url 'report_bug' %}?type=BUG" class="btn btn-dark-custom btn-sm">
+                <a href="{% url 'report_bug' %}" class="btn btn-dark-custom btn-sm">
                     <i class="bi bi-exclamation-octagon me-1"></i> Report a Bug &rarr;
                 </a>
             </div>
@@ -147,7 +147,7 @@
                 <p class="text-secondary small mb-3">
                     Tell us what works well, what needs improvement, or what route options you want added to the COORDINATE timetable.
                 </p>
-                <a href="{% url 'feedback' %}?type=GENERAL" class="btn btn-dark-custom btn-sm">
+                <a href="{% url 'feedback_submit' %}?type=GENERAL" class="btn btn-dark-custom btn-sm">
                     <i class="bi bi-send me-1"></i> Submit Feedback &rarr;
                 </a>
             </div>
