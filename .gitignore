@@ -8,6 +8,7 @@ __pycache__/
 db.sqlite3
 *.bak*
 *.log
+logs/
 
 # Environments & secrets
 .env

@@ -568,7 +568,7 @@
                     <!-- Capacity Stepper Input -->
                     <div class="mb-3">
                         <label for="alter-capacity-input" class="form-label small fw-semibold text-white">
-                            New Total Capacity (1 – 6 Spots)
+                            New Total Capacity (At least 1 Spot)
                         </label>
                         <div class="input-group">
                             <button class="btn btn-outline-secondary" type="button" id="cap-decrement-btn">
@@ -576,7 +576,7 @@
                             </button>
                             <input type="number" id="alter-capacity-input" name="total_spots"
                                    class="form-control text-center fw-bold fs-5"
-                                   min="1" max="6" value="{{ ride.total_spots }}" required>
+                                   min="1" value="{{ ride.total_spots }}" required>
                             <button class="btn btn-outline-secondary" type="button" id="cap-increment-btn">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
@@ -669,7 +669,6 @@ document.addEventListener('DOMContentLoaded', function () {
         let val = parseInt(capInput.value, 10);
         if (isNaN(val)) val = currentSpots;
         if (val < 1) val = 1;
-        if (val > 6) val = 6;
         capInput.value = val;
 
         if (targetValSpan) targetValSpan.textContent = val;
@@ -711,10 +710,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (incBtn) {
         incBtn.addEventListener('click', function () {
             let val = parseInt(capInput.value, 10) || currentSpots;
-            if (val < 6) {
-                capInput.value = val + 1;
-                syncUI();
-            }
+            capInput.value = val + 1;
+            syncUI();
         });
     }
 

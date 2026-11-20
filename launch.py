@@ -144,6 +144,9 @@ def show_banner():
     print(f"  Tunnel:    Cloudflare Anycast (dev.campus-nexus.online) {cf_status}")
 
     print(f"  Runtime:   {PYTHON_EXE} (Django 6.0, Python 3.14)")
+    logs_dir = os.path.join(PROJECT_ROOT, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    print("  Logs:      Persistent [logs/verbose.log, https.log, websocket.log, tcp.log]")
     print("=" * 80)
 
 

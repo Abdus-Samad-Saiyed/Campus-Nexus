@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operational Audit Trail — Campus Nexus{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <span class="badge bg-info-subtle text-info px-3 py-1.5 rounded-pill fw-semibold mb-2 border border-info-subtle d-inline-flex align-items-center">
+                <i class="bi bi-shield-check me-1.5 text-info"></i> Immutable Security &amp; Operations Ledger
+            </span>
+            <h1 class="hero-title mb-1">Operational <span class="green-accent">Audit Trail</span></h1>
+            <p class="hero-subtitle text-secondary small mb-0">
+                Complete, privacy-preserving audit trail of all platform administrative actions, security authorizations, and lifecycle events.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="{% url 'operational_dashboard' %}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+                <i class="bi bi-arrow-left"></i>
+                <span>Operations Dashboard</span>
+            </a>
+            <a href="{% url 'operational_audit_trail' %}" class="btn btn-dark-custom d-inline-flex align-items-center gap-1.5" title="Refresh Audit Log">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Refresh</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Total Events Recorded</div>
+                <div class="fs-4 fw-bold text-white">{{ all_events_count }}</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Lifetime audit records</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Filtered Matches</div>
+                <div class="fs-4 fw-bold text-info">{{ total_filtered_count }}</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Matching active criteria</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Current Page</div>
+                <div class="fs-4 fw-bold text-emerald">{{ page_obj.number }} <span class="fs-6 fw-normal text-secondary">/ {{ page_obj.paginator.num_pages|default:1 }}</span></div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">25 entries per page</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="glass p-3 h-100 border-secondary border-opacity-25">
+                <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">Data Integrity</div>
+                <div class="fs-4 fw-bold text-success"><i class="bi bi-lock-fill me-1"></i>Immutable</div>
+                <div class="text-secondary small" style="font-size: 0.75rem;">Privacy-minimized ledger</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="glass p-3.5 mb-4 border-secondary border-opacity-25">
+        <form method="GET" action="{% url 'operational_audit_trail' %}" class="row g-2 align-items-center">
+            <div class="col-12 col-md-4">
+                <div class="position-relative">
+                    <input type="text"
+                           name="q"
+                           value="{{ search_query }}"
+                           class="form-control bg-dark border-secondary text-light pe-5"
+                           placeholder="Search actor enrollment, description, or target ID..."
+                           autocomplete="off">
+                    <i class="bi bi-search position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="pointer-events: none;"></i>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <select name="event_type" class="form-select bg-dark border-secondary text-light">
+                    <option value="">All Event Types ({{ all_events_count }})</option>
+                    {% for code, label in event_choices %}
+                        <option value="{{ code }}" {% if selected_event_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <input type="date"
+                       name="date_from"
+                       value="{{ date_from }}"
+                       class="form-control bg-dark border-secondary text-light"
+                       title="From Date"
+                       placeholder="From Date">
+            </div>
+
+            <div class="col-6 col-md-2">
+                <input type="date"
+                       name="date_to"
+                       value="{{ date_to }}"
+                       class="form-control bg-dark border-secondary text-light"
+                       title="To Date"
+                       placeholder="To Date">
+            </div>
+
+            <div class="col-6 col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-green flex-grow-1" title="Apply Filters">Filter</button>
+                {% if search_query or selected_event_type or date_from or date_to %}
+                    <a href="{% url 'operational_audit_trail' %}" class="btn btn-dark-custom text-secondary" title="Reset Filters"><i class="bi bi-x-lg"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Log Table -->
+    <div class="glass p-4 border-secondary border-opacity-25 mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 pb-2 border-bottom border-secondary border-opacity-20">
+            <div>
+                <h5 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-journal-text text-info"></i> Audit Records Ledger
+                </h5>
+                <span class="text-secondary small">
+                    Showing entries {{ page_obj.start_index|default:0 }} to {{ page_obj.end_index|default:0 }} of {{ total_filtered_count }} total matches
+                </span>
+            </div>
+            {% if total_filtered_count > 0 %}
+                <span class="badge bg-dark border border-secondary text-secondary font-monospace py-1.5 px-2.5">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+            {% endif %}
+        </div>
+
+        {% if audit_events %}
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-secondary border-secondary border-opacity-25">
+                            <th style="min-width: 140px;">Timestamp (IST)</th>
+                            <th style="min-width: 140px;">Event Category</th>
+                            <th class="d-none d-md-table-cell" style="min-width: 130px;">Actor</th>
+                            <th class="d-none d-md-table-cell" style="min-width: 110px;">Target ID</th>
+                            <th class="d-none d-md-table-cell">Description &amp; Context</th>
+                            <th class="text-end" style="min-width: 75px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evt in audit_events %}
+                            <tr class="border-secondary border-opacity-15">
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="text-light fw-medium text-nowrap">
+                                            <i class="bi bi-clock me-1 text-secondary"></i>{{ evt.timestamp|date:"M d, Y" }}
+                                        </span>
+                                        <span class="text-secondary font-monospace small ps-3" style="font-size: 0.76rem;">
+                                            {{ evt.timestamp|date:"H:i:s" }}
+                                        </span>
+                                        <div class="d-md-none mt-1 ps-3">
+                                            {% if evt.actor_enrollment %}
+                                                <a href="{% url 'profile' evt.actor_enrollment %}" class="small text-emerald text-decoration-none font-monospace d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-person-circle"></i>{{ evt.actor_enrollment }}
+                                                </a>
+                                            {% else %}
+                                                <span class="badge bg-dark border border-secondary text-secondary font-monospace" style="font-size: 0.68rem;">System</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if 'SECURITY' in evt.event_type or 'SUPERUSER' in evt.event_type or 'DELETED' in evt.event_type or 'FAILURE' in evt.event_type %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold px-2 py-1">
+                                            <i class="bi bi-shield-slash me-1"></i>{{ evt.get_event_type_display|default:evt.event_type }}
+                                        </span>
+                                    {% elif 'LOGIN' in evt.event_type or 'PASSKEY' in evt.event_type or 'CONSENT' in evt.event_type %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold px-2 py-1">
+                                            <i class="bi bi-key me-1"></i>{{ evt.get_event_type_display|default:evt.event_type }}
+                                        </span>
+                                    {% elif 'RIDE' in evt.event_type %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1">
+                                            <i class="bi bi-car-front me-1"></i>{{ evt.get_event_type_display|default:evt.event_type }}
+                                        </span>
+                                    {% elif 'PHYSICAL' in evt.event_type or 'APP_' in evt.event_type %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-semibold px-2 py-1">
+                                            <i class="bi bi-person-check me-1"></i>{{ evt.get_event_type_display|default:evt.event_type }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-light border border-secondary border-opacity-25 fw-semibold px-2 py-1">
+                                            {{ evt.get_event_type_display|default:evt.event_type }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if evt.actor_enrollment %}
+                                        <a href="{% url 'profile' evt.actor_enrollment %}" class="fw-semibold text-emerald text-decoration-none font-monospace d-inline-flex align-items-center gap-1">
+                                            <i class="bi bi-person-circle"></i>
+                                            {{ evt.actor_enrollment }}
+                                        </a>
+                                    {% else %}
+                                        <span class="badge bg-dark border border-secondary text-secondary font-monospace">System</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if evt.target_id %}
+                                        <span class="badge bg-black bg-opacity-50 border border-secondary border-opacity-25 font-monospace text-light px-2 py-1">
+                                            {{ evt.target_id }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-secondary font-monospace small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell text-light" style="word-break: break-word; overflow-wrap: anywhere;">
+                                    {{ evt.description }}
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{% url 'operational_audit_detail' evt.id %}" class="btn btn-sm btn-outline-info d-inline-flex align-items-center gap-1 py-1 px-2.5" style="font-size: 0.78rem;">
+                                        <i class="bi bi-eye"></i>
+                                        <span>View</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-5 text-center text-secondary">
+                <i class="bi bi-search fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                <h5 class="text-white fw-bold mb-1">No Audit Records Found</h5>
+                <p class="small text-secondary mb-3">No operational events matched your current search and filter criteria.</p>
+                {% if search_query or selected_event_type or date_from or date_to %}
+                    <a href="{% url 'operational_audit_trail' %}" class="btn btn-outline-secondary btn-sm">Clear Active Filters</a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Pagination Controls -->
+        {% if page_obj.paginator.num_pages > 1 %}
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 pt-4 border-top border-secondary border-opacity-20 mt-3">
+                <div class="small text-secondary">
+                    Showing page <strong>{{ page_obj.number }}</strong> of <strong>{{ page_obj.paginator.num_pages }}</strong> (25 records per page)
+                </div>
+                <nav aria-label="Audit ledger pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link bg-dark border-secondary text-light" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" title="First Page">
+                                    &laquo; First
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link bg-dark border-secondary text-light" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                    &lsaquo; Previous
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link bg-dark border-secondary text-secondary">&laquo; First</span></li>
+                            <li class="page-item disabled"><span class="page-link bg-dark border-secondary text-secondary">&lsaquo; Previous</span></li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link bg-success border-success text-white fw-bold">
+                                {{ page_obj.number }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link bg-dark border-secondary text-light" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                                    Next &rsaquo;
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link bg-dark border-secondary text-light" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" title="Last Page">
+                                    Last &raquo;
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link bg-dark border-secondary text-secondary">Next &rsaquo;</span></li>
+                            <li class="page-item disabled"><span class="page-link bg-dark border-secondary text-secondary">Last &raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

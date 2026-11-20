@@ -23,6 +23,7 @@ from accounts.client_logger import (
     set_action_logger_active,
     get_request_color,
     colorize,
+    write_persistent_log,
 )
 
 
@@ -180,6 +181,16 @@ class Command(DaphneRunserverCommand):
                         logger.warning(desc_msg)
                     else:
                         logger.info(desc_msg)
+                write_persistent_log(
+                    "http",
+                    f"[{details['server_time']}] HTTP {method} {path} {status} [{time_taken:.2f}, {client}, {enrollment}, {name}]",
+                    status,
+                    server_time=details.get("server_time"),
+                    enrollment=enrollment,
+                    name=name,
+                    path=path,
+                    method=method,
+                )
                 return
 
             otp_info = meta.get("otp_info") or details.get("otp_info")
@@ -209,6 +220,16 @@ class Command(DaphneRunserverCommand):
                 logger.warning(colored_msg)
             else:
                 logger.info(colored_msg)
+            write_persistent_log(
+                "http",
+                msg,
+                status,
+                server_time=details.get("server_time"),
+                enrollment=enrollment,
+                name=name,
+                path=path,
+                method=method,
+            )
 
         elif protocol == "websocket" and action in ("connected", "disconnected", "connecting", "rejected"):
             client_key = details.get("client")
@@ -252,6 +273,11 @@ class Command(DaphneRunserverCommand):
                         logger.warning(desc_msg)
                     else:
                         logger.info(desc_msg)
+                write_persistent_log(
+                    "websocket",
+                    f"[{details['server_time']}] WebSocket {action_name} {details.get('path', '')} [{details['client']}, {details['enrollment']}, {details['name']}]",
+                    200,
+                )
                 return
 
             msg = f"[{details['server_time']}] WebSocket {action_name} {details.get('path', '')} [{details['client']}, {details['enrollment']}, {details['name']}]"
@@ -262,6 +288,7 @@ class Command(DaphneRunserverCommand):
                 logger.warning(colored_msg)
             else:
                 logger.info(colored_msg)
+            write_persistent_log("websocket", msg)
         else:
             super().log_action(protocol, action, details)
 

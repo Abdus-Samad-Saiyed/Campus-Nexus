@@ -184,6 +184,8 @@ def resolve_action_narrative(
 
     # 4. Operations, Admin & KYC Verification (Magenta Tier)
     if p_lower.startswith(("/admin-nexus/", "/operations/", "/admin/")):
+        if "/audit-trail" in p_lower:
+            return TIER_ADMIN, "Viewed Operational Audit Trail ledger"
         if "/export/" in p_lower or "csv" in p_lower:
             return TIER_ADMIN, "Exported platform audit dataset (CSV)"
         if "/announcements/" in p_lower:
@@ -198,8 +200,11 @@ def resolve_action_narrative(
     if p_lower.startswith(("/coordinate/", "/rides/")):
         if "/create/" in p_lower:
             if method == "POST":
-                return TIER_COMMUTE, "Published new cab share / ride offer"
+                return TIER_COMMUTE, "Submitted ride creation form"
             return TIER_COMMUTE, "Opened ride creation form"
+
+        if "alter" in p_lower and ("spot" in p_lower or "capacity" in p_lower):
+            return TIER_COMMUTE, "Updated ride passenger capacity"
         
         # Ride join / leave / cancel / approve actions
         join_match = re.search(r"/(?:coordinate|rides)/(\d+)/join/?", p_lower)
@@ -235,7 +240,16 @@ def resolve_action_narrative(
 
         return TIER_COMMUTE, "Browsed active campus cab shares & ride listings"
 
-    # 6. Social & Networking (Gold / Yellow Tier)
+    # 6. Social, Profiles & Settings (Gold / Yellow Tier)
+    if "/settings" in p_lower or p_lower.startswith("/accounts/settings"):
+        if "security" in p_lower:
+            if method == "POST":
+                return TIER_AUTH, "Updated security & sign-in settings"
+            return TIER_AUTH, "Visited Security & Sign-in settings"
+        if method == "POST":
+            return TIER_AUTH, "Updated account settings"
+        return TIER_AUTH, "Visited Account Settings"
+
     profile_match = re.search(r"^/profile/([a-zA-Z0-9_\-]+)/?$", clean_path)
     if profile_match:
         target_enroll = profile_match.group(1).upper()
@@ -266,10 +280,10 @@ def resolve_action_narrative(
             return TIER_SOCIAL, "Declined friend request"
         return TIER_SOCIAL, "Browsed student friends & connections list"
 
-    if p_lower.startswith("/search/"):
+    if p_lower.startswith(("/search/", "/student-directory/")):
         return TIER_SOCIAL, "Searched campus student directory"
 
-    # 7. Student Dashboard & Service Hubs
+    # 7. Student Dashboard, Feedback & Service Hubs
     if p_lower == "/dashboard/":
         return TIER_COMMUTE, "Viewed student personal dashboard & active departures"
 
@@ -280,14 +294,35 @@ def resolve_action_narrative(
     if p_lower.startswith("/services/"):
         return TIER_COMMUTE, f"Accessed Campus Services gateway: [{clean_path.strip('/').split('/')[-1]}]"
 
-    if p_lower.startswith(("/feedback/", "/report-bug/")):
-        return TIER_ALERT, "Submitted feedback or bug report to developer desk"
+    if p_lower.startswith("/accommodate/"):
+        if "/create/" in p_lower:
+            if method == "POST":
+                return TIER_COMMUTE, "Submitted accommodation / flatmate listing"
+            return TIER_COMMUTE, "Opened accommodation listing form"
+        return TIER_COMMUTE, "Browsed accommodation & flatmate listings"
+
+    if p_lower.startswith("/report-bug/"):
+        if method == "POST":
+            return TIER_ALERT, "Submitted a bug report"
+        return TIER_ALERT, "Opened bug report form"
+
+    if p_lower.startswith("/feedback/"):
+        if "/complete/" in p_lower or "/resolve/" in p_lower:
+            return TIER_ADMIN, "Marked feedback / bug report as resolved"
+        if method == "POST":
+            return TIER_ALERT, "Submitted platform feedback"
+        return TIER_ALERT, "Visited Feedback & Bug Tracker"
 
     if p_lower == "/":
         return TIER_COMMUTE, "Visited Campus Nexus landing welcome portal"
 
-    # Default fallback
-    return TIER_COMMUTE, f"Visited {method} {clean_path}"
+    # Default fallback: clean readable page name
+    clean_title = clean_path.strip("/").replace("-", " ").replace("_", " ").title()
+    if not clean_title:
+        clean_title = "Home"
+    if method == "POST":
+        return TIER_COMMUTE, f"Submitted form on {clean_title} page"
+    return TIER_COMMUTE, f"Visited {clean_title} page"
 
 
 def format_descriptive_log_lines(

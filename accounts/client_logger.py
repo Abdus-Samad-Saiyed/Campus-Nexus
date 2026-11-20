@@ -19,6 +19,7 @@ import collections
 import datetime
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -163,12 +164,220 @@ def set_asgi_logger_active(active: bool = True):
     _ASGI_LOGGER_ACTIVE = active
 
 
+import re
+from logging.handlers import RotatingFileHandler
+
+_ANSI_STRIP_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+
+def strip_ansi_codes(text: str) -> str:
+    """Strip ANSI color and formatting codes for clean log file storage."""
+    return _ANSI_STRIP_RE.sub('', text)
+
+
+_PERSISTENT_LOGGERS = {}
+_PERSISTENT_LOCK = threading.Lock()
+
+
+def _get_persistent_file_logger(logger_name: str, log_filename: str) -> logging.Logger:
+    """Get or create thread-safe rotating file logger writing clean text into logs/<log_filename>."""
+    with _PERSISTENT_LOCK:
+        if logger_name in _PERSISTENT_LOGGERS:
+            return _PERSISTENT_LOGGERS[logger_name]
+
+        proj_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logs_dir = os.path.join(proj_dir, "logs")
+        try:
+            os.makedirs(logs_dir, exist_ok=True)
+        except Exception:
+            pass
+
+        log_path = os.path.join(logs_dir, log_filename)
+        plogger = logging.getLogger(f"campus.persistent.{logger_name}")
+        plogger.setLevel(logging.INFO)
+        plogger.propagate = False
+
+        if not plogger.handlers:
+            try:
+                rfh = RotatingFileHandler(
+                    log_path,
+                    maxBytes=15 * 1024 * 1024,  # 15 MB
+                    backupCount=5,
+                    encoding="utf-8",
+                )
+                rfh.setFormatter(logging.Formatter("%(message)s"))
+                plogger.addHandler(rfh)
+            except Exception:
+                pass
+
+        _PERSISTENT_LOGGERS[logger_name] = plogger
+        return plogger
+
+
+_HTTP_LOG_RE = re.compile(
+    r'^\[(?P<time>[^\]]+)\]\s+HTTP\s+(?P<method>[A-Z]+)\s+(?P<path>\S+)\s+(?P<status>\d+)\s+\[(?P<duration>[^,]+),\s*(?P<client>[^,]+),\s*(?P<enrollment>[^,]+),\s*(?P<name>[^\]]+)\]'
+)
+
+
+def write_verbose_user_activity(
+    server_time: str | None = None,
+    enrollment: str | None = None,
+    name: str | None = None,
+    path: str | None = None,
+    method: str | None = None,
+    status_code: int = 200,
+    fallback_raw: str | None = None,
+):
+    """Write an easy-to-understand, non-technical record to logs/verbose.log.
+
+    Format:
+      [Timestamp IST] User: <Enrollment> (<Name>) | Page: <Path> | Action: <Readable Description>
+
+    Suppresses static assets, background polling, WebSockets, and TCP logs so that
+    non-technical staff can clearly lookup which user did what at what time and on what page.
+    """
+    # 1. Parse missing fields from raw HTTP log line if needed
+    if fallback_raw:
+        m = _HTTP_LOG_RE.match(fallback_raw)
+        if m:
+            server_time = server_time or m.group("time")
+            method = method or m.group("method")
+            path = path or m.group("path")
+            try:
+                status_code = int(m.group("status"))
+            except Exception:
+                pass
+            if enrollment is None or enrollment == "N.A.":
+                enrollment = m.group("enrollment").strip()
+            if name is None or name == "N.A.":
+                name = m.group("name").strip()
+
+    method = method or "GET"
+
+    if not path:
+        return
+
+    # 2. Filter out static assets, service worker, manifests, and background poll noise
+    try:
+        from accounts.action_descriptions import should_suppress_request, resolve_action_narrative
+        if should_suppress_request(path, protocol="http"):
+            return
+    except Exception:
+        if is_asset_path(path):
+            return
+
+    # 3. Format user identity for non-technical readability
+    name_clean = (name or "").strip()
+    enroll_clean = (enrollment or "").strip()
+
+    if enroll_clean and enroll_clean not in ("N.A.", "None", "GUEST_DEMO"):
+        if name_clean and name_clean not in ("N.A.", "None", enroll_clean):
+            user_display = f"{enroll_clean} ({name_clean})"
+        else:
+            user_display = enroll_clean
+    elif name_clean and name_clean not in ("N.A.", "None"):
+        user_display = name_clean
+    else:
+        user_display = "Guest / Anonymous"
+
+    clean_path = path.split("?")[0] if path else "/"
+
+    # 4. Resolve human narrative
+    try:
+        from accounts.action_descriptions import resolve_action_narrative
+        _, narrative = resolve_action_narrative(
+            path=clean_path,
+            method=method,
+            status=status_code,
+            protocol="http",
+            enrollment=enroll_clean,
+            name=name_clean,
+        )
+    except Exception:
+        clean_title = clean_path.strip("/").replace("-", " ").replace("_", " ").title() or "Home"
+        narrative = f"Submitted form on {clean_title} page" if method == "POST" else f"Visited {clean_title} page"
+
+    # 5. Format timestamp with IST
+    try:
+        import zoneinfo
+        ist_tz = zoneinfo.ZoneInfo("Asia/Kolkata")
+        t_str = server_time or datetime.datetime.now(tz=ist_tz).strftime("%d/%b/%Y %H:%M:%S")
+    except Exception:
+        t_str = server_time or datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")
+
+    if not t_str.endswith("IST"):
+        t_str = f"{t_str} IST"
+
+    log_line = f"[{t_str}] User: {user_display} | Page: {clean_path} | Action: {narrative}"
+    try:
+        _get_persistent_file_logger("verbose", "verbose.log").info(log_line)
+    except Exception:
+        pass
+
+
+def write_persistent_log(
+    protocol: str,
+    raw_msg: str,
+    status_code: int = 200,
+    server_time: str | None = None,
+    enrollment: str | None = None,
+    name: str | None = None,
+    path: str | None = None,
+    method: str | None = None,
+):
+    """Write sanitized, clean (ANSI-stripped) log entries to dedicated log files.
+
+    - HTTP / HTTPS requests  -> logs/https.log (exact raw traffic)
+    - WebSocket events       -> logs/websocket.log (exact raw WS events)
+    - TCP proxy connections  -> logs/tcp.log (exact raw TCP proxy connections)
+    - Non-technical audit    -> logs/verbose.log (Human-readable user activity:
+                                [Timestamp IST] User: <User> | Page: <Path> | Action: <Readable Description>)
+      * Strictly excludes WebSocket and TCP logs.
+      * Suppresses static asset requests, health checks, and noise.
+    """
+    clean_line = strip_ansi_codes(raw_msg).strip()
+    if not clean_line:
+        return
+
+    proto = (protocol or "http").lower()
+    try:
+        if proto in ("http", "https"):
+            _get_persistent_file_logger("https", "https.log").info(clean_line)
+            # Write human-readable user activity lookup to verbose.log
+            write_verbose_user_activity(
+                server_time=server_time,
+                enrollment=enrollment,
+                name=name,
+                path=path,
+                method=method,
+                status_code=status_code,
+                fallback_raw=clean_line,
+            )
+        elif proto in ("ws", "websocket"):
+            # WebSocket events are persisted ONLY to websocket.log (NOT verbose.log)
+            _get_persistent_file_logger("websocket", "websocket.log").info(clean_line)
+        elif proto == "tcp":
+            # TCP proxy events are persisted ONLY to tcp.log (NOT verbose.log)
+            _get_persistent_file_logger("tcp", "tcp.log").info(clean_line)
+    except Exception:
+        pass
+
+
 def is_asgi_logger_active() -> bool:
     return _ASGI_LOGGER_ACTIVE
 
 
-def emit_console_log(colored_msg: str, status_code: int = 200):
-    """Write colored log line directly to stdout without duplication."""
+def emit_console_log(
+    colored_msg: str,
+    status_code: int = 200,
+    protocol: str = "http",
+    server_time: str | None = None,
+    enrollment: str | None = None,
+    name: str | None = None,
+    path: str | None = None,
+    method: str | None = None,
+):
+    """Write colored log line directly to stdout without duplication and persist clean text to disk."""
     try:
         sys.stdout.write(colored_msg + "\n")
         sys.stdout.flush()
@@ -177,6 +386,16 @@ def emit_console_log(colored_msg: str, status_code: int = 200):
             print(colored_msg, flush=True)
         except Exception:
             pass
+    write_persistent_log(
+        protocol=protocol,
+        raw_msg=colored_msg,
+        status_code=status_code,
+        server_time=server_time,
+        enrollment=enrollment,
+        name=name,
+        path=path,
+        method=method,
+    )
 
 
 def set_action_logger_active(active: bool = True):
@@ -799,4 +1018,4 @@ class ClientLoggingASGIWrapper:
         status = 400 if status_type == "rejected" else 200
         color = get_request_color(status=status, path=path, user_type=user_type, action=status_type)
         colored_msg = colorize(msg, color)
-        emit_console_log(colored_msg, status)
+        emit_console_log(colored_msg, status, protocol="websocket")

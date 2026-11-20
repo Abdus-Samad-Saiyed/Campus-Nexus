@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Audit Event #{{ audit_event.id }} — Campus Nexus{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <!-- Breadcrumbs & Navigation Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 text-secondary small">
+                    <li class="breadcrumb-item"><a href="{% url 'operational_dashboard' %}" class="text-secondary text-decoration-none">Operations</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'operational_audit_trail' %}" class="text-secondary text-decoration-none">Audit Trail</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">Event #{{ audit_event.id }}</li>
+                </ol>
+            </nav>
+            <h1 class="hero-title mb-0">Audit Record <span class="green-accent">#{{ audit_event.id }}</span></h1>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="{% url 'operational_audit_trail' %}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to Audit Trail</span>
+            </a>
+            <a href="{% url 'operational_dashboard' %}" class="btn btn-dark-custom d-inline-flex align-items-center gap-2">
+                <i class="bi bi-speedometer2"></i>
+                <span>Operations Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Detail Presentation Card -->
+    <div class="glass p-4 p-md-5 border-secondary border-opacity-25 mb-4 position-relative">
+        <!-- Top Status Bar & Badges -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                {% if 'SECURITY' in audit_event.event_type or 'SUPERUSER' in audit_event.event_type or 'DELETED' in audit_event.event_type or 'FAILURE' in audit_event.event_type %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold px-3 py-1.5 fs-6">
+                        <i class="bi bi-shield-slash me-1.5"></i>{{ audit_event.get_event_type_display|default:audit_event.event_type }}
+                    </span>
+                {% elif 'LOGIN' in audit_event.event_type or 'PASSKEY' in audit_event.event_type or 'CONSENT' in audit_event.event_type %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle fw-semibold px-3 py-1.5 fs-6">
+                        <i class="bi bi-key me-1.5"></i>{{ audit_event.get_event_type_display|default:audit_event.event_type }}
+                    </span>
+                {% elif 'RIDE' in audit_event.event_type %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-3 py-1.5 fs-6">
+                        <i class="bi bi-car-front me-1.5"></i>{{ audit_event.get_event_type_display|default:audit_event.event_type }}
+                    </span>
+                {% elif 'PHYSICAL' in audit_event.event_type or 'APP_' in audit_event.event_type %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle fw-semibold px-3 py-1.5 fs-6">
+                        <i class="bi bi-person-check me-1.5"></i>{{ audit_event.get_event_type_display|default:audit_event.event_type }}
+                    </span>
+                {% else %}
+                    <span class="badge bg-secondary-subtle text-light border border-secondary border-opacity-25 fw-semibold px-3 py-1.5 fs-6">
+                        {{ audit_event.get_event_type_display|default:audit_event.event_type }}
+                    </span>
+                {% endif %}
+
+                <span class="badge bg-dark border border-secondary text-secondary font-monospace py-1.5 px-2.5">
+                    ID: {{ audit_event.id }}
+                </span>
+            </div>
+
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill fw-semibold small d-inline-flex align-items-center">
+                <i class="bi bi-lock-fill me-1.5"></i> Immutable Ledger Record
+            </span>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- 1. Title / Event Headline -->
+            <div class="col-12">
+                <div class="p-3.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                    <div class="text-secondary small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem;">
+                        <i class="bi bi-card-heading text-info me-1"></i> Title / Primary Event Action
+                    </div>
+                    <h3 class="fw-bold text-white mb-0" style="word-break: break-word; overflow-wrap: anywhere;">
+                        {{ audit_event.get_event_type_display }}
+                    </h3>
+                </div>
+            </div>
+
+            <!-- 2. Timestamp -->
+            <div class="col-12 col-md-6">
+                <div class="p-3.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 h-100">
+                    <div class="text-secondary small fw-semibold text-uppercase mb-2" style="font-size: 0.72rem;">
+                        <i class="bi bi-clock-history text-info me-1"></i> Timestamp (IST)
+                    </div>
+                    <div class="fs-5 fw-bold text-white mb-1">
+                        <i class="bi bi-calendar3 me-2 text-secondary"></i>{{ audit_event.timestamp|date:"l, F d, Y" }}
+                    </div>
+                    <div class="font-monospace text-emerald fs-6 mb-2">
+                        <i class="bi bi-clock me-2 text-secondary"></i>{{ audit_event.timestamp|date:"H:i:s" }} IST
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 text-secondary small pt-2 border-top border-secondary border-opacity-20" style="font-size: 0.75rem;">
+                        <span><i class="bi bi-hourglass-split me-1"></i>{{ audit_event.timestamp|timesince }} ago</span>
+                        <span>&bull;</span>
+                        <span class="font-monospace">ISO: {{ audit_event.timestamp|date:"c" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Actor -->
+            <div class="col-12 col-md-6">
+                <div class="p-3.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 h-100">
+                    <div class="text-secondary small fw-semibold text-uppercase mb-2" style="font-size: 0.72rem;">
+                        <i class="bi bi-person-badge text-info me-1"></i> Actor Identity
+                    </div>
+                    {% if audit_event.actor_enrollment %}
+                        <div class="mb-1">
+                            <a href="{% url 'profile' audit_event.actor_enrollment %}" class="fs-5 fw-bold text-emerald text-decoration-none font-monospace d-inline-flex align-items-center gap-1.5">
+                                <i class="bi bi-person-circle"></i>
+                                {{ audit_event.actor_enrollment }}
+                            </a>
+                        </div>
+                        {% if actor_user %}
+                            <div class="text-light fw-medium small mb-1">
+                                {{ actor_user.get_full_name|default:actor_user.username }}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 text-secondary small pt-2 border-top border-secondary border-opacity-20" style="font-size: 0.75rem;">
+                                <span><i class="bi bi-envelope me-1"></i>{{ actor_user.email }}</span>
+                                {% if actor_user.is_superuser %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-0 px-1.5">Superuser</span>
+                                {% elif actor_user.is_staff %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle py-0 px-1.5">Staff</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="text-secondary small pt-2 border-top border-secondary border-opacity-20">
+                                Student profile registered under enrollment {{ audit_event.actor_enrollment }}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="fs-5 fw-bold text-secondary mb-1">
+                            <i class="bi bi-cpu me-1.5"></i> System / Automated Daemon
+                        </div>
+                        <div class="text-secondary small pt-2 border-top border-secondary border-opacity-20">
+                            Automated background daemon, scheduler, or system-triggered operation.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 4. Event Classification & Target -->
+            <div class="col-12">
+                <div class="p-3.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                    <div class="text-secondary small fw-semibold text-uppercase mb-2" style="font-size: 0.72rem;">
+                        <i class="bi bi-diagram-3 text-info me-1"></i> Event Classification &amp; Target
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-4">
+                            <div class="text-secondary small" style="font-size: 0.75rem;">Event Code:</div>
+                            <div class="font-monospace text-info fw-semibold">{{ audit_event.event_type }}</div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="text-secondary small" style="font-size: 0.75rem;">Friendly Category:</div>
+                            <div class="text-light fw-semibold">{{ audit_event.get_event_type_display }}</div>
+                        </div>
+                        <div class="col-12 col-sm-4">
+                            <div class="text-secondary small" style="font-size: 0.75rem;">Target ID:</div>
+                            {% if audit_event.target_id %}
+                                <span class="badge bg-black bg-opacity-60 border border-secondary border-opacity-30 font-monospace text-light px-2.5 py-1">
+                                    {{ audit_event.target_id }}
+                                </span>
+                            {% else %}
+                                <span class="text-secondary font-monospace small">None / Not Specified</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Full Narrative Details -->
+            <div class="col-12">
+                <div class="p-3.5 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25">
+                    <div class="text-secondary small fw-semibold text-uppercase mb-2" style="font-size: 0.72rem;">
+                        <i class="bi bi-file-text text-info me-1"></i> Full Event Narrative &amp; Context Details
+                    </div>
+                    <div class="feedback-desc-box p-3 p-md-4 mb-3" style="font-size: 0.95rem; line-height: 1.7; white-space: pre-line; word-break: break-word; overflow-wrap: anywhere;">{{ audit_event.description }}</div>
+
+                    <!-- Security & Cryptographic Immutability Note -->
+                    <div class="p-3 rounded bg-black bg-opacity-40 border border-success border-opacity-25 d-flex align-items-start gap-2 text-secondary small" style="font-size: 0.8rem;">
+                        <i class="bi bi-shield-check text-success fs-5 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong class="text-light">Append-Only Immutability Guarantee:</strong>
+                            This audit entry was recorded in the database at {{ audit_event.timestamp|date:"M d, Y H:i:s T" }}.
+                            Per Campus Nexus security policies, <code class="text-success">AuditEvent</code> records cannot be altered, overwritten, or deleted by any application user or administrative script.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="pt-3 border-top border-secondary border-opacity-25 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <a href="{% url 'operational_audit_trail' %}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1.5">
+                <i class="bi bi-arrow-left"></i>
+                <span>Return to Audit Trail</span>
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{% url 'operational_dashboard' %}" class="btn btn-outline-info d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Operations Dashboard</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

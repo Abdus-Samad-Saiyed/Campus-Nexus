@@ -306,6 +306,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Console & Server Request Logging -----------------------------------------
 
+LOGS_DIR = BASE_DIR / "logs"
+os.makedirs(LOGS_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -325,6 +328,14 @@ LOGGING = {
         'channels_console': {
             'class': 'logging.StreamHandler',
             'formatter': 'channels_server',
+        },
+        'verbose_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'verbose.log'),
+            'maxBytes': 15 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
         },
     },
     'loggers': {

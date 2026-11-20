@@ -293,6 +293,7 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
             "feedback_count": feedback_count,
             "open_feedback_count": open_feedback_count,
             "audit_events": audit_events,
+            "total_audit_count": AuditEvent.objects.count(),
             "physical_verifications": physical_verifications,
             "student_accounts": student_accounts,
             # Chart datasets (serialized for Chart.js and json_script)
@@ -314,6 +315,97 @@ def operational_dashboard(request: HttpRequest) -> HttpResponse:
             "chart_hourly_series": hourly_series,
             "chart_status_labels": ["Open", "Full", "Completed", "Cancelled"],
             "chart_status_series": [active_rides - full_rides, full_rides, completed_rides, cancelled_rides],
+        },
+    )
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+def operational_audit_trail_view(request: HttpRequest) -> HttpResponse:
+    """Dedicated Operational Audit Trail view allowing administrators to inspect
+
+    all immutable audit ledger entries as far back as needed, 25 entries per page,
+    with keyword search, event type filtering, and date range filters.
+    """
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+    from datetime import datetime
+
+    audit_qs = AuditEvent.objects.order_by("-timestamp")
+
+    # Filter: Event type
+    selected_event_type = request.GET.get("event_type", "").strip()
+    if selected_event_type:
+        audit_qs = audit_qs.filter(event_type=selected_event_type)
+
+    # Filter: Keyword / Actor search
+    search_query = request.GET.get("q", "").strip()
+    if search_query:
+        audit_qs = audit_qs.filter(
+            Q(actor_enrollment__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(target_id__icontains=search_query)
+        )
+
+    # Filter: Date range
+    date_from = request.GET.get("date_from", "").strip()
+    if date_from:
+        try:
+            df = datetime.strptime(date_from, "%Y-%m-%d")
+            audit_qs = audit_qs.filter(timestamp__date__gte=df.date())
+        except ValueError:
+            pass
+
+    date_to = request.GET.get("date_to", "").strip()
+    if date_to:
+        try:
+            dt = datetime.strptime(date_to, "%Y-%m-%d")
+            audit_qs = audit_qs.filter(timestamp__date__lte=dt.date())
+        except ValueError:
+            pass
+
+    total_filtered_count = audit_qs.count()
+    all_events_count = AuditEvent.objects.count()
+
+    paginator = Paginator(audit_qs, 25)
+    page_number = request.GET.get("page", 1)
+
+    try:
+        page_obj = paginator.get_page(page_number)
+    except (PageNotAnInteger, EmptyPage):
+        page_obj = paginator.get_page(1)
+
+    return render(
+        request,
+        "nexus/operations_audit_trail.html",
+        {
+            "page_obj": page_obj,
+            "audit_events": page_obj.object_list,
+            "total_filtered_count": total_filtered_count,
+            "all_events_count": all_events_count,
+            "selected_event_type": selected_event_type,
+            "search_query": search_query,
+            "date_from": date_from,
+            "date_to": date_to,
+            "event_choices": AuditEvent.EVENT_CHOICES,
+        },
+    )
+
+
+@login_required
+@user_passes_test(_is_staff_or_superuser)
+def operational_audit_detail_view(request: HttpRequest, event_id: int) -> HttpResponse:
+    """Dedicated detailed view for a single immutable operational audit ledger record."""
+    audit_event = get_object_or_404(AuditEvent, pk=event_id)
+    actor_user = None
+    if audit_event.actor_enrollment:
+        actor_user = User.objects.filter(enrollment_number__iexact=audit_event.actor_enrollment).first()
+
+    return render(
+        request,
+        "nexus/operations_audit_detail.html",
+        {
+            "audit_event": audit_event,
+            "actor_user": actor_user,
         },
     )
 

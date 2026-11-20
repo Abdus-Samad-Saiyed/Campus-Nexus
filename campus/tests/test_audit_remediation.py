@@ -408,4 +408,122 @@ class AuditRemediationTests(TestCase):
         self.assertIsNotNone(audit)
         self.assertEqual(audit.actor_enrollment, staff_admin.enrollment_number)
 
+    def test_dedicated_operational_audit_trail_pagination_and_access(self):
+        """Dedicated audit trail page restricts access, paginates 25 per page, and supports filtering."""
+        from accounts.models import AuditEvent
+
+        # 1. Anonymous user redirected to login
+        res_anon = self.client.get(reverse('operational_audit_trail'))
+        self.assertEqual(res_anon.status_code, 302)
+        self.assertIn('/login/', res_anon.url)
+
+        # 2. Non-staff student denied access
+        self.client.force_login(self.user)
+        res_user = self.client.get(reverse('operational_audit_trail'))
+        self.assertEqual(res_user.status_code, 302)
+
+        # 3. Superuser granted access
+        admin_user = User.objects.create_superuser(
+            username="admin_audit",
+            enrollment_number="ADMIN001",
+            first_name="Admin",
+            last_name="Super",
+            password="AdminPassword123!",
+            is_staff=True,
+            is_superuser=True,
+            verified=True,
+        )
+        self.client.force_login(admin_user)
+
+        # Seed 30 Audit Events
+        for i in range(30):
+            AuditEvent.objects.create(
+                event_type="LOGIN_SUCCESS" if i % 2 == 0 else "SECURITY_SETTINGS_UPDATED",
+                actor_enrollment=f"ENROLL_{i:03d}",
+                description=f"Test audit action sequence #{i}",
+                target_id=str(i),
+            )
+
+        # Page 1: 25 items
+        res_page1 = self.client.get(reverse('operational_audit_trail'))
+        self.assertEqual(res_page1.status_code, 200)
+        self.assertEqual(len(res_page1.context['audit_events']), 25)
+        self.assertEqual(res_page1.context['page_obj'].paginator.num_pages, 2)
+
+        # Page 2: remaining items (5 + any from other tests)
+        res_page2 = self.client.get(reverse('operational_audit_trail') + '?page=2')
+        self.assertEqual(res_page2.status_code, 200)
+        self.assertGreaterEqual(len(res_page2.context['audit_events']), 5)
+
+        # Filter by event_type
+        res_filter = self.client.get(reverse('operational_audit_trail') + '?event_type=LOGIN_SUCCESS')
+        self.assertEqual(res_filter.status_code, 200)
+        for evt in res_filter.context['audit_events']:
+            self.assertEqual(evt.event_type, "LOGIN_SUCCESS")
+
+        # Search by actor
+        res_search = self.client.get(reverse('operational_audit_trail') + '?q=ENROLL_015')
+        self.assertEqual(res_search.status_code, 200)
+        self.assertEqual(len(res_search.context['audit_events']), 1)
+        self.assertEqual(res_search.context['audit_events'][0].actor_enrollment, "ENROLL_015")
+
+        # Verify "View" button appears in audit trail rows
+        self.assertContains(res_search, "View")
+        self.assertContains(res_search, reverse('operational_audit_detail', args=[res_search.context['audit_events'][0].id]))
+
+    def test_operational_audit_detail_view(self):
+        """Dedicated audit record detail view displays Title, Timestamp, Actor, Event, and Full Details."""
+        from accounts.models import AuditEvent
+
+        evt = AuditEvent.objects.create(
+            event_type="LOGIN_SUCCESS",
+            actor_enrollment=self.user.enrollment_number,
+            description="Student signed in successfully (2-week app session: False)",
+            target_id="SESSION_99",
+        )
+
+        detail_url = reverse('operational_audit_detail', args=[evt.id])
+
+        # 1. Anonymous user redirected to login
+        res_anon = self.client.get(detail_url)
+        self.assertEqual(res_anon.status_code, 302)
+        self.assertIn('/login/', res_anon.url)
+
+        # 2. Regular student user denied access
+        self.client.force_login(self.user)
+        res_user = self.client.get(detail_url)
+        self.assertEqual(res_user.status_code, 302)
+
+        # 3. Superuser access
+        admin_user = User.objects.create_superuser(
+            username="admin_audit_detail",
+            enrollment_number="ADMIN_DET_01",
+            first_name="Detail",
+            last_name="Super",
+            password="AdminPassword123!",
+            is_staff=True,
+            is_superuser=True,
+            verified=True,
+        )
+        self.client.force_login(admin_user)
+
+        res_admin = self.client.get(detail_url)
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertTemplateUsed(res_admin, "nexus/operations_audit_detail.html")
+        self.assertEqual(res_admin.context['audit_event'], evt)
+        self.assertEqual(res_admin.context['actor_user'], self.user)
+
+        # 4. Verify contents: Title, Timestamp, Actor, Event, and full Description details
+        content = res_admin.content.decode('utf-8')
+        self.assertIn("Login Success", content)
+        self.assertIn(self.user.enrollment_number, content)
+        self.assertIn("SESSION_99", content)
+        self.assertIn("Student signed in successfully (2-week app session: False)", content)
+        self.assertIn("Immutable Ledger Record", content)
+
+        # 5. Non-existent event returns 404
+        res_404 = self.client.get(reverse('operational_audit_detail', args=[9999999]))
+        self.assertEqual(res_404.status_code, 404)
+
+
 

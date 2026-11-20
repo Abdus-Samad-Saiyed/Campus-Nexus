@@ -365,55 +365,80 @@
         <div class="row g-3 mb-4">
             {% for fb in feedbacks %}
                 <div class="col-12">
-                    <div class="glass p-3.5 border-secondary border-opacity-25 h-100 feedback-card" style="word-break: break-word; overflow-wrap: anywhere;">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-2 pb-2 border-bottom border-secondary border-opacity-15">
+                    <div class="glass h-100 feedback-card {% if fb.feedback_type == 'BUG' %}feedback-bug-card{% elif fb.feedback_type == 'FEATURE' %}feedback-feature-card{% elif fb.feedback_type == 'PROPOSAL' %}feedback-proposal-card{% else %}feedback-general-card{% endif %}" style="word-break: break-word; overflow-wrap: anywhere;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-2 pb-2 border-bottom border-secondary border-opacity-20">
                             <div class="min-w-0 flex-grow-1">
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1.5">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                     {% if fb.feedback_type == 'BUG' %}
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.72rem;">
-                                            <i class="bi bi-bug me-1"></i> Bug Report
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-bug-fill"></i> Bug Report
+                                        </span>
+                                        <span class="badge bg-dark border border-danger border-opacity-50 text-danger font-monospace py-1 px-2" style="font-size: 0.7rem;">
+                                            #BUG-{{ fb.id }}
                                         </span>
                                     {% elif fb.feedback_type == 'FEATURE' %}
-                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.72rem;">
-                                            <i class="bi bi-lightbulb me-1"></i> Feature Request
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-lightbulb-fill"></i> Feature Request
+                                        </span>
+                                        <span class="badge bg-dark border border-info border-opacity-50 text-info font-monospace py-1 px-2" style="font-size: 0.7rem;">
+                                            #IDEA-{{ fb.id }}
                                         </span>
                                     {% elif fb.feedback_type == 'PROPOSAL' %}
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.72rem;">
-                                            <i class="bi bi-rocket-takeoff me-1"></i> New Module Proposal
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-rocket-takeoff-fill"></i> New Module Proposal
+                                        </span>
+                                        <span class="badge bg-dark border border-warning border-opacity-50 text-warning font-monospace py-1 px-2" style="font-size: 0.7rem;">
+                                            #PROP-{{ fb.id }}
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.72rem;">
-                                            <i class="bi bi-chat-quote me-1"></i> General Feedback
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-chat-quote-fill"></i> General Feedback
+                                        </span>
+                                        <span class="badge bg-dark border border-success border-opacity-50 text-success font-monospace py-1 px-2" style="font-size: 0.7rem;">
+                                            #FEEDBACK-{{ fb.id }}
                                         </span>
                                     {% endif %}
 
                                     {% if fb.status == 'OPEN' %}
-                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.7rem;">
-                                            <i class="bi bi-hourglass-split me-1"></i> Open
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-hourglass-split"></i> Open
                                         </span>
                                     {% elif fb.status == 'IN_REVIEW' %}
-                                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.7rem;">
-                                            <i class="bi bi-arrow-repeat me-1"></i> In Review
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-arrow-repeat"></i> In Review
                                         </span>
                                     {% elif fb.status == 'RESOLVED' %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.7rem;">
-                                            <i class="bi bi-check2-circle me-1"></i> Resolved
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 py-1 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                            <i class="bi bi-check2-circle"></i> Resolved
                                         </span>
                                     {% endif %}
                                 </div>
-                                <h5 class="fw-bold text-white mb-0" style="overflow-wrap: anywhere; word-break: break-word;">{{ fb.title }}</h5>
+                                <h5 class="fw-bold text-white mb-0 mt-1" style="overflow-wrap: anywhere; word-break: break-word;">{{ fb.title }}</h5>
                             </div>
                             <span class="text-secondary small font-monospace flex-shrink-0" style="font-size: 0.75rem;">
                                 <i class="bi bi-clock me-1"></i>{{ fb.created_at|timesince }} ago
                             </span>
                         </div>
 
-                        <p class="text-light text-opacity-80 small mb-3" style="line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; word-break: break-word;">{{ fb.description }}</p>
+                        <!-- Structured Description Container -->
+                        <div class="feedback-desc-box mb-3">
+                            <div style="line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; word-break: break-word;">{{ fb.description }}</div>
+                        </div>
 
                         <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-15 small text-secondary gap-2">
-                            <div>
-                                <i class="bi bi-person me-1"></i>
-                                <span>Reported by: <strong class="text-light">{{ fb.submitter_name|default:"Anonymous Student" }}</strong></span>
+                            <div class="d-inline-flex align-items-center flex-wrap gap-1">
+                                <span class="rounded-circle bg-secondary bg-opacity-25 text-light d-inline-flex align-items-center justify-content-center fw-bold me-1" style="width: 22px; height: 22px; font-size: 0.72rem;">
+                                    {{ fb.submitter_name|default:"A"|slice:":1"|upper }}
+                                </span>
+                                <span>Reported by: <strong class="text-white">{{ fb.submitter_name|default:"Anonymous Student" }}</strong></span>
+                                {% if fb.submitter_contact %}
+                                    <span class="badge bg-black bg-opacity-40 border border-secondary border-opacity-25 text-secondary font-monospace ms-1" style="font-size: 0.7rem;">
+                                        {{ fb.submitter_contact }}
+                                    </span>
+                                {% endif %}
+                                <span class="text-secondary ms-2 small d-none d-sm-inline">
+                                    &bull; <i class="bi bi-calendar3 ms-1 me-1"></i>{{ fb.created_at|date:"M d, Y" }}
+                                </span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 {% if is_admin %}
@@ -421,13 +446,13 @@
                                         <form method="POST" action="{% url 'admin_complete_feedback' fb.id %}" class="m-0 d-inline">
                                             {% csrf_token %}
                                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                                            <button type="submit" class="btn btn-outline-success btn-sm py-0.5 px-2" style="font-size: 0.72rem;">
-                                                <i class="bi bi-check2-circle me-1"></i> Mark Resolved
+                                            <button type="submit" class="btn btn-outline-success btn-sm py-1 px-2.5 d-inline-flex align-items-center gap-1" style="font-size: 0.74rem;">
+                                                <i class="bi bi-check2-circle"></i> Mark Resolved
                                             </button>
                                         </form>
                                     {% endif %}
-                                    <a href="{% url 'operational_dashboard' %}" class="btn btn-link btn-sm p-0 text-decoration-none green-accent" style="font-size: 0.75rem;">
-                                        Operations &rarr;
+                                    <a href="{% url 'operational_dashboard' %}" class="btn btn-outline-secondary btn-sm py-1 px-2 text-decoration-none" style="font-size: 0.74rem;">
+                                        <i class="bi bi-speedometer2 me-1"></i> Operations &rarr;
                                     </a>
                                 {% endif %}
                             </div>

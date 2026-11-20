@@ -762,48 +762,65 @@
 
         <!-- Operational Audit Trail -->
         <div class="col-lg-6">
-            <div class="glass p-4 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">Operational Audit Trail</h5>
-                    <span class="badge bg-dark border border-secondary text-white-50">Last 25 Events</span>
-                </div>
-                <p class="text-secondary small mb-3">
-                    Immutable log of administrative and system lifecycle events. Data minimized to protect student privacy.
-                </p>
+            <div class="glass p-4 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h5 class="fw-bold mb-0 d-flex align-items-center gap-1.5">
+                            <i class="bi bi-journal-text text-info"></i> Operational Audit Trail
+                        </h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-dark border border-secondary text-white-50">Recent 25 Events</span>
+                            <a href="{% url 'operational_audit_trail' %}" class="btn btn-outline-info btn-sm py-0.5 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                <span>Full Audit Page</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <p class="text-secondary small mb-3">
+                        Immutable log of administrative and system lifecycle events. Data minimized to protect student privacy.
+                    </p>
 
-                {% if audit_events %}
-                    <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
-                        <table class="table table-dark table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
-                            <thead>
-                                <tr class="text-secondary">
-                                    <th>Timestamp (IST)</th>
-                                    <th>Event</th>
-                                    <th>Actor</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="live-audit-trail-body">
-                                {% for evt in audit_events %}
-                                    <tr>
-                                        <td class="text-white-50 nowrap">{{ evt.timestamp|date:"M d H:i" }}</td>
-                                        <td>
-                                            <span class="badge bg-secondary small">{{ evt.event_type }}</span>
-                                        </td>
-                                        <td class="fw-semibold text-success">{{ evt.actor_enrollment|default:"System" }}</td>
-                                        <td class="text-secondary text-truncate" style="max-width: 180px;" title="{{ evt.description }}">
-                                            {{ evt.description }}
-                                        </td>
+                    {% if audit_events %}
+                        <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                            <table class="table table-dark table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                                <thead>
+                                    <tr class="text-secondary">
+                                        <th>Timestamp (IST)</th>
+                                        <th>Event</th>
+                                        <th>Actor</th>
+                                        <th>Details</th>
                                     </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="p-4 text-center text-secondary small">
-                        <i class="bi bi-clock-history fs-3 d-block mb-2"></i>
-                        Audit trail initialized. Events will populate as actions occur.
-                    </div>
-                {% endif %}
+                                </thead>
+                                <tbody id="live-audit-trail-body">
+                                    {% for evt in audit_events %}
+                                        <tr>
+                                            <td class="text-white-50 nowrap">{{ evt.timestamp|date:"M d H:i" }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary small">{{ evt.event_type }}</span>
+                                            </td>
+                                            <td class="fw-semibold text-success">{{ evt.actor_enrollment|default:"System" }}</td>
+                                            <td class="text-secondary text-truncate" style="max-width: 180px;" title="{{ evt.description }}">
+                                                {{ evt.description }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center text-secondary small">
+                            <i class="bi bi-clock-history fs-3 d-block mb-2"></i>
+                            Audit trail initialized. Events will populate as actions occur.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="pt-3 border-top border-secondary border-opacity-20 mt-3 d-flex justify-content-between align-items-center">
+                    <span class="text-secondary small">Total logged events: <strong class="text-white">{{ total_audit_count }}</strong></span>
+                    <a href="{% url 'operational_audit_trail' %}" class="btn btn-link btn-sm text-info text-decoration-none p-0 d-inline-flex align-items-center gap-1">
+                        <span>Browse complete paginated ledger (25/page)</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

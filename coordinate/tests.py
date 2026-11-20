@@ -871,14 +871,9 @@ class RideWorkflowTests(TestCase):
         self.assertEqual(ride.participant_count(), 2)
 
         self.client.force_login(self.creator)
-        # Range invalid (0 or 7)
+        # Range invalid (0 or negative is rejected)
         resp_zero = self.client.post(reverse('alter_ride_capacity', args=[ride.id]), {'total_spots': 0})
         self.assertRedirects(resp_zero, reverse('ride_detail', args=[ride.id]))
-        ride.refresh_from_db()
-        self.assertEqual(ride.total_spots, 3)
-
-        resp_seven = self.client.post(reverse('alter_ride_capacity', args=[ride.id]), {'total_spots': 7})
-        self.assertRedirects(resp_seven, reverse('ride_detail', args=[ride.id]))
         ride.refresh_from_db()
         self.assertEqual(ride.total_spots, 3)
 
@@ -890,6 +885,12 @@ class RideWorkflowTests(TestCase):
         self.assertRedirects(resp_self_kick, reverse('ride_detail', args=[ride.id]))
         ride.refresh_from_db()
         self.assertEqual(ride.total_spots, 3)
+
+        # Large capacity (e.g. 20-seater traveller) is now allowed without upper limit
+        resp_twenty = self.client.post(reverse('alter_ride_capacity', args=[ride.id]), {'total_spots': 20})
+        self.assertRedirects(resp_twenty, reverse('ride_detail', args=[ride.id]))
+        ride.refresh_from_db()
+        self.assertEqual(ride.total_spots, 20)
 
     def test_ride_list_displays_host_name_and_enrollment_and_joined_riders(self):
         """Verify that students browsing rides see the host's full name & enrollment and joined riders' full names & enrollments."""

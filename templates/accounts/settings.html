@@ -460,7 +460,7 @@ a.settings-card-clickable:hover .settings-card {
                         </p>
                         <div class="input-group input-group-sm" style="max-width: 380px;">
                             <input type="text" name="security_otp_code" id="contactSecurityOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="Enter 6-digit OTP">
-                            <button type="button" class="btn btn-outline-warning" onclick="requestContactSecurityOtp(this)">
+                            <button type="button" class="btn btn-outline-warning fw-semibold px-3" onclick="requestContactSecurityOtp(this)">
                                 <i class="bi bi-send me-1"></i> Send OTP
                             </button>
                         </div>
@@ -659,10 +659,10 @@ a.settings-card-clickable:hover .settings-card {
                         </div>
                         <div class="input-group input-group-sm mb-1" id="securityOtpInputGroup" style="max-width: 480px;">
                             <input type="text" name="security_otp_code" id="securityOtpInput" class="form-control font-monospace text-center" maxlength="6" placeholder="Enter 6-digit OTP">
-                            <button type="button" class="btn btn-outline-warning" id="sendSecurityOtpBtn" onclick="requestSecurityOtp()">
+                            <button type="button" class="btn btn-outline-warning fw-semibold px-3" id="sendSecurityOtpBtn" onclick="requestSecurityOtp()">
                                 <i class="bi bi-send me-1"></i> Send OTP
                             </button>
-                            <button type="button" class="btn btn-outline-success" id="verifySecurityOtpBtn" onclick="verifySecurityOtpInline()">
+                            <button type="button" class="btn btn-green fw-semibold px-3" id="verifySecurityOtpBtn" onclick="verifySecurityOtpInline()">
                                 <i class="bi bi-check2-circle me-1"></i> Verify OTP
                             </button>
                             {% if registered_passkeys %}

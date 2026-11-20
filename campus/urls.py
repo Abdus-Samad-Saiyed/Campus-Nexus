@@ -45,6 +45,8 @@ from campus.operations import (
     health_check,
     manage_superusers,
     operational_dashboard,
+    operational_audit_trail_view,
+    operational_audit_detail_view,
 )
 from campus.services import service_gateway_view
 from campus.views import (
@@ -189,6 +191,8 @@ urlpatterns = [
     # Django admin & Operational Dashboard
     path('admin/', admin.site.urls),
     path('operations/', operational_dashboard, name='operational_dashboard'),
+    path('operations/audit-trail/', operational_audit_trail_view, name='operational_audit_trail'),
+    path('operations/audit-trail/<int:event_id>/', operational_audit_detail_view, name='operational_audit_detail'),
     path('operations/superusers/', manage_superusers, name='manage_superusers'),
     path('operations/announcements/', admin_announcements_view, name='admin_announcements'),
     path('operations/announcements/create/', admin_create_announcement, name='admin_create_announcement'),

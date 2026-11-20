@@ -58,8 +58,7 @@ class RideRequestForm(forms.ModelForm):
             'total_spots': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': 1,
-                'max': 6,
-                'placeholder': '1–6',
+                'placeholder': 'e.g. 4, 6, 20',
             }),
             'share_chat_history': forms.CheckboxInput(attrs={
                 'class': 'form-check-input',
@@ -69,8 +68,8 @@ class RideRequestForm(forms.ModelForm):
 
     def clean_total_spots(self):
         spots = self.cleaned_data.get('total_spots')
-        if spots is not None and (spots < 1 or spots > 6):
-            raise forms.ValidationError('Total spots must be between 1 and 6.')
+        if spots is not None and spots < 1:
+            raise forms.ValidationError('Total spots must be at least 1.')
         return spots
 
     def clean_departure_time(self):

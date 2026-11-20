@@ -684,8 +684,8 @@ def alter_ride_capacity_service(
         except (ValueError, TypeError):
             return False, "Ride capacity must be a valid number.", {}
 
-        if new_capacity < 1 or new_capacity > 6:
-            return False, "Ride capacity must be between 1 and 6 spots.", {}
+        if new_capacity < 1:
+            return False, "Ride capacity must be at least 1 spot.", {}
 
         if new_capacity == ride.total_spots:
             return True, f"Ride capacity is already {new_capacity} spots.", {

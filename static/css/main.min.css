@@ -736,3 +736,234 @@ html {
 
 
 
+
+
+/* --- Form & Action Buttons (Preserving Outline & Fill Consistency) ---------- */
+.btn-outline-success,
+.btn-outline-green {
+    background: rgba(8, 183, 79, 0.18) !important;
+    border: 1.5px solid var(--green, #08B74F) !important;
+    color: var(--green, #08B74F) !important;
+    font-weight: 600;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+.btn-outline-success:hover,
+.btn-outline-success:focus,
+.btn-outline-success:active,
+.btn-outline-green:hover,
+.btn-outline-green:focus,
+.btn-outline-green:active {
+    background: var(--green, #08B74F) !important;
+    border-color: var(--green, #08B74F) !important;
+    color: #000000 !important;
+}
+
+.btn-outline-warning {
+    background: rgba(245, 158, 11, 0.16) !important;
+    border: 1.5px solid var(--warning, #f59e0b) !important;
+    color: var(--warning, #f59e0b) !important;
+    font-weight: 600;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+.btn-outline-warning:hover,
+.btn-outline-warning:focus,
+.btn-outline-warning:active {
+    background: var(--warning, #f59e0b) !important;
+    border-color: var(--warning, #f59e0b) !important;
+    color: #000000 !important;
+}
+
+.input-group > .btn-outline-success,
+.input-group > .btn-outline-green,
+.input-group > .btn-outline-warning,
+.input-group > .btn-green {
+    position: relative;
+    z-index: 2;
+}
+
+[data-bs-theme="light"] .btn-outline-success,
+[data-theme="light"] .btn-outline-success,
+[data-bs-theme="light"] .btn-outline-green,
+[data-theme="light"] .btn-outline-green {
+    background: rgba(5, 150, 73, 0.12) !important;
+    border: 1.5px solid var(--green, #059649) !important;
+    color: var(--green, #059649) !important;
+}
+[data-bs-theme="light"] .btn-outline-success:hover,
+[data-theme="light"] .btn-outline-success:hover,
+[data-bs-theme="light"] .btn-outline-green:hover,
+[data-theme="light"] .btn-outline-green:hover {
+    background: var(--green, #059649) !important;
+    border-color: var(--green, #059649) !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .btn-outline-warning,
+[data-theme="light"] .btn-outline-warning {
+    background: rgba(217, 119, 6, 0.12) !important;
+    border: 1.5px solid #d97706 !important;
+    color: #b45309 !important;
+}
+[data-bs-theme="light"] .btn-outline-warning:hover,
+[data-theme="light"] .btn-outline-warning:hover {
+    background: #d97706 !important;
+    border-color: #d97706 !important;
+    color: #ffffff !important;
+}
+
+/* --- High-Legibility Subtle Badges (Audit Ledger & Feedback Cards) ----------- */
+.badge.bg-danger-subtle {
+    background-color: rgba(239, 68, 68, 0.16) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+.badge.bg-info-subtle {
+    background-color: rgba(59, 130, 246, 0.16) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+.badge.bg-warning-subtle {
+    background-color: rgba(245, 158, 11, 0.16) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+.badge.bg-success-subtle {
+    background-color: rgba(8, 183, 79, 0.16) !important;
+    color: #34d399 !important;
+    border: 1px solid rgba(8, 183, 79, 0.35) !important;
+}
+.badge.bg-secondary-subtle {
+    background-color: rgba(148, 163, 184, 0.16) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid rgba(148, 163, 184, 0.28) !important;
+}
+
+[data-bs-theme="light"] .badge.bg-danger-subtle,
+[data-theme="light"] .badge.bg-danger-subtle {
+    background-color: rgba(220, 38, 38, 0.12) !important;
+    color: #b91c1c !important;
+    border: 1px solid rgba(220, 38, 38, 0.3) !important;
+}
+[data-bs-theme="light"] .badge.bg-info-subtle,
+[data-theme="light"] .badge.bg-info-subtle {
+    background-color: rgba(37, 99, 235, 0.12) !important;
+    color: #1d4ed8 !important;
+    border: 1px solid rgba(37, 99, 235, 0.3) !important;
+}
+[data-bs-theme="light"] .badge.bg-warning-subtle,
+[data-theme="light"] .badge.bg-warning-subtle {
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    color: #92400e !important;
+    border: 1px solid rgba(217, 119, 6, 0.3) !important;
+}
+[data-bs-theme="light"] .badge.bg-success-subtle,
+[data-theme="light"] .badge.bg-success-subtle {
+    background-color: rgba(5, 150, 73, 0.12) !important;
+    color: #047857 !important;
+    border: 1px solid rgba(5, 150, 73, 0.3) !important;
+}
+[data-bs-theme="light"] .badge.bg-secondary-subtle,
+[data-theme="light"] .badge.bg-secondary-subtle {
+    background-color: rgba(100, 116, 139, 0.12) !important;
+    color: #334155 !important;
+    border: 1px solid rgba(100, 116, 139, 0.25) !important;
+}
+
+.p-3\.5 {
+    padding: 1.25rem !important;
+}
+
+/* --- Feedback Cards & Bug Tracker Rework ----------------------------------- */
+.feedback-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    border-radius: var(--radius, 16px) !important;
+    overflow: hidden;
+    position: relative;
+    padding: 1.15rem 1.15rem 1.15rem 1.5rem !important;
+}
+@media (min-width: 768px) {
+    .feedback-card {
+        padding: 1.5rem 1.5rem 1.5rem 1.75rem !important;
+    }
+}
+.feedback-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4) !important;
+}
+
+.feedback-bug-card {
+    border-left: 4px solid var(--danger, #ef4444) !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(12, 20, 15, 0.92) 45%, rgba(12, 20, 15, 0.96) 100%) !important;
+}
+.feedback-bug-card:hover {
+    box-shadow: 0 8px 30px rgba(239, 68, 68, 0.18) !important;
+    border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+.feedback-feature-card {
+    border-left: 4px solid var(--info, #3b82f6) !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(12, 20, 15, 0.92) 45%, rgba(12, 20, 15, 0.96) 100%) !important;
+}
+.feedback-feature-card:hover {
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.18) !important;
+    border-color: rgba(59, 130, 246, 0.45) !important;
+}
+
+.feedback-proposal-card {
+    border-left: 4px solid var(--warning, #f59e0b) !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(12, 20, 15, 0.92) 45%, rgba(12, 20, 15, 0.96) 100%) !important;
+}
+.feedback-proposal-card:hover {
+    box-shadow: 0 8px 30px rgba(245, 158, 11, 0.18) !important;
+    border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+.feedback-general-card {
+    border-left: 4px solid var(--green, #08B74F) !important;
+    background: linear-gradient(135deg, rgba(8, 183, 79, 0.08) 0%, rgba(12, 20, 15, 0.92) 45%, rgba(12, 20, 15, 0.96) 100%) !important;
+}
+.feedback-general-card:hover {
+    box-shadow: 0 8px 30px rgba(8, 183, 79, 0.18) !important;
+    border-color: rgba(8, 183, 79, 0.45) !important;
+}
+
+.feedback-desc-box {
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: rgba(243, 244, 246, 0.92);
+}
+
+[data-bs-theme="light"] .feedback-bug-card,
+[data-theme="light"] .feedback-bug-card {
+    background: #ffffff !important;
+    border-left: 4px solid #dc2626 !important;
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.08) !important;
+}
+[data-bs-theme="light"] .feedback-feature-card,
+[data-theme="light"] .feedback-feature-card {
+    background: #ffffff !important;
+    border-left: 4px solid #2563eb !important;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08) !important;
+}
+[data-bs-theme="light"] .feedback-proposal-card,
+[data-theme="light"] .feedback-proposal-card {
+    background: #ffffff !important;
+    border-left: 4px solid #d97706 !important;
+    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.08) !important;
+}
+[data-bs-theme="light"] .feedback-general-card,
+[data-theme="light"] .feedback-general-card {
+    background: #ffffff !important;
+    border-left: 4px solid #059649 !important;
+    box-shadow: 0 4px 16px rgba(5, 150, 73, 0.08) !important;
+}
+[data-bs-theme="light"] .feedback-desc-box,
+[data-theme="light"] .feedback-desc-box {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}

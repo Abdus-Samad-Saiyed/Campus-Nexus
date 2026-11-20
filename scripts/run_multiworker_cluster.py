@@ -26,6 +26,20 @@ import time
 from typing import Dict, List, Optional
 
 
+def log_tcp_event(msg: str):
+    """Persist TCP proxy connection event to logs/tcp.log."""
+    try:
+        from accounts.client_logger import write_persistent_log
+        write_persistent_log("tcp", msg)
+    except Exception:
+        pass
+
+
+def log_verbose_event(msg: str):
+    """Cluster orchestration event hook (verbose user audit excludes cluster internal events)."""
+    pass
+
+
 class MultiWorkerCluster:
     def __init__(
         self,
@@ -228,6 +242,13 @@ class MultiWorkerCluster:
         worker_port = self.worker_ports[self.round_robin_counter % len(self.worker_ports)]
         self.round_robin_counter += 1
 
+        client_addr = client_writer.get_extra_info('peername')
+        client_str = f"{client_addr[0]}:{client_addr[1]}" if client_addr else "unknown"
+        conn_start = time.time()
+        import datetime
+        now_ts = datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")
+        log_tcp_event(f"[{now_ts}] TCP CONNECT {client_str} -> Routed to Worker 127.0.0.1:{worker_port}")
+
         try:
             worker_reader, worker_writer = await asyncio.open_connection(
                 "127.0.0.1", worker_port
@@ -240,6 +261,7 @@ class MultiWorkerCluster:
                 try:
                     worker_reader, worker_writer = await asyncio.open_connection("127.0.0.1", fp)
                     connected = True
+                    worker_port = fp
                     break
                 except Exception:
                     continue
@@ -249,6 +271,8 @@ class MultiWorkerCluster:
                     await client_writer.wait_closed()
                 except Exception:
                     pass
+                now_ts = datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")
+                log_tcp_event(f"[{now_ts}] TCP REJECT {client_str} -> All worker ports unavailable")
                 return
 
         # Bi-directional stream forwarding
@@ -263,6 +287,10 @@ class MultiWorkerCluster:
                 await task
             except (asyncio.CancelledError, Exception):
                 pass
+
+        elapsed = time.time() - conn_start
+        now_ts = datetime.datetime.now().strftime("%d/%b/%Y %H:%M:%S")
+        log_tcp_event(f"[{now_ts}] TCP CLOSE {client_str} <-> Worker 127.0.0.1:{worker_port} [Duration: {elapsed:.2f}s]")
 
         for w in (client_writer, worker_writer):
             try:
@@ -288,6 +316,7 @@ class MultiWorkerCluster:
     def shutdown(self):
         """Gracefully stop all worker processes and proxy server."""
         print("\n[MultiWorkerCluster] Shutting down multi-worker ASGI cluster...")
+        log_verbose_event("[MultiWorkerCluster] Cluster shutdown initiated. Stopping all worker processes.")
         self.shutdown_event.set()
 
         for port, proc in list(self.workers.items()):
@@ -329,6 +358,9 @@ class MultiWorkerCluster:
         print(f"  * Settings Module          : {self.settings_module}")
         print(f"  * Early Launch Mode        : {'ENABLED' if self.early_launch else 'DISABLED'}")
         print("=" * 70)
+        log_verbose_event(
+            f"[MultiWorkerCluster] Cluster started on {self.bind_host}:{self.proxy_port} with {self.num_workers} ASGI workers (ports: {self.worker_ports})."
+        )
 
         # Pre-migrate if in Early Launch Mode
         os.environ.setdefault("CONN_MAX_AGE", "0")

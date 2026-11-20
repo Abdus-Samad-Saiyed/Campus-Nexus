@@ -523,10 +523,10 @@ def api_ride_create(request: HttpRequest) -> JsonResponse:
     # Validate spots
     try:
         total_spots = int(total_spots)
-        if not (1 <= total_spots <= 6):
+        if total_spots < 1:
             raise ValueError()
     except (ValueError, TypeError):
-        return json_error("'total_spots' must be an integer between 1 and 6.", status=400, code="INVALID_SPOTS")
+        return json_error("'total_spots' must be an integer greater than or equal to 1.", status=400, code="INVALID_SPOTS")
 
     # Validate visibility choices & creator eligibility
     valid_vis = [c[0] for c in RideRequest.VISIBILITY_CHOICES]

@@ -143,6 +143,11 @@ function Show-Header {
 
     Write-Host "  Runtime:   " -NoNewline
     Write-Host "$PythonExe (Django 6.0, Python 3.14)" -ForegroundColor Gray
+
+    $logsDir = Join-Path $ScriptDir "logs"
+    if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir -Force | Out-Null }
+    Write-Host "  Logs:      " -NoNewline
+    Write-Host "Persistent [logs/verbose.log, https.log, websocket.log, tcp.log]" -ForegroundColor Green
     Write-Host "================================================================================" -ForegroundColor Cyan
 }
 

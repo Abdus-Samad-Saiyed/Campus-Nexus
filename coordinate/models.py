@@ -91,7 +91,7 @@ class RideRequest(models.Model):
         verbose_name_plural = 'Ride Requests'
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(total_spots__gte=1, total_spots__lte=6),
+                condition=models.Q(total_spots__gte=1),
                 name='check_total_spots_range',
             ),
         ]
