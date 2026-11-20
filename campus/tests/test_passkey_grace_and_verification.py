@@ -178,18 +178,44 @@ class PasskeyGraceAndVerificationTests(TestCase):
         )
         reg_payload['name'] = 'Passkey — 11/20/2026'
 
-        chrome_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        # Test Windows Hello takes precedence on Windows machines
+        windows_chrome_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         res = self.client.post(
             reverse('passkey_reg_verify'),
             data=json.dumps(reg_payload),
             content_type='application/json',
-            HTTP_USER_AGENT=chrome_ua,
+            HTTP_USER_AGENT=windows_chrome_ua,
         )
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.json().get('success'))
 
         cred = PasskeyCredential.objects.filter(user=self.verified_user).first()
         self.assertIsNotNone(cred)
-        self.assertIn('Google Password Manager', cred.name)
+        self.assertIn('Windows Hello', cred.name)
         self.assertIn('Windows PC (Chrome)', cred.name)
         self.assertEqual(cred.device_icon, 'bi-windows text-info')
+
+        # Test Google Password Manager on Android
+        PasskeyCredential.objects.all().delete()
+        chal_res2 = self.client.post(reverse('passkey_reg_challenge'))
+        challenge2 = chal_res2.json()['challenge']
+        reg_payload2, _, _ = make_registration_response(
+            challenge_b64=challenge2,
+            credential_id=b'google_bound_cred_android',
+            origin='http://testserver',
+            rp_id='testserver',
+            private_key=self.private_key,
+        )
+        android_ua = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        res2 = self.client.post(
+            reverse('passkey_reg_verify'),
+            data=json.dumps(reg_payload2),
+            content_type='application/json',
+            HTTP_USER_AGENT=android_ua,
+        )
+        self.assertEqual(res2.status_code, 200)
+        self.assertTrue(res2.json().get('success'))
+        cred_android = PasskeyCredential.objects.filter(user=self.verified_user).first()
+        self.assertIsNotNone(cred_android)
+        self.assertIn('Google Password Manager', cred_android.name)
+        self.assertIn('Android (Chrome)', cred_android.name)

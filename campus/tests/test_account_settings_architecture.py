@@ -36,25 +36,22 @@ class AccountSettingsArchitectureTestCase(TestCase):
         self.assertIn('/login/', res.url)
 
     def test_settings_overview_landing_page(self):
-        """Settings landing page renders all 4 distinct destinations with summary details."""
+        """Settings landing page defaults directly to the Personal Info section."""
         res = self.client.get(reverse('account_settings'))
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, 'accounts/settings.html')
         content = res.content.decode('utf-8')
 
-        # Check section titles and descriptions
-        self.assertIn("Personal information", content)
-        self.assertIn("Privacy & visibility", content)
-        self.assertIn("Security & sign-in", content)
+        # Check section navigation items
+        self.assertIn("Personal info", content)
+        self.assertIn("Privacy &amp; visibility", content)
+        self.assertIn("Security &amp; sign-in", content)
         self.assertIn("Notifications", content)
 
-        # Check summaries
-        self.assertIn("Update your photo and contact details.", content)
-        self.assertIn("Choose what other students can see.", content)
-        self.assertIn("Manage personal info", content)
-        self.assertIn("Manage privacy", content)
-        self.assertIn("Manage security & sign-in", content)
-        self.assertIn("Manage notifications", content)
+        # Defaults directly to Personal Information destination
+        self.assertIn("Personal information", content)
+        self.assertIn("Fixed Academic Identifiers", content)
+        self.assertIn("2024BCSE999", content)
 
     def test_personal_information_destination_renders_and_updates(self):
         """Personal info destination displays grouped fields and fixed identifiers, saves without security prompt."""

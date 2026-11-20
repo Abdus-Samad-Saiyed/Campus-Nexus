@@ -756,11 +756,6 @@ def passkey_reg_verify(request):
             now = timezone.localtime(timezone.now())
             client_time = now.strftime("%b %d, %Y, %I:%M %p")
 
-        # Determine if authenticator is Google Password Manager (Chrome, Android, Chromebook)
-        is_google_bound = False
-        if ("Chrome/" in ua_header and "Edg/" not in ua_header) or "Android" in ua_header or "CrOS" in ua_header:
-            is_google_bound = True
-
         raw_name = data.get('name', '').strip()
         default_placeholders = [
             'Windows Hello / Biometric Key',
@@ -774,12 +769,14 @@ def passkey_reg_verify(request):
                 key_name = raw_name
             else:
                 key_name = f"{raw_name} — {client_time}"
-        elif is_google_bound:
+        elif "Windows" in ua_header:
+            key_name = f"Windows Hello — {device_origin} • {client_time}"
+        elif "Android" in ua_header or "CrOS" in ua_header:
             key_name = f"Google Password Manager — {device_origin} • {client_time}"
         elif "iPhone" in ua_header or "iPad" in ua_header or ("Mac" in ua_header and "Safari/" in ua_header and "Chrome/" not in ua_header):
             key_name = f"iCloud Keychain — {device_origin} • {client_time}"
-        elif "Windows" in ua_header:
-            key_name = f"Windows Hello — {device_origin} • {client_time}"
+        elif "Chrome/" in ua_header and "Edg/" not in ua_header:
+            key_name = f"Google Password Manager — {device_origin} • {client_time}"
         else:
             key_name = f"{device_origin} — {client_time}"
 
@@ -2052,13 +2049,16 @@ def account_settings_view(request, section=None):
     """
     profile_user = request.user
     if section is None:
-        section = request.GET.get('section', 'overview').strip().lower()
+        section = request.GET.get('section', 'personal').strip().lower()
     else:
         section = section.strip().lower()
 
-    valid_sections = ('overview', 'personal', 'privacy', 'security', 'notifications')
+    if section == 'overview':
+        section = 'personal'
+
+    valid_sections = ('personal', 'privacy', 'security', 'notifications')
     if section not in valid_sections:
-        section = 'overview'
+        section = 'personal'
 
     # Check session grace window for security changes (honoring recent re-auth or OTP step-up)
     from accounts.utils import is_passkey_step_up_active

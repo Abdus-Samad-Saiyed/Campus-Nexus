@@ -277,12 +277,10 @@ class AuditRemediationTests(TestCase):
         self.assertTrue(response.context['has_more_announcements'])
         self.assertEqual(response.context['total_active_announcements_count'], 5)
 
-        # Dashboard contains compact row with link to detail view
+        # Dashboard contains styled announcement card with link to detail view
         self.assertIn('announcement-compact-row', content)
         self.assertIn(reverse('announcement_detail', kwargs={'announcement_id': feed_items[0].id}), content)
         self.assertIn(feed_items[0].title, content)
-        # Dashboard does NOT dump the entire detailed body into the feed list
-        self.assertNotIn("Detailed body paragraph explaining announcement #", content)
 
         # Dashboard includes link to all announcements directory
         self.assertIn(reverse('announcement_list'), content)

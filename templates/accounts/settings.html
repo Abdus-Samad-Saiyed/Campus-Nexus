@@ -99,29 +99,20 @@ a.settings-card-clickable:hover .settings-card {
     <!-- Top Breadcrumb & Mobile Back Action -->
     <div class="d-flex align-items-center justify-content-between mb-3 mb-md-4 flex-wrap gap-2">
         <div class="d-flex align-items-center gap-2">
-            {% if section != 'overview' %}
-                <a href="{% url 'account_settings' %}" class="btn btn-sm btn-dark-custom py-1.5 px-3 d-flex align-items-center gap-2" title="Back to Settings Overview">
-                    <i class="bi bi-arrow-left"></i>
-                    <span class="d-none d-sm-inline">All Settings</span>
-                </a>
-            {% else %}
-                <a href="{% url 'profile' profile_user.enrollment_number %}" class="btn btn-sm btn-dark-custom py-1.5 px-3 d-flex align-items-center gap-2" title="Back to Public Profile">
-                    <i class="bi bi-person-circle"></i>
-                    <span class="d-none d-sm-inline">My Profile</span>
-                </a>
-            {% endif %}
+            <a href="{% url 'profile' profile_user.enrollment_number %}" class="btn btn-sm btn-dark-custom py-1.5 px-3 d-flex align-items-center gap-2" title="Back to Public Profile">
+                <i class="bi bi-person-circle"></i>
+                <span class="d-none d-sm-inline">My Profile</span>
+            </a>
             <div class="d-flex align-items-center gap-1.5 text-secondary small">
                 <a href="{% url 'account_settings' %}" class="text-secondary text-decoration-none hover-white">Account settings</a>
-                {% if section != 'overview' %}
-                    <span class="opacity-50">/</span>
-                    <span class="text-white fw-semibold text-capitalize">
-                        {% if section == 'personal' %}Personal information
-                        {% elif section == 'privacy' %}Privacy & visibility
-                        {% elif section == 'security' %}Security & sign-in
-                        {% elif section == 'notifications' %}Notifications
-                        {% endif %}
-                    </span>
-                {% endif %}
+                <span class="opacity-50">/</span>
+                <span class="text-white fw-semibold text-capitalize">
+                    {% if section == 'personal' %}Personal info
+                    {% elif section == 'privacy' %}Privacy &amp; visibility
+                    {% elif section == 'security' %}Security &amp; sign-in
+                    {% elif section == 'notifications' %}Notifications
+                    {% endif %}
+                </span>
             </div>
         </div>
 
@@ -155,29 +146,43 @@ a.settings-card-clickable:hover .settings-card {
     {% endif %}
 
     <div class="row g-3 g-md-4">
-        <!-- Desktop Sidebar Navigation (Hidden on Overview and Phones) -->
+        <!-- Mobile Horizontal Tab Navigation (Visible on mobile/tablet) -->
+        <div class="col-12 d-lg-none">
+            <div class="d-flex gap-2 overflow-auto pb-1" style="scrollbar-width: none; -webkit-overflow-scrolling: touch;">
+                <a href="{% url 'account_settings_section' section='personal' %}" class="btn btn-sm text-nowrap {% if section == 'personal' %}btn-green fw-bold{% else %}btn-dark-custom text-secondary{% endif %} py-1.5 px-3">
+                    <i class="bi bi-person-vcard-fill me-1"></i> Personal info
+                </a>
+                <a href="{% url 'account_settings_section' section='privacy' %}" class="btn btn-sm text-nowrap {% if section == 'privacy' %}btn-green fw-bold{% else %}btn-dark-custom text-secondary{% endif %} py-1.5 px-3">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Privacy &amp; visibility
+                </a>
+                <a href="{% url 'account_settings_section' section='security' %}" class="btn btn-sm text-nowrap {% if section == 'security' %}btn-green fw-bold{% else %}btn-dark-custom text-secondary{% endif %} py-1.5 px-3">
+                    <i class="bi bi-key-fill me-1"></i> Security &amp; sign-in
+                </a>
+                <a href="{% url 'account_settings_section' section='notifications' %}" class="btn btn-sm text-nowrap {% if section == 'notifications' %}btn-green fw-bold{% else %}btn-dark-custom text-secondary{% endif %} py-1.5 px-3">
+                    <i class="bi bi-bell-fill me-1"></i> Notifications
+                </a>
+            </div>
+        </div>
+
+        <!-- Desktop Sidebar Navigation -->
         <div class="col-lg-3 d-none d-lg-block">
             <div class="settings-nav-card p-2.5 sticky-top" style="top: 80px; z-index: 10;">
                 <div class="px-3 py-2.5 mb-2 border-bottom border-secondary border-opacity-25">
                     <div class="fw-bold text-white fs-6">Account Settings</div>
-                    <div class="text-secondary small" style="font-size: 0.78rem;">Manage your identity & preferences</div>
+                    <div class="text-secondary small" style="font-size: 0.78rem;">Manage your identity &amp; preferences</div>
                 </div>
                 <nav class="d-flex flex-column gap-1">
-                    <a href="{% url 'account_settings' %}" class="settings-nav-item {% if section == 'overview' %}active{% endif %}">
-                        <i class="bi bi-grid-fill settings-nav-icon"></i>
-                        <span>Overview</span>
-                    </a>
                     <a href="{% url 'account_settings_section' section='personal' %}" class="settings-nav-item {% if section == 'personal' %}active{% endif %}">
                         <i class="bi bi-person-vcard-fill settings-nav-icon"></i>
                         <span>Personal info</span>
                     </a>
                     <a href="{% url 'account_settings_section' section='privacy' %}" class="settings-nav-item {% if section == 'privacy' %}active{% endif %}">
                         <i class="bi bi-shield-lock-fill settings-nav-icon"></i>
-                        <span>Privacy & visibility</span>
+                        <span>Privacy &amp; visibility</span>
                     </a>
                     <a href="{% url 'account_settings_section' section='security' %}" class="settings-nav-item {% if section == 'security' %}active{% endif %}">
                         <i class="bi bi-key-fill settings-nav-icon"></i>
-                        <span>Security & sign-in</span>
+                        <span>Security &amp; sign-in</span>
                     </a>
                     <a href="{% url 'account_settings_section' section='notifications' %}" class="settings-nav-item {% if section == 'notifications' %}active{% endif %}">
                         <i class="bi bi-bell-fill settings-nav-icon"></i>
@@ -188,201 +193,12 @@ a.settings-card-clickable:hover .settings-card {
         </div>
 
         <!-- Main Content Area -->
-        <div class="{% if section == 'overview' %}col-12{% else %}col-12 col-lg-9{% endif %}">
+        <div class="col-12 col-lg-9">
 
             <!-- ============================================================= -->
-            <!-- 1. LANDING PAGE OVERVIEW                                      -->
+            <!-- 1. PERSONAL INFORMATION DESTINATION                          -->
             <!-- ============================================================= -->
-            {% if section == 'overview' %}
-            <div>
-                <div class="mb-4">
-                    <h2 class="h3 fw-bold text-white mb-1">Account settings</h2>
-                    <p class="text-secondary mb-0">Manage your profile details, privacy preferences, sign-in security, and device notifications.</p>
-                </div>
-
-                <!-- Two columns on desktop for Personal Info and Privacy/Visibility -->
-                <div class="row g-3 g-md-4 mb-3 mb-md-4">
-                    <!-- Card 1: Personal Information -->
-                    <div class="col-12 col-md-6">
-                        <a href="{% url 'account_settings_section' section='personal' %}" class="settings-card-clickable h-100">
-                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 38px; height: 38px;">
-                                                <i class="bi bi-person-fill fs-5"></i>
-                                            </div>
-                                            <h3 class="h5 fw-bold text-white mb-0">Personal information</h3>
-                                        </div>
-                                    </div>
-                                    <p class="text-secondary small mb-3">Update your photo and contact details.</p>
-
-                                    <!-- Current state summary -->
-                                    <div class="settings-panel p-2.5 mb-3">
-                                        <div class="d-flex align-items-center gap-3">
-                                            {% if profile_user.profile_photo %}
-                                                <img src="{{ profile_user.profile_photo.url }}" alt="{{ profile_user.get_full_name }}" class="rounded-circle border border-secondary" style="width: 44px; height: 44px; object-fit: cover;">
-                                            {% else %}
-                                                <div class="rounded-circle bg-secondary bg-opacity-25 text-white d-flex align-items-center justify-content-center fw-bold" style="width: 44px; height: 44px; font-size: 1.1rem;">
-                                                    {{ profile_user.first_name|first|default:profile_user.enrollment_number|first|upper }}
-                                                </div>
-                                            {% endif %}
-                                            <div class="min-w-0 flex-grow-1">
-                                                <div class="fw-semibold text-white text-truncate">{{ profile_user.get_full_name|default:profile_user.enrollment_number }}</div>
-                                                <div class="text-secondary small text-truncate">{{ profile_user.email }}</div>
-                                                <div class="text-secondary small text-truncate">{{ profile_user.phone_number|default:"No phone configured" }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-success fw-semibold small">
-                                    <span>Manage personal info</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Card 2: Privacy & Visibility -->
-                    <div class="col-12 col-md-6">
-                        <a href="{% url 'account_settings_section' section='privacy' %}" class="settings-card-clickable h-100">
-                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info" style="width: 38px; height: 38px;">
-                                                <i class="bi bi-eye-fill fs-5"></i>
-                                            </div>
-                                            <h3 class="h5 fw-bold text-white mb-0">Privacy & visibility</h3>
-                                        </div>
-                                    </div>
-                                    <p class="text-secondary small mb-3">Choose what other students can see.</p>
-
-                                    <!-- Current state summary -->
-                                    <div class="settings-panel p-2.5 mb-3 d-flex flex-column gap-1.5 small">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Student Directory</span>
-                                            <span class="badge {% if profile_user.hide_from_search %}bg-warning-subtle text-warning{% else %}bg-success-subtle text-success{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
-                                                {% if profile_user.hide_from_search %}Hidden{% else %}Discoverable{% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Active & Online Status</span>
-                                            <span class="badge {% if profile_user.hide_online_status %}bg-secondary-subtle text-secondary{% else %}bg-success-subtle text-success{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
-                                                {% if profile_user.hide_online_status %}Concealed{% else %}Visible{% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Friends List</span>
-                                            <span class="badge {% if profile_user.show_friends_publicly %}bg-info-subtle text-info{% else %}bg-secondary-subtle text-secondary{% endif %} border border-secondary border-opacity-25 py-0.5 px-2">
-                                                {% if profile_user.show_friends_publicly %}Public{% else %}Only Friends{% endif %}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-info fw-semibold small">
-                                    <span>Manage privacy</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Distinct Separate Destinations: Security & Notifications -->
-                <div class="row g-3 g-md-4">
-                    <!-- Card 3: Security & Sign-in -->
-                    <div class="col-12 col-md-6">
-                        <a href="{% url 'account_settings_section' section='security' %}" class="settings-card-clickable h-100">
-                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 38px; height: 38px;">
-                                                <i class="bi bi-shield-lock-fill fs-5"></i>
-                                            </div>
-                                            <h3 class="h5 fw-bold text-white mb-0">Security & sign-in</h3>
-                                        </div>
-                                    </div>
-                                    <p class="text-secondary small mb-3">Password, passkeys, two-step verification, and active sessions.</p>
-
-                                    <!-- Current state summary -->
-                                    <div class="settings-panel p-2.5 mb-3 d-flex flex-column gap-1.5 small">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Two-Step Verification</span>
-                                            <span class="badge {% if profile_user.two_factor_enabled %}bg-success-subtle text-success border-success-subtle{% else %}bg-secondary-subtle text-secondary{% endif %} border py-0.5 px-2">
-                                                {% if profile_user.two_factor_enabled %}Enabled{% else %}Disabled{% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Biometric Passkeys</span>
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-0.5 px-2">
-                                                {{ passkeys_count }} registered
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Active Platform Sessions</span>
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-0.5 px-2">
-                                                {{ active_platform_sessions|length }}/3 active
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-warning fw-semibold small">
-                                    <span>Manage security & sign-in</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Card 4: Notifications -->
-                    <div class="col-12 col-md-6">
-                        <a href="{% url 'account_settings_section' section='notifications' %}" class="settings-card-clickable h-100">
-                            <div class="settings-card p-3 p-md-4 h-100 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 38px; height: 38px;">
-                                                <i class="bi bi-bell-fill fs-5"></i>
-                                            </div>
-                                            <h3 class="h5 fw-bold text-white mb-0">Notifications</h3>
-                                        </div>
-                                    </div>
-                                    <p class="text-secondary small mb-3">Push alert preferences, browser permissions, and test dispatch.</p>
-
-                                    <!-- Current state summary -->
-                                    <div class="settings-panel p-2.5 mb-3 d-flex flex-column gap-1.5 small">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Device Push Alerts</span>
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 py-0.5 px-2" id="settings-overview-notif-badge">
-                                                Checking...
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Sound & Vibration Chime</span>
-                                            <span class="text-secondary">Enabled</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="text-secondary">Scope</span>
-                                            <span class="text-secondary">Rides, DMs, & Requests</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between text-primary fw-semibold small">
-                                    <span>Manage notifications</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ============================================================= -->
-            <!-- 2. PERSONAL INFORMATION DESTINATION                          -->
-            <!-- ============================================================= -->
-            {% elif section == 'personal' %}
+            {% if section == 'personal' %}
             <div class="settings-card p-3 p-md-4">
                 <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
                     <div>
@@ -1387,24 +1203,5 @@ async function deletePasskey(pkId) {
         alert('Network error removing passkey.');
     }
 }
-
-// Sync overview notification badge if present
-document.addEventListener('DOMContentLoaded', function() {
-    const ovBadge = document.getElementById('settings-overview-notif-badge');
-    if (ovBadge && 'Notification' in window) {
-        const perm = Notification.permission;
-        const userPref = localStorage.getItem('nexus_notifications_enabled');
-        if (perm === 'granted') {
-            ovBadge.className = 'badge bg-success-subtle text-success border border-success-subtle py-0.5 px-2';
-            ovBadge.textContent = (userPref === 'false') ? 'Muted' : 'Active';
-        } else if (perm === 'denied') {
-            ovBadge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle py-0.5 px-2';
-            ovBadge.textContent = 'Blocked';
-        } else {
-            ovBadge.className = 'badge bg-warning-subtle text-warning border border-warning-subtle py-0.5 px-2';
-            ovBadge.textContent = 'Not Configured';
-        }
-    }
-});
 </script>
 {% endblock %}
