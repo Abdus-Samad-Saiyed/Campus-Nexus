@@ -696,6 +696,7 @@ class PlatformFeedback(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='feedbacks')
+    reported_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='submitted_feedbacks')
     submitter_name = models.CharField(max_length=100, blank=True)
     submitter_contact = models.CharField(max_length=100, blank=True)
     feedback_type = models.CharField(max_length=20, choices=FEEDBACK_TYPES, default='GENERAL')

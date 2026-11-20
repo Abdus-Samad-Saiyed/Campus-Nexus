@@ -153,9 +153,9 @@ class AuditEventAdmin(admin.ModelAdmin):
 
 @admin.register(PlatformFeedback)
 class PlatformFeedbackAdmin(admin.ModelAdmin):
-    list_display = ['title', 'feedback_type', 'user', 'submitter_name', 'status', 'created_at']
+    list_display = ['title', 'feedback_type', 'user', 'reported_by', 'submitter_name', 'status', 'created_at']
     list_filter = ['feedback_type', 'status', 'created_at']
-    search_fields = ['title', 'description', 'submitter_name', 'user__enrollment_number']
+    search_fields = ['title', 'description', 'submitter_name', 'user__enrollment_number', 'reported_by__enrollment_number']
     readonly_fields = ['created_at']
 
 

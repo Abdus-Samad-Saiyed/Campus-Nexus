@@ -290,6 +290,11 @@
                                class="form-control bg-dark border-secondary text-light"
                                placeholder="Enrollment no. or phone">
                     </div>
+                    <div class="col-12 mt-1">
+                        <div class="form-text text-secondary small" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>Reporting on behalf of another student? Enter their enrollment number and the report will be attributed directly to them in their bug reports and leaderboard.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center pt-2">
@@ -434,6 +439,11 @@
                                 {% if fb.submitter_contact %}
                                     <span class="badge bg-black bg-opacity-40 border border-secondary border-opacity-25 text-secondary font-monospace ms-1" style="font-size: 0.7rem;">
                                         {{ fb.submitter_contact }}
+                                    </span>
+                                {% endif %}
+                                {% if fb.reported_by and fb.user and fb.reported_by != fb.user %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary border-opacity-25 ms-1 py-0.5 px-1.5 d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;" title="Logged on their behalf by {{ fb.reported_by.get_full_name|default:fb.reported_by.enrollment_number }}">
+                                        <i class="bi bi-person-fill-up"></i> via {{ fb.reported_by.first_name|default:fb.reported_by.enrollment_number }}
                                     </span>
                                 {% endif %}
                                 <span class="text-secondary ms-2 small d-none d-sm-inline">

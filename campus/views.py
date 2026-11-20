@@ -1,3 +1,4 @@
+import re
 from accounts.throttling import rate_limit
 """Campus Nexus platform views: About, Contributors, and Feedback/Bug Reporting."""
 
@@ -133,6 +134,34 @@ def remove_contributor(request: HttpRequest, contributor_id: int) -> HttpRespons
     return _redirect_contributors_target(request)
 
 
+def _is_enrollment_like(value: str) -> bool:
+    """
+    Check if a string matches the structural pattern of a student enrollment number
+    (e.g., 2024BCSE065, 2024bcse070, 2024-BCSE-070, 20XXBCSE001, GUEST_DEMO, etc.)
+    and does not look like an email or telephone number.
+    """
+    if not value:
+        return False
+    raw = value.strip()
+    if '@' in raw:
+        return False
+    clean = re.sub(r'[\s\-_/]', '', raw).upper()
+    if clean.isdigit() and len(clean) >= 10:
+        return False
+    if raw.startswith('+'):
+        return False
+
+    # Standard Campus Nexus enrollment regex: (2024|20XX)[BMP][A-Z]{3}\d{3} or GUEST_DEMO
+    if re.match(r'^(?:(?:\d{4}|20XX)[BMP][A-Z]{3}\d{3}|GUEST_DEMO)$', clean, re.IGNORECASE):
+        return True
+
+    # Broader academic enrollment pattern (4 digits, 2-6 letters, 1-4 digits)
+    if re.match(r'^(?:\d{4}|20XX)[A-Z]{2,6}\d{1,4}$', clean, re.IGNORECASE):
+        return True
+
+    return False
+
+
 def _handle_feedback_post(request: HttpRequest, error_redirect: str = "feedback") -> HttpResponse:
     """Shared POST handler for submitting platform feedback, bug reports, and proposals."""
     feedback_type = request.POST.get("feedback_type", "GENERAL").strip().upper()
@@ -155,10 +184,74 @@ def _handle_feedback_post(request: HttpRequest, error_redirect: str = "feedback"
         messages.error(request, "Title and description are required to submit feedback.")
         return redirect(error_redirect)
 
+    # -------------------------------------------------------------------------
+    # Student Enrollment Verification, Proxy Attribution, & Name Veto Logic
+    # -------------------------------------------------------------------------
+    clean_contact = re.sub(r'[\s\-_/]', '', submitter_contact).strip().upper() if submitter_contact else ""
+    clean_name = re.sub(r'[\s\-_/]', '', submitter_name).strip().upper() if submitter_name else ""
+
+    target_user = None
+    candidate_enrollment = ""
+
+    # Check if submitter_contact is or looks like an enrollment number
+    if clean_contact:
+        user_by_contact = User.objects.filter(enrollment_number__iexact=clean_contact).first()
+        if user_by_contact:
+            target_user = user_by_contact
+            candidate_enrollment = user_by_contact.enrollment_number
+        elif _is_enrollment_like(submitter_contact):
+            candidate_enrollment = clean_contact
+
+    # If contact was not an enrollment, check if submitter provided enrollment in name field
+    if not target_user and clean_name:
+        user_by_name = User.objects.filter(enrollment_number__iexact=clean_name).first()
+        if user_by_name:
+            target_user = user_by_name
+            candidate_enrollment = user_by_name.enrollment_number
+        elif _is_enrollment_like(submitter_name):
+            candidate_enrollment = clean_name
+
+    # Check 1: During bug reports, you cannot make a report against a person whose enrollment doesn't exist
+    if feedback_type == 'BUG' and candidate_enrollment and not target_user:
+        messages.error(
+            request,
+            f"Enrollment number '{candidate_enrollment}' does not exist in the student registry. "
+            f"You cannot submit a bug report against a person whose enrollment does not exist."
+        )
+        return redirect(error_redirect)
+
+    # Fallback to authenticated user if no specific target user was resolved and no other enrollment candidate was provided
+    if not target_user and not candidate_enrollment and request.user.is_authenticated:
+        target_user = request.user
+
+    attributed_user = target_user
+    reported_by_user = request.user if request.user.is_authenticated else None
+
+    # Check 2: If target user is resolved, verify name and veto if they don't match
+    if target_user:
+        expected_name = target_user.get_full_name().strip() or target_user.first_name.strip() or target_user.enrollment_number
+        norm_submitted = " ".join(submitter_name.split()).strip().lower()
+        norm_expected = " ".join(expected_name.split()).strip().lower()
+
+        # If name doesn't match or was left blank, veto to the name attached to the enrollment
+        if not norm_submitted or norm_submitted != norm_expected:
+            submitter_name = expected_name
+        else:
+            submitter_name = expected_name
+
+        if candidate_enrollment:
+            submitter_contact = target_user.enrollment_number
+        else:
+            submitter_contact = submitter_contact or target_user.enrollment_number or target_user.phone_number
+    else:
+        submitter_name = submitter_name or "Anonymous Student"
+        submitter_contact = submitter_contact or ""
+
     feedback = PlatformFeedback.objects.create(
-        user=request.user if request.user.is_authenticated else None,
-        submitter_name=submitter_name or (request.user.get_full_name() if request.user.is_authenticated else "Anonymous Student"),
-        submitter_contact=submitter_contact or (request.user.phone_number if request.user.is_authenticated else ""),
+        user=attributed_user,
+        reported_by=reported_by_user,
+        submitter_name=submitter_name,
+        submitter_contact=submitter_contact,
         feedback_type=feedback_type,
         title=title,
         description=description,
@@ -167,18 +260,29 @@ def _handle_feedback_post(request: HttpRequest, error_redirect: str = "feedback"
     )
 
     actor_enrollment = request.user.enrollment_number if request.user.is_authenticated else "Guest"
+    audit_desc = f"[{feedback.get_feedback_type_display()}] {title[:100]}"
+    if attributed_user and request.user.is_authenticated and attributed_user != request.user:
+        audit_desc += f" (attributed to {attributed_user.enrollment_number})"
+
     log_audit_event(
         event_type="FEEDBACK_SUBMITTED",
         actor_enrollment=actor_enrollment,
-        description=f"[{feedback.get_feedback_type_display()}] {title[:100]}",
+        description=audit_desc,
         target_id=str(feedback.id),
     )
 
-    messages.success(
-        request,
-        f"Thank you! Your {feedback.get_feedback_type_display().lower()} has been recorded. "
-        f"Our student maintenance team will review it."
-    )
+    if attributed_user and request.user.is_authenticated and attributed_user != request.user:
+        messages.success(
+            request,
+            f"Thank you! Your {feedback.get_feedback_type_display().lower()} has been recorded and attributed to "
+            f"{submitter_name} ({attributed_user.enrollment_number}). Our student maintenance team will review it."
+        )
+    else:
+        messages.success(
+            request,
+            f"Thank you! Your {feedback.get_feedback_type_display().lower()} has been recorded. "
+            f"Our student maintenance team will review it."
+        )
     return redirect("feedback")
 
 

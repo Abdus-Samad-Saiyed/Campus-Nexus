@@ -23,6 +23,8 @@ class AboutContributorsFeedbackTests(TestCase):
     """Verify About, Contributors, and Platform Feedback / Bug Reporting."""
 
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = Client()
         self.user = User.objects.create_user(
             username="2024BCSE002",
@@ -152,12 +154,108 @@ class AboutContributorsFeedbackTests(TestCase):
             self.assertContains(res, reverse("feedback_submit"))
             self.assertContains(res, reverse("report_bug"))
 
+    def test_bug_report_attributed_to_other_student_when_details_provided(self):
+        """When user A reports a bug for user B, it attributes to B and sets reported_by to A."""
+        student_b = User.objects.create_user(
+            username="2024BCSE074",
+            enrollment_number="2024BCSE074",
+            first_name="Gaurav",
+            last_name="Mishra",
+            gender="M",
+            phone_number="9876543299",
+            password="OtherPassword123!",
+            is_active=True,
+            verified=True,
+        )
+
+        self.client.force_login(self.user)
+        res = self.client.post(reverse("report_bug"), {
+            "feedback_type": "BUG",
+            "title": "Passkey registration biometric timeout",
+            "description": "On Windows Hello enrollment, prompt fails with WebAuthn timeout.",
+            "submitter_name": "Gaurav Mishra",
+            "submitter_contact": "2024BCSE074",
+        }, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        fb = PlatformFeedback.objects.filter(title="Passkey registration biometric timeout").first()
+        self.assertIsNotNone(fb)
+        self.assertEqual(fb.user, student_b)
+        self.assertEqual(fb.reported_by, self.user)
+        self.assertEqual(fb.submitter_name, "Gaurav Mishra")
+        self.assertEqual(fb.submitter_contact, "2024BCSE074")
+
+        # Submitter A viewing their own reports should NOT see this bug
+        res_a = self.client.get(reverse("feedback") + "?view=mine")
+        self.assertEqual(res_a.status_code, 200)
+        self.assertNotIn("Passkey registration biometric timeout", res_a.content.decode("utf-8"))
+
+        # Student B viewing their own reports SHOULD see this bug
+        self.client.force_login(student_b)
+        res_b = self.client.get(reverse("feedback") + "?view=mine")
+        self.assertEqual(res_b.status_code, 200)
+        self.assertIn("Passkey registration biometric timeout", res_b.content.decode("utf-8"))
+
+    def test_bug_report_vetoes_mismatched_name_to_name_attached_to_enrollment(self):
+        """If submitter enters mismatched name for an enrollment, the name is vetoed to the attached student name."""
+        student_b = User.objects.create_user(
+            username="2024BCSE070",
+            enrollment_number="2024BCSE070",
+            first_name="Ritesh",
+            last_name="Raj",
+            gender="M",
+            phone_number="9876543298",
+            password="OtherPassword123!",
+            is_active=True,
+            verified=True,
+        )
+
+        self.client.force_login(self.user)
+        res = self.client.post(reverse("report_bug"), {
+            "feedback_type": "BUG",
+            "title": "Announcements badge not updating",
+            "description": "Unread counter stays at 1 after dismissing notice.",
+            "submitter_name": "Ritesh",  # Partial / informal name
+            "submitter_contact": "2024bcse070",  # Lowercase enrollment
+        }, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        fb = PlatformFeedback.objects.filter(title="Announcements badge not updating").first()
+        self.assertIsNotNone(fb)
+        self.assertEqual(fb.user, student_b)
+        self.assertEqual(fb.reported_by, self.user)
+        # Name is vetoed to full official name attached to enrollment
+        self.assertEqual(fb.submitter_name, "Ritesh Raj")
+        self.assertEqual(fb.submitter_contact, "2024BCSE070")
+
+    def test_bug_report_against_nonexistent_enrollment_rejected(self):
+        """During bug reports, you cannot submit against a person whose enrollment does not exist."""
+        self.client.force_login(self.user)
+        res = self.client.post(reverse("report_bug"), {
+            "feedback_type": "BUG",
+            "title": "Broken link in footer",
+            "description": "Footer link 404s.",
+            "submitter_name": "Unknown Student",
+            "submitter_contact": "2024BCSE999",  # Does NOT exist
+        }, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        # Bug should NOT be created
+        fb = PlatformFeedback.objects.filter(title="Broken link in footer").first()
+        self.assertIsNone(fb)
+
+        # Error message rendered
+        content = res.content.decode("utf-8")
+        self.assertIn("does not exist in the student registry", content)
+
 
 
 class RideMisconductReportingTests(TestCase):
     """Verify in-ride misconduct reporting, chat log snapshot, and institute escalation."""
 
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = Client()
         self.host = User.objects.create_user(
             username="2024BCSE001",
