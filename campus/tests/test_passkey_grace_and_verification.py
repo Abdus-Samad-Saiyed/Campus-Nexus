@@ -190,6 +190,6 @@ class PasskeyGraceAndVerificationTests(TestCase):
 
         cred = PasskeyCredential.objects.filter(user=self.verified_user).first()
         self.assertIsNotNone(cred)
-        self.assertIn('Google Password Manager (user100@campus.edu)', cred.name)
+        self.assertIn('Google Password Manager', cred.name)
         self.assertIn('Windows PC (Chrome)', cred.name)
         self.assertEqual(cred.device_icon, 'bi-windows text-info')

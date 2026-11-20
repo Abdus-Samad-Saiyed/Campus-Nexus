@@ -761,8 +761,6 @@ def passkey_reg_verify(request):
         if ("Chrome/" in ua_header and "Edg/" not in ua_header) or "Android" in ua_header or "CrOS" in ua_header:
             is_google_bound = True
 
-        user_bound_id = request.user.email or request.user.enrollment_number
-
         raw_name = data.get('name', '').strip()
         default_placeholders = [
             'Windows Hello / Biometric Key',
@@ -777,7 +775,7 @@ def passkey_reg_verify(request):
             else:
                 key_name = f"{raw_name} — {client_time}"
         elif is_google_bound:
-            key_name = f"Google Password Manager ({user_bound_id}) — {device_origin} • {client_time}"
+            key_name = f"Google Password Manager — {device_origin} • {client_time}"
         elif "iPhone" in ua_header or "iPad" in ua_header or ("Mac" in ua_header and "Safari/" in ua_header and "Chrome/" not in ua_header):
             key_name = f"iCloud Keychain — {device_origin} • {client_time}"
         elif "Windows" in ua_header:
