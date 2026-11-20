@@ -368,9 +368,13 @@
                 border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
                 margin-top: 6px !important;
                 padding-top: 5px !important;
-                padding-bottom: 2px !important;
-                overflow: visible !important;
+                padding-bottom: 4px !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
                 white-space: nowrap !important;
+                gap: 8px !important;
             }
 
             .navbar-mobile-layer-2::-webkit-scrollbar {
@@ -1234,7 +1238,6 @@
                     <button class="btn btn-icon-nav pwa-install-pinned-btn align-items-center justify-content-center green-accent d-none" id="btn-pwa-install-pinned" type="button" title="Install Campus Nexus App" aria-label="Install Campus Nexus App">
                         <i class="bi bi-download" id="pwa-pinned-icon"></i>
                     </button>
-                    <button class="btn-pwa-install-mobile d-none" id="btn-pwa-install-mobile" type="button" aria-hidden="true" style="display:none;"></button>
 
                     {% if user.is_authenticated and not is_guest_demo %}
                         <!-- Upper Top Navbar Messages Action (between Brand and Profile) -->
@@ -1434,19 +1437,19 @@
                         </div>
 
                         <!-- Student Directory Quick-Action Pill -->
-                        <a href="{% url 'user_search' %}" class="mobile-nav-pill flex-fill justify-content-center {% if request.resolver_match.url_name == 'user_search' %}active{% endif %}" title="Verified Student Directory">
+                        <a href="{% url 'user_search' %}" class="mobile-nav-pill justify-content-center {% if request.resolver_match.url_name == 'user_search' %}active{% endif %}" title="Verified Student Directory">
                             <i class="bi bi-people-fill green-accent me-1"></i>
                             <span>Directory</span>
                         </a>
 
                         <!-- Feedback & Bug Tracker Quick-Action Pill -->
-                        <a href="{% url 'feedback' %}" class="mobile-nav-pill flex-fill justify-content-center {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active{% endif %}" title="Feedback & Bug Tracker">
+                        <a href="{% url 'feedback' %}" class="mobile-nav-pill justify-content-center {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active{% endif %}" title="Feedback & Bug Tracker">
                             <i class="bi bi-bug-fill green-accent me-1"></i>
                             <span>Feedback</span>
                         </a>
                     {% else %}
-                        <div class="dropdown flex-fill">
-                            <button class="mobile-nav-pill dropdown-toggle border-0 w-100 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="dropdown">
+                            <button class="mobile-nav-pill dropdown-toggle border-0 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-grid-fill green-accent me-1"></i>
                                 <span>Services</span>
                             </button>
@@ -1463,15 +1466,23 @@
                                 </a>
                             </div>
                         </div>
-                        <a href="/#about" class="mobile-nav-pill flex-fill justify-content-center">
+                        <a href="/coordinate/" class="mobile-nav-pill justify-content-center" title="Explore Ride Sharing">
+                            <i class="bi bi-car-front-fill green-accent me-1"></i>
+                            <span>Rides</span>
+                        </a>
+                        <a href="{% url 'enter_guest_demo' %}" class="mobile-nav-pill justify-content-center text-info" title="Try Guest Demo Mode">
+                            <i class="bi bi-incognito text-info me-1"></i>
+                            <span>Demo</span>
+                        </a>
+                        <a href="/#about" class="mobile-nav-pill justify-content-center" title="About Campus Nexus">
                             <i class="bi bi-info-circle text-secondary me-1"></i>
                             <span>About</span>
                         </a>
-                        <a href="/#contributors" class="mobile-nav-pill flex-fill justify-content-center">
+                        <a href="/#contributors" class="mobile-nav-pill justify-content-center" title="Contributors">
                             <i class="bi bi-people green-accent me-1"></i>
                             <span>Contributors</span>
                         </a>
-                        <a href="/#contact" class="mobile-nav-pill flex-fill justify-content-center">
+                        <a href="/#contact" class="mobile-nav-pill justify-content-center" title="Contact Desk">
                             <i class="bi bi-envelope green-accent me-1"></i>
                             <span>Contact</span>
                         </a>
@@ -1480,6 +1491,24 @@
             </div>
 
             <div class="collapse navbar-collapse" id="navbarMain">
+                <!-- Mobile Dropdown PWA Install Banner -->
+                <div class="p-3 d-lg-none border-bottom border-secondary border-opacity-25">
+                    <button class="btn-pwa-install-mobile d-none w-100 justify-content-between align-items-center" id="btn-pwa-install-mobile" type="button" aria-label="Install Campus Nexus App">
+                        <div class="d-flex align-items-center gap-2.5">
+                            <span class="pwa-mobile-icon-bubble flex-shrink-0">
+                                <i class="bi bi-download" id="pwa-mobile-icon"></i>
+                            </span>
+                            <div class="d-flex flex-column text-start ms-2">
+                                <span class="pwa-mobile-title pwa-mobile-install-title">Install Campus Nexus</span>
+                                <span class="pwa-mobile-subtitle pwa-mobile-install-subtitle">Instant Fullscreen Web App</span>
+                            </div>
+                        </div>
+                        <div class="pwa-mobile-badge ms-auto">
+                            <span class="badge">Install</span>
+                        </div>
+                    </button>
+                </div>
+
                 <!-- Left-Aligned Navigation Links: Messages, Student Directory, Explore -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-1 align-items-lg-center">
                     {% if user.is_authenticated and not is_guest_demo %}
@@ -1938,7 +1967,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-secondary small">
-                    <p class="text-white mb-3">Install Campus Nexus for lightning-fast fullscreen coordination, 2-week persistent passkey sign-in, and offline safety features:</p>
+                    <p class="text-white mb-3">Install Campus Nexus for lightning-fast fullscreen coordination, stay signed in for 2 weeks of inactivity via passkeys, and offline safety features:</p>
 
                     <div class="p-3 mb-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
                         <div class="fw-bold text-white mb-2 d-flex align-items-center gap-2">
@@ -3522,6 +3551,10 @@
                 mobileInstallBtn.classList.add('d-flex');
                 const label = mobileInstallBtn.querySelector('.pwa-mobile-install-title');
                 if (label) label.textContent = 'Add to Home Screen (iOS)';
+                const subtitle = mobileInstallBtn.querySelector('.pwa-mobile-install-subtitle');
+                if (subtitle) subtitle.textContent = "Tap Share, then 'Add to Home Screen'";
+                const icon = mobileInstallBtn.querySelector('#pwa-mobile-icon');
+                if (icon) icon.className = 'bi bi-box-arrow-up';
             }
             if (pinnedInstallBtn) {
                 pinnedInstallBtn.classList.remove('d-none');

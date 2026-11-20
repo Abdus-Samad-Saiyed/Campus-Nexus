@@ -143,7 +143,7 @@ class MobileAccentAndUISettingsTests(TestCase):
         self.assertNotIn('scroll-margin-top: var(--navbar-scroll-offset', main_css)
 
     def test_mobile_navbar_overlay_and_scroll_offset_script_rendered(self):
-        """Base template renders overflow-visible mobile sub-bar and dynamic navbar scroll offset helper."""
+        """Base template renders horizontal-scrollable mobile sub-bar and dynamic navbar scroll offset helper."""
         res = self.client.get(reverse('dashboard'))
         self.assertEqual(res.status_code, 200)
         html = res.content.decode('utf-8')
@@ -151,8 +151,8 @@ class MobileAccentAndUISettingsTests(TestCase):
         self.assertIn('--navbar-scroll-offset', html)
         layer2_idx = html.index('.navbar-mobile-layer-2 {')
         layer2_block = html[layer2_idx:html.index('}', layer2_idx) + 1]
-        self.assertIn('overflow: visible !important;', layer2_block)
-        self.assertNotIn('overflow-x: auto', layer2_block)
+        self.assertIn('overflow-x: auto !important;', layer2_block)
+        self.assertIn('-webkit-overflow-scrolling: touch !important;', layer2_block)
 
 
 

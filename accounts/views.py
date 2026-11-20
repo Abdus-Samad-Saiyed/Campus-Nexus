@@ -132,11 +132,34 @@ def _get_landing_context(request):
         .order_by('-bugs', '-total')[:4]
     )
 
+    public_upcoming_rides = []
+    try:
+        from coordinate.models import RideRequest
+        from django.utils import timezone
+        now = timezone.now()
+        rides_qs = (
+            RideRequest.objects.filter(status='OPEN', departure_time__gte=now)
+            .order_by('departure_time')[:3]
+        )
+        for r in rides_qs:
+            public_upcoming_rides.append({
+                'id': r.id,
+                'from_location': r.from_location,
+                'to_location': r.to_location,
+                'departure_time': r.departure_time,
+                'available_seats': r.available_seats,
+                'total_spots': r.total_spots,
+                'is_full': r.is_full,
+            })
+    except Exception:
+        public_upcoming_rides = []
+
     return {
         'services': services,
         'contributors': contributors,
         'can_manage_contributors': can_manage_contributors,
         'top_bug_hunters': top_bug_hunters,
+        'public_upcoming_rides': public_upcoming_rides,
     }
 
 

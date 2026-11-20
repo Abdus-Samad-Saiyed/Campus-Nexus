@@ -27,8 +27,8 @@ env = environ.Env(
     EMAIL_TIMEOUT=(int, 10),
     DEFAULT_FROM_EMAIL=(str, 'Campus Nexus <noreply.campus.nexus@gmail.com>'),
     DJANGO_SESSION_ENGINE=(str, 'django.contrib.sessions.backends.cached_db'),
-    SESSION_IDLE_TIMEOUT=(int, 1800),
-    SESSION_COOKIE_AGE=(int, 86400),
+    SESSION_IDLE_TIMEOUT=(int, 14 * 86400),
+    SESSION_COOKIE_AGE=(int, 14 * 86400),
     DJANGO_TRUST_X_FORWARDED_FOR=(bool, False),
     DJANGO_TRUSTED_PROXY_IPS=(list, ['127.0.0.1']),
     WEBAUTHN_RP_ID=(str, 'localhost'),
@@ -249,10 +249,10 @@ CACHES = {
 # across authenticated endpoints while maintaining persistent write-through to DB.
 SESSION_ENGINE = env.str('DJANGO_SESSION_ENGINE')
 
-# Inactivity timeout in seconds (default: 1800s = 30 minutes of idle time)
+# Inactivity timeout in seconds (default: 14 days of idle time = 1,209,600s)
 SESSION_IDLE_TIMEOUT = env.int('SESSION_IDLE_TIMEOUT')
 
-# Absolute maximum session lifetime in seconds (default: 86400s = 24 hours)
+# Session cookie age in seconds (default: 14 days = 1,209,600s)
 SESSION_COOKIE_AGE = env.int('SESSION_COOKIE_AGE')
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'

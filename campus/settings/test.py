@@ -17,6 +17,9 @@ from .base import *
 DEBUG = False
 TESTING = True
 
+# Deterministic fast session idle timeout for unit tests (1800s)
+SESSION_IDLE_TIMEOUT = 1800
+
 # Direct uploaded test media to isolated temporary directory and purge at exit
 _TEST_MEDIA_DIR = tempfile.mkdtemp(prefix='campus_test_media_')
 MEDIA_ROOT = Path(_TEST_MEDIA_DIR)

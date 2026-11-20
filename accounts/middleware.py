@@ -94,7 +94,7 @@ class IdleSessionTimeoutMiddleware:
                 if is_app:
                     idle_timeout = 14 * 86400  # 2 weeks for downloaded app on PC and Mobile
                 else:
-                    idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800)
+                    idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 14 * 86400)
                 if idle_timeout and idle_timeout > 0:
                     now = time.time()
                     last_activity = request.session.get('last_activity')
@@ -117,17 +117,18 @@ class IdleSessionTimeoutMiddleware:
                                     status=401,
                                 )
                             if request.headers.get('HX-Request') == 'true':
-                                messages.info(request, "Your session has expired due to inactivity. Please sign in again.")
+                                messages.info(request, "Your session has expired due to 2 weeks of inactivity. Please sign in again.")
                                 response = HttpResponse(status=200)
                                 response['HX-Redirect'] = reverse('login')
                                 return response
 
-                            messages.info(request, "Your session has expired due to inactivity. Please sign in again.")
+                            messages.info(request, "Your session has expired due to 2 weeks of inactivity. Please sign in again.")
                             return redirect('login')
 
                     # Throttle updating last_activity to avoid saving the session on every request
                     if last_activity is None or (now - float(last_activity)) > 60:
                         request.session['last_activity'] = now
+                        request.session.set_expiry(idle_timeout)
                         request.session.modified = True
                         try:
                             from django.utils import timezone

@@ -59,7 +59,7 @@ def early_launch_context(request):
         'incoming_friend_requests_count': friend_requests_count,
         'unread_messages_count': unread_messages_count,
         'pending_applications_count': pending_apps_count,
-        'session_idle_timeout': (14 * 86400) if is_app else getattr(settings, 'SESSION_IDLE_TIMEOUT', 1800),
+        'session_idle_timeout': (14 * 86400) if is_app else getattr(settings, 'SESSION_IDLE_TIMEOUT', 14 * 86400),
         'is_downloaded_app': is_app,
         'app_remembered_user': request.COOKIES.get('nexus_app_remembered_user', ''),
     }

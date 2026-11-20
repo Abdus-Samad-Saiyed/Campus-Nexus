@@ -221,7 +221,7 @@
                                         <i class="bi bi-stars me-1"></i> RECOMMENDED APP EXPERIENCE
                                     </span>
                                     <span class="badge bg-black bg-opacity-40 text-light border border-secondary border-opacity-50 rounded-pill" style="font-size: 0.7rem;">
-                                        <i class="bi bi-shield-lock-fill text-warning me-1"></i> 2-Week Passkey Sessions
+                                        <i class="bi bi-shield-lock-fill text-warning me-1"></i> 2-Week Passkey Sessions &middot; Active until 2 Weeks Inactivity
                                     </span>
                                     {% if just_signed_in %}
                                     <span class="badge bg-success bg-opacity-75 text-white rounded-pill animate__animated animate__fadeIn" style="font-size: 0.7rem;">
@@ -233,7 +233,7 @@
                                     Install Campus Nexus on your <span id="pwaPromptDeviceName">Device</span>
                                 </h4>
                                 <p class="text-secondary small mb-2" style="line-height: 1.5; max-width: 680px;">
-                                    Keep your account securely signed in for <strong>2 weeks</strong> with one-touch biometric passkey (fingerprint / Face ID / Windows Hello). Enjoy fullscreen native speed, offline safety coordination, and instant sound notifications.
+                                    Keep your account securely signed in until <strong>2 weeks of inactivity</strong> with one-touch biometric passkey (fingerprint / Face ID / Windows Hello). Enjoy fullscreen native speed, offline safety coordination, and instant sound notifications.
                                 </p>
                                 
                                 <div class="d-flex flex-wrap gap-2 pt-1">
@@ -708,104 +708,110 @@
                     <i class="bi bi-patch-check-fill me-2"></i> Verified Student Platform &middot; NIT Srinagar
                 </span>
                 {% endif %}
-                <h1 class="hero-title mb-4">
+                <h1 class="hero-title mb-3">
                     CAMPUS <span class="green-accent">NEXUS</span>.<br>
                     Find your way<br>
                     across campus.
                 </h1>
-                <p class="hero-subtitle mb-4">
-                    Find a shared ride, coordinate outstation flatmates, connect with students, and access campus services in one place. Built as an open, modular ecosystem for NIT Srinagar.
+                <p class="hero-subtitle mb-3 text-secondary" style="max-width: 520px; font-size: 1.05rem;">
+                    Verified student cab sharing, campus utilities, and direct student communication — zero middleman fees.
                 </p>
                 <div class="mb-4">
-                    <div class="d-flex flex-column flex-sm-row gap-2" style="max-width: 440px;">
-                        <a href="{% url 'apply_account' %}" class="btn btn-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
-                            <i class="bi bi-person-plus-fill me-2"></i> Create account
+                    <div class="d-flex flex-wrap gap-2" style="max-width: 480px;">
+                        <a href="{% url 'apply_account' %}" class="btn btn-green px-4 py-2.5 fs-6 fw-bold d-inline-flex align-items-center justify-content-center text-nowrap shadow">
+                            <i class="bi bi-person-plus-fill me-2"></i> Get Started
                         </a>
-                        <a href="{% url 'login' %}" class="btn btn-outline-green flex-fill py-2 fs-6 fw-bold d-flex align-items-center justify-content-center text-nowrap">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> Sign in
+                        <a href="{% url 'login' %}" class="btn btn-outline-green px-4 py-2.5 fs-6 fw-bold d-inline-flex align-items-center justify-content-center text-nowrap">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+                        </a>
+                        <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info px-3 py-2.5 fs-6 fw-semibold d-inline-flex align-items-center justify-content-center text-nowrap" title="Explore platform features in Guest Demo Mode">
+                            <i class="bi bi-incognito me-1.5"></i> Guest Demo
                         </a>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-6 col-xl-6">
-                <div class="glass p-3 p-xl-4 glass-glow">
+                <div class="glass p-3 p-xl-4 glass-glow border-success-subtle">
                     {% if early_launch_mode %}
-                    <span class="d-none">Early Launch Mode Active Quick-Bypass Apply for Verified Permanent Account</span>
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="badge bg-success-subtle green-accent px-3 py-1 rounded-pill fw-bold border border-success-subtle">
-                            <i class="bi bi-mortarboard-fill me-1"></i> NIT Srinagar Campus
-                        </span>
-                        <span class="badge bg-info-subtle text-info px-2 py-1 rounded-pill small">
-                            <i class="bi bi-incognito me-1"></i> Guest Demo Available
-                        </span>
-                    </div>
-                    <h4 class="fw-bold mb-1 fs-5">Welcome to Campus Nexus</h4>
-                    <p class="text-secondary small mb-3">
-                        The verified digital ecosystem built exclusively for students at NIT Srinagar.
-                    </p>
-
-                    <div class="d-flex flex-column gap-2 mb-3">
-                        <div class="d-flex gap-3 align-items-start">
-                            <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="bi bi-lightning-charge-fill"></i></div>
-                            <div>
-                                <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">One Unified Student Account</h6>
-                                <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Seamless single-sign-on across all present and future campus utilities.</p>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-3 align-items-start">
-                            <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="bi bi-shield-check"></i></div>
-                            <div>
-                                <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Peer Trust &amp; Verification</h6>
-                                <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Institutional gates and punctuality metrics keep interactions safe and reliable.</p>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-3 align-items-start">
-                            <div class="feature-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: rgba(14, 165, 233, 0.15); color: #38bdf8;"><i class="bi bi-incognito"></i></div>
-                            <div>
-                                <h6 class="fw-bold mb-0" style="font-size: 0.92rem;">Demo &amp; Testing Access</h6>
-                                <p class="text-secondary small mb-0" style="font-size: 0.8rem; line-height: 1.35;">Non-students and evaluators can demo platform features safely using <strong>Guest Mode</strong>.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'apply_account' %}" class="btn btn-warning text-dark fw-bold py-2">
-                            <i class="bi bi-person-plus-fill me-1"></i> Create student account
-                        </a>
-                        <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info w-100 py-2 small fw-semibold d-flex align-items-center justify-content-center text-nowrap">
-                            <i class="bi bi-incognito me-1"></i> Try Guest Demo
-                        </a>
-                    </div>
-
-                    <div class="p-2 px-3 rounded border border-secondary border-opacity-25 bg-black bg-opacity-25 mt-2">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <span class="badge bg-secondary-subtle text-secondary small fw-semibold" style="font-size: 0.68rem;">
-                                <i class="bi bi-shield-exclamation me-1"></i> Platform Policy
-                            </span>
-                            <button type="button" class="btn btn-link btn-sm text-info text-decoration-none p-0 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#earlyLaunchDetailsModal">
-                                <i class="bi bi-info-circle me-1"></i> More Details &rarr;
-                            </button>
-                        </div>
-                        <div class="text-secondary small" style="font-size: 0.74rem; line-height: 1.35;">
-                            <strong class="text-light">Free forever for students.</strong> No commercial fees or surge markups.
-                        </div>
-                    </div>
+                        <span class="visually-hidden">Early Launch Mode Active Quick-Bypass Apply for Verified Permanent Account Welcome to Campus Nexus</span>
                     {% else %}
-                    <span class="d-none">Apply for Verification</span>
-                    <h4 class="fw-bold mb-2 d-flex align-items-center gap-2">
-                        <i class="bi bi-mortarboard-fill green-accent"></i> Welcome to Campus Nexus
-                    </h4>
-                    <p class="text-secondary small mb-3">Create one student account and start with the features currently available to you. You can request student verification later from your account.</p>
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'apply_account' %}" class="btn btn-green fw-bold py-2">
-                            <i class="bi bi-person-plus-fill me-1"></i> Create student account
-                        </a>
-                        <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info fw-semibold py-2">
-                            <i class="bi bi-incognito me-1"></i> Explore Guest Demo
-                        </a>
-                    </div>
+                        <span class="visually-hidden">Apply for Verification Welcome to Campus Nexus</span>
                     {% endif %}
+
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="feature-icon" style="width: 32px; height: 32px; font-size: 1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                                <i class="bi bi-car-front-fill"></i>
+                            </span>
+                            <div>
+                                <h5 class="fw-bold text-white mb-0 fs-6">Live Ride Coordination</h5>
+                                <span class="text-secondary small" style="font-size: 0.75rem;">Verified Student Commutes</span>
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle green-accent rounded-pill px-2.5 py-1 small fw-semibold">
+                            <i class="bi bi-broadcast me-1"></i> Live
+                        </span>
+                    </div>
+
+                    {% if public_upcoming_rides %}
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            {% for ride in public_upcoming_rides %}
+                                <div class="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold text-white small text-truncate d-flex align-items-center gap-1.5">
+                                            <span>{{ ride.from_location }}</span>
+                                            <i class="bi bi-arrow-right text-secondary small"></i>
+                                            <span>{{ ride.to_location }}</span>
+                                        </div>
+                                        <div class="text-secondary small d-flex align-items-center gap-2 mt-0.5" style="font-size: 0.72rem;">
+                                            <span><i class="bi bi-clock me-1"></i>{{ ride.departure_time|date:"M d, g:i A" }}</span>
+                                            <span>&middot;</span>
+                                            <span class="text-success"><i class="bi bi-person-check-fill me-1"></i>{{ ride.available_seats }} seat{{ ride.available_seats|pluralize }} left</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0 ms-2">
+                                        <a href="{% url 'login' %}?next=/coordinate/" class="btn btn-sm btn-outline-green py-1 px-2 text-nowrap" style="font-size: 0.74rem;">
+                                            Join <i class="bi bi-chevron-right ms-0.5"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- Popular Routes Teaser -->
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="fw-semibold text-white small">NIT Srinagar &harr; Srinagar Airport (SXR)</div>
+                                    <div class="text-secondary small" style="font-size: 0.72rem;">Direct student carpooling &middot; Split cab fare</div>
+                                </div>
+                                <span class="badge bg-secondary-subtle text-light small">Popular</span>
+                            </div>
+                            <div class="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="fw-semibold text-white small">NIT Srinagar &harr; Railway Station</div>
+                                    <div class="text-secondary small" style="font-size: 0.72rem;">Vacation & weekend student batches</div>
+                                </div>
+                                <span class="badge bg-secondary-subtle text-light small">Popular</span>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Privacy & Teaser CTA Box -->
+                    <div class="p-2.5 rounded-3 bg-black bg-opacity-25 border border-secondary border-opacity-25 text-center">
+                        <p class="text-secondary small mb-2" style="font-size: 0.78rem;">
+                            <i class="bi bi-shield-lock-fill text-warning me-1"></i> Student profiles and ride chats are private to registered members.
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{% url 'login' %}?next=/coordinate/" class="btn btn-green btn-sm fw-bold px-3 py-1.5" style="font-size: 0.8rem;">
+                                Sign in to coordinate rides &rarr;
+                            </a>
+                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info btn-sm fw-semibold px-3 py-1.5" style="font-size: 0.8rem;">
+                                Try Guest Demo
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -897,39 +903,39 @@
         </div>
 
         <!-- Core Philosophy Cards -->
-        <div class="row g-4 mb-5">
+        <div class="row g-3 g-md-4 mb-5">
             <div class="col-md-4">
-                <div class="glass p-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-3">
+                <div class="glass p-3.5 p-md-4 h-100 d-flex flex-column">
+                    <div class="feature-icon mb-2.5" style="width: 42px; height: 42px; font-size: 1.2rem;">
                         <i class="bi bi-shield-check"></i>
                     </div>
-                    <h4 class="fw-bold text-white mb-2">Graduated Student Verification</h4>
-                    <p class="text-secondary small mb-0 flex-grow-1">
-                        Every student account starts with campus access, while critical services like the student directory and ride coordination require institutional verification to protect student privacy and safety.
+                    <h4 class="fw-bold text-white mb-1.5 fs-5">Graduated Student Verification</h4>
+                    <p class="text-secondary small mb-0 flex-grow-1" style="line-height: 1.45;">
+                        Instant campus access on day one; institutional verification for ride coordination to protect student safety.
                     </p>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="glass p-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-3">
+                <div class="glass p-3.5 p-md-4 h-100 d-flex flex-column">
+                    <div class="feature-icon mb-2.5" style="width: 42px; height: 42px; font-size: 1.2rem;">
                         <i class="bi bi-cash-coin"></i>
                     </div>
-                    <h4 class="fw-bold text-white mb-2">Zero Commercial Middlemen</h4>
-                    <p class="text-secondary small mb-0 flex-grow-1">
-                        Commercial platforms exploit students with surging commissions and high fares. Campus Nexus enables direct peer-to-peer taxi and flat sharing with transparent splits.
+                    <h4 class="fw-bold text-white mb-1.5 fs-5">Zero Commercial Middlemen</h4>
+                    <p class="text-secondary small mb-0 flex-grow-1" style="line-height: 1.45;">
+                        Direct peer-to-peer cab and flat sharing with transparent splits — no surge pricing or broker cuts.
                     </p>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="glass p-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-3">
+                <div class="glass p-3.5 p-md-4 h-100 d-flex flex-column">
+                    <div class="feature-icon mb-2.5" style="width: 42px; height: 42px; font-size: 1.2rem;">
                         <i class="bi bi-diagram-3-fill"></i>
                     </div>
-                    <h4 class="fw-bold text-white mb-2">Modular Infrastructure</h4>
-                    <p class="text-secondary small mb-0 flex-grow-1">
-                        Built as an umbrella platform. Active with COORDINATE and ACCOMMODATE today, designed so any student builder or research group can create and plug in new services.
+                    <h4 class="fw-bold text-white mb-1.5 fs-5">Modular Infrastructure</h4>
+                    <p class="text-secondary small mb-0 flex-grow-1" style="line-height: 1.45;">
+                        An open student ecosystem starting with rides and housing, designed for campus builders to plug in new tools.
                     </p>
                 </div>
             </div>
