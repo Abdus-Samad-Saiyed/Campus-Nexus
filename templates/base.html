@@ -1284,7 +1284,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="mt-1.5">
+                                    <div class="mt-1.5 d-flex align-items-center gap-1.5 flex-wrap">
                                         {% if is_guest_demo %}
                                             <span class="badge bg-info-subtle text-info py-0 px-1" style="font-size: 0.62rem;">GUEST DEMO</span>
                                         {% elif user.is_superuser %}
@@ -1293,6 +1293,8 @@
                                             <span class="badge bg-success-subtle green-accent py-0 px-1" style="font-size: 0.62rem;">STAFF</span>
                                         {% elif user.verified %}
                                             <span class="badge bg-success-subtle text-success py-0 px-1" style="font-size: 0.62rem;">VERIFIED</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary py-0 px-1" style="font-size: 0.62rem;">UNVERIFIED</span>
                                         {% endif %}
                                     </div>
                                 </li>
@@ -1799,11 +1801,17 @@
                                 <li class="px-3 py-2 border-bottom border-secondary border-opacity-25 mb-1">
                                     <div class="fw-bold text-truncate text-white">{{ user.get_full_name|default:user.enrollment_number }}</div>
                                     <div class="small text-secondary font-mono">{{ user.enrollment_number }}</div>
-                                    {% if user.is_superuser %}
-                                        <span class="badge bg-danger-subtle text-danger mt-1" style="font-size: 0.65rem;">Superuser Authority</span>
-                                    {% elif user.is_staff %}
-                                        <span class="badge bg-success-subtle green-accent mt-1" style="font-size: 0.65rem;">Institute Staff</span>
-                                    {% endif %}
+                                    <div class="mt-1 d-flex align-items-center gap-1.5 flex-wrap">
+                                        {% if user.is_superuser %}
+                                            <span class="badge bg-danger-subtle text-danger" style="font-size: 0.65rem;">Superuser Authority</span>
+                                        {% elif user.is_staff %}
+                                            <span class="badge bg-success-subtle green-accent" style="font-size: 0.65rem;">Institute Staff</span>
+                                        {% elif user.verified %}
+                                            <span class="badge bg-success-subtle text-success" style="font-size: 0.65rem;">Verified Student</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">Unverified Account</span>
+                                        {% endif %}
+                                    </div>
                                 </li>
 
                                 {% if is_guest_demo %}
@@ -1816,6 +1824,11 @@
                                 <li>
                                     <a class="dropdown-item py-2 d-flex align-items-center justify-content-between" href="{% url 'profile' user.enrollment_number %}">
                                         <span><i class="bi bi-person-circle me-2 text-primary"></i>My Profile</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center justify-content-between" href="{% url 'account_settings' %}">
+                                        <span><i class="bi bi-gear-fill me-2 green-accent"></i>Account Settings</span>
                                     </a>
                                 </li>
                                 {% endif %}

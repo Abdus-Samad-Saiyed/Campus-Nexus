@@ -634,6 +634,9 @@ def can_resend_otp(user: User = None, phone_number: str = None, email: str = Non
     if not latest:
         return True, 0
 
+    if latest.is_used:
+        return True, 0
+
     cooldown = 5 if getattr(settings, 'DEBUG', False) else RESEND_COOLDOWN_SECONDS
     elapsed = (timezone.now() - latest.created_at).total_seconds()
     if elapsed < cooldown:

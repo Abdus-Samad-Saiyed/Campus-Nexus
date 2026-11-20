@@ -70,9 +70,10 @@ def check_step_up_or_recent_auth(request, max_age_seconds: int = 900) -> bool:
     return False
 
 
-def is_passkey_step_up_active(request, max_age_seconds: int = 900) -> bool:
+def is_passkey_step_up_active(request, max_age_seconds: int = 1800) -> bool:
     """Verify session freshness for passkey registration and security credential modifications.
     Enforces active step-up reauthentication across all environments without artificial test bypass.
+    Defaults to 1800 seconds (30 minutes).
     """
     if getattr(request.user, 'is_debug_account', False):
         return True
@@ -96,7 +97,11 @@ def is_passkey_step_up_active(request, max_age_seconds: int = 900) -> bool:
 
     admin_pw = request.POST.get('admin_password', '').strip() or request.POST.get('current_password', '').strip()
     if admin_pw and request.user.is_authenticated and request.user.check_password(admin_pw):
-        request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=15)).isoformat()
+        request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+        try:
+            request.session.save()
+        except Exception:
+            pass
         return True
 
     return False

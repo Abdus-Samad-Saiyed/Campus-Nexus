@@ -616,7 +616,11 @@ def passkey_auth_verify(request):
                 request.session['just_signed_in'] = True
 
             request.session['auth_timestamp'] = timezone.now().timestamp()
-            request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=15)).isoformat()
+            request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+            try:
+                request.session.save()
+            except Exception:
+                pass
             log_audit_event(
                 event_type='LOGIN_SUCCESS',
                 actor_enrollment=user.enrollment_number,
@@ -655,12 +659,23 @@ def passkey_reg_challenge(request):
     challenge = generate_webauthn_challenge()
     request.session['passkey_reg_challenge'] = challenge
     request.session['passkey_reg_challenge_time'] = timezone.now().timestamp()
+    try:
+        request.session.save()
+    except Exception:
+        pass
+
+    existing_creds = list(
+        PasskeyCredential.objects.filter(user=request.user)
+        .values_list('credential_id', flat=True)
+    )
+
     return JsonResponse({
         'challenge': challenge,
         'user_id': str(request.user.pk),
         'user_name': request.user.enrollment_number,
         'display_name': request.user.display_name,
         'rp_id': _get_webauthn_rp_id(request),
+        'exclude_credentials': existing_creds,
     })
 
 
@@ -726,6 +741,7 @@ def passkey_reg_verify(request):
 
         # Label biometric keys by device of origin and time
         device_origin = data.get('device') or data.get('device_name')
+        ua_header = request.META.get('HTTP_USER_AGENT', '')
         if not device_origin or device_origin in [
             'Windows Hello / Biometric Key',
             'Windows Hello / Biometric Passkey',
@@ -733,13 +749,19 @@ def passkey_reg_verify(request):
             'Biometric Key',
             'Passkey',
         ]:
-            ua_header = request.META.get('HTTP_USER_AGENT', '')
             device_origin = get_device_of_origin_from_ua(ua_header)
 
         client_time = data.get('client_time')
         if not client_time:
             now = timezone.localtime(timezone.now())
             client_time = now.strftime("%b %d, %Y, %I:%M %p")
+
+        # Determine if authenticator is Google Password Manager (Chrome, Android, Chromebook)
+        is_google_bound = False
+        if ("Chrome/" in ua_header and "Edg/" not in ua_header) or "Android" in ua_header or "CrOS" in ua_header:
+            is_google_bound = True
+
+        user_bound_id = request.user.email or request.user.enrollment_number
 
         raw_name = data.get('name', '').strip()
         default_placeholders = [
@@ -749,13 +771,26 @@ def passkey_reg_verify(request):
             'Passkey',
             'Biometric Key',
         ]
-        if raw_name and raw_name not in default_placeholders:
+        if raw_name and raw_name not in default_placeholders and not raw_name.startswith('Passkey —'):
             if "—" in raw_name or "•" in raw_name:
                 key_name = raw_name
             else:
                 key_name = f"{raw_name} — {client_time}"
+        elif is_google_bound:
+            key_name = f"Google Password Manager ({user_bound_id}) — {device_origin} • {client_time}"
+        elif "iPhone" in ua_header or "iPad" in ua_header or ("Mac" in ua_header and "Safari/" in ua_header and "Chrome/" not in ua_header):
+            key_name = f"iCloud Keychain — {device_origin} • {client_time}"
+        elif "Windows" in ua_header:
+            key_name = f"Windows Hello — {device_origin} • {client_time}"
         else:
             key_name = f"{device_origin} — {client_time}"
+
+        base_name = key_name[:95]
+        counter = 1
+        key_name = base_name
+        while PasskeyCredential.objects.filter(user=request.user, name=key_name).exists():
+            key_name = f"{base_name} ({counter})"
+            counter += 1
 
         effective_origin, server_rp_id, _ = _get_webauthn_origin_and_rp_id(request)
 
@@ -800,9 +835,16 @@ def passkey_reg_verify(request):
 @rate_limit(key_prefix='ver_sec_otp', limit=10, period_seconds=60)
 @require_POST
 def verify_security_otp(request):
-    """Validate submitted phone/email OTP inline to activate 10-minute session grace window without full page submission."""
+    """Validate submitted phone/email OTP inline to activate 30-minute session grace window without full page submission."""
+    from accounts.throttling import get_client_ip
+    from django.core.cache import cache
+
     if getattr(request.user, 'is_debug_account', False):
-        request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+        request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+        try:
+            request.session.save()
+        except Exception:
+            pass
         return JsonResponse({'success': True, 'message': 'Debug account verified.'})
 
     try:
@@ -818,10 +860,21 @@ def verify_security_otp(request):
     if not ok:
         return JsonResponse({'success': False, 'error': msg}, status=400)
 
-    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=10)).isoformat()
+    # Invalidate rate-limiting circuit on send_security_otp so subsequent operations are never throttled
+    try:
+        client_ip = get_client_ip(request)
+        cache.delete(f'ratelimit:send_security_otp:{client_ip}')
+    except Exception:
+        pass
+
+    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+    try:
+        request.session.save()
+    except Exception:
+        pass
     return JsonResponse({
         'success': True,
-        'message': 'Identity verified successfully! 10-minute grace window active.',
+        'message': 'Identity verified successfully! 30-minute grace window active.',
     })
 
 
@@ -829,7 +882,7 @@ def verify_security_otp(request):
 @rate_limit(key_prefix='step_up', limit=5, period_seconds=60)
 @require_POST
 def verify_security_step_up(request):
-    """Validate current password and security OTP to unlock sensitive security actions for 5 minutes."""
+    """Validate current password and security OTP to unlock sensitive security actions for 30 minutes."""
     current_pw = request.POST.get('current_password', '').strip()
     if not current_pw or not request.user.check_password(current_pw):
         return JsonResponse({'success': False, 'error': 'Current password is required and must be correct.'}, status=400)
@@ -840,7 +893,19 @@ def verify_security_step_up(request):
         if not ok:
             return JsonResponse({'success': False, 'error': msg}, status=400)
 
-    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=5)).isoformat()
+    from accounts.throttling import get_client_ip
+    from django.core.cache import cache
+    try:
+        client_ip = get_client_ip(request)
+        cache.delete(f'ratelimit:send_security_otp:{client_ip}')
+    except Exception:
+        pass
+
+    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+    try:
+        request.session.save()
+    except Exception:
+        pass
     return JsonResponse({'success': True, 'message': 'Security verification confirmed.'})
 
 @login_required
@@ -856,24 +921,21 @@ def passkey_delete(request, credential_id):
             'requires_step_up': True,
         }, status=403)
 
-    # Anti-lockout invariant: students cannot delete their last remaining passkey
-    if PasskeyCredential.objects.filter(user=request.user).count() <= 1:
-        return JsonResponse({
-            'success': False,
-            'error': 'You need at least one passkey saved. Add a new one before removing this.',
-            'learn_more': '/learn-more/passkey-lockout/'
-        }, status=400)
-
     cred = get_object_or_404(PasskeyCredential, id=credential_id, user=request.user)
     cred_name = cred.name
     cred.delete()
 
+    remaining_count = PasskeyCredential.objects.filter(user=request.user).count()
+
     log_audit_event(
         event_type='SECURITY_SETTINGS_UPDATED',
         actor_enrollment=request.user.enrollment_number,
-        description=f'Deleted passkey credential: {cred_name[:50]}',
+        description=f'Deleted passkey credential: {cred_name[:50]} (remaining: {remaining_count})',
     )
-    return JsonResponse({'success': True, 'message': 'Passkey deleted successfully.'})
+    response = JsonResponse({'success': True, 'message': 'Passkey deleted successfully.', 'remaining_count': remaining_count})
+    if remaining_count == 0 and 'nexus_app_remembered_user' in request.COOKIES:
+        response.delete_cookie('nexus_app_remembered_user', path='/')
+    return response
 
 @login_required
 @rate_limit(key_prefix='passkey_stepup_ver', limit=10, period_seconds=60)
@@ -903,7 +965,11 @@ def passkey_step_up_verify(request):
             expected_origin=effective_origin,
         )
         if success:
-            request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=15)).isoformat()
+            request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+            try:
+                request.session.save()
+            except Exception:
+                pass
             return JsonResponse({'success': True, 'message': 'Biometric passkey verified! You can now update your profile.'})
         return JsonResponse({'success': False, 'error': msg or 'Passkey verification failed.'}, status=400)
     except Exception as exc:
@@ -1225,6 +1291,12 @@ def apply_account(request):
                 login(request, user, backend='accounts.backends.EnrollmentBackend')
                 if not is_downloaded_app_request(request):
                     request.session['just_signed_in'] = True
+                request.session['auth_timestamp'] = timezone.now().timestamp()
+                request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+                try:
+                    request.session.save()
+                except Exception:
+                    pass
                 messages.success(
                     request,
                     "Your account is active. You can request student verification later from your account."
@@ -1320,6 +1392,12 @@ def apply_account(request):
                     login(request, user, backend='accounts.backends.EnrollmentBackend')
                     if not is_downloaded_app_request(request):
                         request.session['just_signed_in'] = True
+                    request.session['auth_timestamp'] = timezone.now().timestamp()
+                    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+                    try:
+                        request.session.save()
+                    except Exception:
+                        pass
                     messages.success(request, 'Your account is ready. You can request student verification later from your account.')
                     return redirect('dashboard')
 
@@ -1551,6 +1629,12 @@ def apply_account(request):
                     login(request, user, backend='accounts.backends.EnrollmentBackend')
                     if not is_downloaded_app_request(request):
                         request.session['just_signed_in'] = True
+                    request.session['auth_timestamp'] = timezone.now().timestamp()
+                    request.session['security_otp_verified_until'] = (timezone.now() + timedelta(minutes=30)).isoformat()
+                    try:
+                        request.session.save()
+                    except Exception:
+                        pass
 
                     messages.success(
                         request,
@@ -1754,17 +1838,9 @@ def profile_view(request, enrollment_number):
     is_self = profile_user == request.user
     is_moderator = request.user.is_staff or request.user.is_superuser
 
-    # 10-minute session grace window for security changes
-    grace_str = request.session.get('security_otp_verified_until')
-    grace_active = False
-    if grace_str:
-        try:
-            from datetime import datetime as dt_cls
-            grace_dt = dt_cls.fromisoformat(grace_str)
-            if timezone.now() < grace_dt:
-                grace_active = True
-        except Exception:
-            pass
+    # Session grace window for security changes
+    from accounts.utils import is_passkey_step_up_active
+    grace_active = is_passkey_step_up_active(request, max_age_seconds=1800)
 
     if request.method == 'POST' and is_self:
         new_phone = request.POST.get('phone_number', '').strip()
@@ -1986,17 +2062,9 @@ def account_settings_view(request, section=None):
     if section not in valid_sections:
         section = 'overview'
 
-    # Check 10-minute session grace window for security changes
-    grace_str = request.session.get('security_otp_verified_until')
-    grace_active = False
-    if grace_str:
-        try:
-            from datetime import datetime as dt_cls
-            grace_dt = dt_cls.fromisoformat(grace_str)
-            if timezone.now() < grace_dt:
-                grace_active = True
-        except Exception:
-            pass
+    # Check session grace window for security changes (honoring recent re-auth or OTP step-up)
+    from accounts.utils import is_passkey_step_up_active
+    grace_active = is_passkey_step_up_active(request, max_age_seconds=1800)
 
     if request.method == 'POST':
         action = request.POST.get('settings_action', section).strip().lower()

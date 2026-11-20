@@ -598,6 +598,8 @@ class PasskeyCredential(models.Model):
             return 'bi-apple text-light'
         elif 'android' in name_lower:
             return 'bi-android2 text-success'
+        elif 'google' in name_lower:
+            return 'bi-google text-danger'
         elif 'linux' in name_lower or 'ubuntu' in name_lower:
             return 'bi-ubuntu text-danger'
         elif 'chromebook' in name_lower or 'cros' in name_lower:

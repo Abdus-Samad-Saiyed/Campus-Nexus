@@ -282,38 +282,55 @@
             </div>
             {% endif %}
 
-            {% if is_self and registered_passkeys %}
-            <!-- Registered Passkeys Card -->
-            <div class="glass p-4 mt-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">
-                        <i class="bi bi-fingerprint green-accent me-2"></i>Registered Passkeys
-                    </h5>
-                    <span class="badge bg-secondary-subtle text-secondary small">{{ registered_passkeys|length }} Active</span>
-                </div>
-                <div class="d-flex flex-column gap-2">
-                    {% for pk in registered_passkeys %}
-                    <div class="d-flex justify-content-between align-items-center small py-2 px-3 bg-dark bg-opacity-60 rounded border border-secondary border-opacity-50">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="fs-6">
-                                <i class="bi {{ pk.device_icon }}"></i>
-                            </div>
-                            <div>
-                                <div class="fw-semibold text-light" style="font-size: 0.85rem;">
-                                    {{ pk.name|default:"Biometric Key" }}
+            {% if is_self %}
+                {% if registered_passkeys %}
+                <!-- Registered Passkeys Card -->
+                <div class="glass p-4 mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-fingerprint green-accent me-2"></i>Registered Passkeys
+                        </h5>
+                        <span class="badge bg-secondary-subtle text-secondary small">{{ registered_passkeys|length }} Active</span>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                        {% for pk in registered_passkeys %}
+                        <div class="d-flex justify-content-between align-items-center small py-2 px-3 bg-dark bg-opacity-60 rounded border border-secondary border-opacity-50">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="fs-6">
+                                    <i class="bi {{ pk.device_icon }}"></i>
                                 </div>
-                                <div class="text-secondary" style="font-size: 0.75rem;">
-                                    <i class="bi bi-clock-history me-1"></i>Enrolled {{ pk.created_at|date:"M j, Y — h:i A" }}
-                                    {% if pk.last_used_at %}
-                                        &middot; Last used {{ pk.last_used_at|timesince }} ago
-                                    {% endif %}
+                                <div>
+                                    <div class="fw-semibold text-light" style="font-size: 0.85rem;">
+                                        {{ pk.name|default:"Biometric Key" }}
+                                    </div>
+                                    <div class="text-secondary" style="font-size: 0.75rem;">
+                                        <i class="bi bi-clock-history me-1"></i>Enrolled {{ pk.created_at|date:"M j, Y — h:i A" }}
+                                        {% if pk.last_used_at %}
+                                            &middot; Last used {{ pk.last_used_at|timesince }} ago
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
-            </div>
+                {% else %}
+                <!-- Passkeys Prompt -->
+                <div class="glass p-4 mt-4 border border-secondary border-opacity-40">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-white d-flex align-items-center gap-2">
+                            <i class="bi bi-fingerprint text-info"></i> Biometric Passkeys
+                        </h6>
+                    </div>
+                    <p class="text-secondary small mb-2">
+                        No passkeys enrolled yet. Add a passkey in Security Settings to enable instant biometric login.
+                    </p>
+                    <a href="{% url 'account_settings_section' section='security' %}" class="btn btn-outline-info btn-sm py-1 px-3 rounded-pill fw-semibold">
+                        <i class="bi bi-plus-circle me-1"></i> Add Passkey
+                    </a>
+                </div>
+                {% endif %}
             {% endif %}
         </div>
 

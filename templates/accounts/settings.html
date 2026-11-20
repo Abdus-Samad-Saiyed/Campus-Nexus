@@ -646,14 +646,15 @@ a.settings-card-clickable:hover .settings-card {
                             <i class="bi bi-shield-lock-fill me-1"></i> Recent Verification
                         </strong>
                         {% if grace_active %}
-                            <span class="badge bg-success-subtle text-success border border-success-subtle small">10m Grace Active</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle small"><i class="bi bi-shield-check me-1"></i>Grace Window Active</span>
                         {% endif %}
                     </div>
                     {% if grace_active %}
-                        <div class="small text-light text-opacity-75" style="font-size: 0.85rem; line-height: 1.4;">
+                        <div class="small text-light text-opacity-75" id="graceActiveNotice" style="font-size: 0.85rem; line-height: 1.4;">
                             Your session has been recently authenticated. Sensitive security operations (password change, passkey enrollment, and 2FA toggles) are unlocked without re-entering an OTP.
                         </div>
-                    {% else %}
+                    {% endif %}
+                    <div id="securityOtpContainer" class="{% if grace_active %}d-none mt-2{% endif %}">
                         <div class="small text-secondary mb-2" id="securityOtpPrompt">
                             Sensitive account actions require identity verification. Request a one-time code or touch your biometric passkey to unlock changes.
                         </div>
@@ -672,7 +673,7 @@ a.settings-card-clickable:hover .settings-card {
                             {% endif %}
                         </div>
                         <div id="securityOtpFeedback" class="small mt-1 font-monospace" style="display: none;"></div>
-                    {% endif %}
+                    </div>
                 </div>
                 {% endif %}
 
@@ -1065,8 +1066,15 @@ async function registerWebAuthnPasskey() {
             if (chalRes.status === 403) {
                 statusDiv.className = 'small mt-2 text-warning font-monospace';
                 statusDiv.textContent = errData.error || 'Recent re-authentication required. Enter OTP below first.';
-                const secOtpInput = document.getElementById('securityOtpInput');
-                if (secOtpInput) secOtpInput.focus();
+                if (errData.requires_step_up) {
+                    const secOtpContainer = document.getElementById('securityOtpContainer');
+                    if (secOtpContainer) secOtpContainer.classList.remove('d-none');
+                    const secOtpInput = document.getElementById('securityOtpInput');
+                    if (secOtpInput) {
+                        secOtpInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        secOtpInput.focus();
+                    }
+                }
                 return;
             }
             throw new Error(errData.error || 'Challenge request failed.');
@@ -1077,9 +1085,10 @@ async function registerWebAuthnPasskey() {
 
         const isMac = /Macintosh|Mac OS X/i.test(navigator.userAgent);
         const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isAndroid = /Android/i.test(navigator.userAgent);
         statusDiv.textContent = isMac
             ? 'Touch Touch ID sensor on your Mac keyboard...'
-            : (isIos ? 'Verify using Face ID or Touch ID...' : 'Touch fingerprint sensor or verify with Windows Hello...');
+            : (isIos ? 'Verify using Face ID or Touch ID...' : (isAndroid ? 'Verify with your phone fingerprint or screen lock...' : 'Touch fingerprint sensor or verify with Windows Hello...'));
 
         const rpConfig = { name: 'Campus Nexus' };
         if (chalData.rp_id && !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(chalData.rp_id)) {
@@ -1092,9 +1101,17 @@ async function registerWebAuthnPasskey() {
             : false;
 
         const authSelection = { residentKey: 'preferred', userVerification: 'preferred' };
-        if (isPlatformAvailable || isMac || isIos) {
+        if ((isMac || isIos) && isPlatformAvailable) {
             authSelection.authenticatorAttachment = 'platform';
         }
+
+        const excludeList = (chalData.exclude_credentials || []).map(function(id) {
+            return {
+                type: 'public-key',
+                id: Uint8Array.from(atob(id.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+                transports: ['internal', 'hybrid', 'usb', 'nfc', 'ble']
+            };
+        });
 
         const credential = await navigator.credentials.create({
             publicKey: {
@@ -1107,6 +1124,7 @@ async function registerWebAuthnPasskey() {
                     { type: 'public-key', alg: -8 },
                 ],
                 authenticatorSelection: authSelection,
+                excludeCredentials: excludeList,
                 attestation: 'none',
                 timeout: 60000,
             }
@@ -1137,7 +1155,7 @@ async function registerWebAuthnPasskey() {
                     attestationObject: bufferToBase64url(credential.response.attestationObject),
                     transports: credential.response.getTransports ? credential.response.getTransports() : []
                 },
-                device: navigator.userAgent.includes('Windows') ? 'Windows PC' : 'Device',
+                device: navigator.userAgent.includes('Windows') ? 'Windows PC' : (isAndroid ? 'Android' : 'Device'),
                 name: `Passkey — ${new Date().toLocaleDateString()}`
             })
         });
@@ -1152,7 +1170,52 @@ async function registerWebAuthnPasskey() {
         }
     } catch (err) {
         statusDiv.className = 'small mt-2 text-danger font-monospace';
-        statusDiv.textContent = err.message || 'Passkey setup failed.';
+        const msg = err.message || '';
+        if (msg.includes('credential manager') || msg.includes('NotReadableError') || msg.includes('UnknownError')) {
+            statusDiv.textContent = 'Credential manager error: Ensure your device has an active screen lock (PIN, Pattern, or Fingerprint) and Google Play Services is up to date.';
+        } else if (msg.includes('InvalidStateError')) {
+            statusDiv.textContent = 'A passkey for this device is already enrolled on your account.';
+        } else {
+            statusDiv.textContent = msg || 'Passkey setup failed.';
+        }
+    }
+}
+
+let _securityOtpTimer = null;
+
+function startSecurityOtpCountdown(seconds = 60) {
+    const btn = document.getElementById('sendSecurityOtpBtn');
+    if (!btn) return;
+    if (_securityOtpTimer) {
+        clearInterval(_securityOtpTimer);
+        _securityOtpTimer = null;
+    }
+    let remaining = seconds;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="bi bi-clock me-1"></i> Wait ${remaining}s`;
+
+    _securityOtpTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(_securityOtpTimer);
+            _securityOtpTimer = null;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
+        } else {
+            btn.innerHTML = `<i class="bi bi-clock me-1"></i> Wait ${remaining}s`;
+        }
+    }, 1000);
+}
+
+function resetSecurityOtpTimer() {
+    if (_securityOtpTimer) {
+        clearInterval(_securityOtpTimer);
+        _securityOtpTimer = null;
+    }
+    const btn = document.getElementById('sendSecurityOtpBtn');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-1"></i> Send OTP';
     }
 }
 
@@ -1184,6 +1247,7 @@ async function verifySecurityOtpInline() {
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
+            resetSecurityOtpTimer();
             location.reload();
         } else {
             throw new Error(data.error || 'Invalid OTP code.');
@@ -1223,11 +1287,15 @@ async function requestSecurityOtp() {
             feedback.textContent = data.message || 'Code dispatched!';
             const inp = document.getElementById('securityOtpInput');
             if (inp) inp.focus();
+            startSecurityOtpCountdown(60);
         } else {
-            throw new Error(data.error || 'Failed to send code.');
+            const errText = data.error || 'Failed to send code.';
+            const match = errText.match(/(\d+)\s*(?:seconds|s)/i);
+            const waitSec = match ? parseInt(match[1], 10) : 60;
+            startSecurityOtpCountdown(waitSec);
+            throw new Error(errText);
         }
     } catch (err) {
-        btn.disabled = false;
         feedback.className = 'small mt-1 text-danger font-monospace';
         feedback.textContent = err.message || 'Request failed.';
     }
