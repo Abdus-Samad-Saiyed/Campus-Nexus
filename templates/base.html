@@ -1379,116 +1379,80 @@
                         <a href="{% url 'login' %}" class="btn btn-outline-green btn-sm px-2.5 py-1 text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.78rem;">
                             <i class="bi bi-box-arrow-in-right"></i> Sign In
                         </a>
+                        <button class="navbar-toggler btn btn-icon-nav border-0 text-white d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                            <i class="bi bi-list fs-5"></i>
+                        </button>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Layer 2: Mobile Quick-Action Strip (Layered Sub-Header - ZERO SCROLL) -->
+            {% if user.is_authenticated and not is_guest_demo %}
+            <!-- Layer 2: Mobile Quick-Action Strip for Authenticated Students -->
             <div class="navbar-mobile-layer-2 d-lg-none w-100">
-                <div class="d-flex align-items-center justify-content-between gap-1 py-1 px-0 text-nowrap w-100">
-                    {% if user.is_authenticated and not is_guest_demo %}
-                        <!-- Services Menu Dropdown Pill -->
-                        <div class="dropdown flex-fill">
-                            <button class="mobile-nav-pill dropdown-toggle border-0 w-100 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' or request.resolver_match.app_name == 'coordinate' or request.resolver_match.app_name == 'accommodate' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Campus Services Menu">
-                                <i class="bi bi-grid-fill green-accent me-1"></i>
-                                <span>Services</span>
-                            </button>
-                            <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25">
-                                <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
-                                    <i class="bi bi-car-front-fill green-accent"></i> Coordinate
-                                </div>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'ride_list' %}">
-                                    <i class="bi bi-search me-2 text-secondary"></i> Browse Rides
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'create_ride' %}">
-                                    <i class="bi bi-plus-circle me-2 text-secondary"></i> Offer a Ride
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'my_rides' %}">
-                                    <i class="bi bi-clock-history me-2 text-secondary"></i> My Rides
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/coordinate/">
-                                    <i class="bi bi-info-circle me-2"></i> Coordinate Overview &rarr;
-                                </a>
-
-                                <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
-
-                                <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
-                                    <i class="bi bi-buildings-fill green-accent"></i> Accommodate
-                                </div>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_list' %}">
-                                    <i class="bi bi-search me-2 text-secondary"></i> Explore Stays
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_create' %}">
-                                    <i class="bi bi-plus-circle me-2 text-secondary"></i> Create Listing
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:my_groups' %}">
-                                    <i class="bi bi-collection me-2 text-secondary"></i> My Stays
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/accommodate/">
-                                    <i class="bi bi-info-circle me-2"></i> Accommodate Overview &rarr;
-                                </a>
-
-                                <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
-
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-center text-white fw-bold bg-dark border border-secondary border-opacity-25" href="{% url 'service_catalogue' %}">
-                                    <i class="bi bi-grid me-1"></i> All Services Directory &rarr;
-                                </a>
+                <div class="d-flex align-items-center justify-content-center gap-2 py-1 px-2 text-nowrap w-100">
+                    <!-- Services Menu Dropdown Pill -->
+                    <div class="dropdown flex-shrink-0">
+                        <button class="mobile-nav-pill dropdown-toggle border-0 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' or request.resolver_match.app_name == 'coordinate' or request.resolver_match.app_name == 'accommodate' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Campus Services Menu">
+                            <i class="bi bi-grid-fill green-accent me-1"></i>
+                            <span>Services</span>
+                        </button>
+                        <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25">
+                            <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
+                                <i class="bi bi-car-front-fill green-accent"></i> Coordinate
                             </div>
-                        </div>
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'ride_list' %}">
+                                <i class="bi bi-search me-2 text-secondary"></i> Browse Rides
+                            </a>
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'create_ride' %}">
+                                <i class="bi bi-plus-circle me-2 text-secondary"></i> Offer a Ride
+                            </a>
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'my_rides' %}">
+                                <i class="bi bi-clock-history me-2 text-secondary"></i> My Rides
+                            </a>
+                            <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/coordinate/">
+                                <i class="bi bi-info-circle me-2"></i> Coordinate Overview &rarr;
+                            </a>
 
-                        <!-- Student Directory Quick-Action Pill -->
-                        <a href="{% url 'user_search' %}" class="mobile-nav-pill justify-content-center {% if request.resolver_match.url_name == 'user_search' %}active{% endif %}" title="Verified Student Directory">
-                            <i class="bi bi-people-fill green-accent me-1"></i>
-                            <span>Directory</span>
-                        </a>
+                            <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
 
-                        <!-- Feedback & Bug Tracker Quick-Action Pill -->
-                        <a href="{% url 'feedback' %}" class="mobile-nav-pill justify-content-center {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active{% endif %}" title="Feedback & Bug Tracker">
-                            <i class="bi bi-bug-fill green-accent me-1"></i>
-                            <span>Feedback</span>
-                        </a>
-                    {% else %}
-                        <div class="dropdown">
-                            <button class="mobile-nav-pill dropdown-toggle border-0 justify-content-center {% if request.resolver_match.url_name == 'service_catalogue' %}active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-grid-fill green-accent me-1"></i>
-                                <span>Services</span>
-                            </button>
-                            <div class="dropdown-menu shadow-lg p-2 mt-1 border-secondary border-opacity-25" style="min-width: 230px;">
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="/coordinate/">
-                                    <i class="bi bi-car-front-fill green-accent me-2"></i>Coordinate Rides
-                                </a>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="/accommodate/">
-                                    <i class="bi bi-buildings-fill green-accent me-2"></i>Accommodate Housing
-                                </a>
-                                <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
-                                <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'service_catalogue' %}">
-                                    <i class="bi bi-grid me-2"></i>All Services Directory &rarr;
-                                </a>
+                            <div class="px-2 py-1 text-uppercase fw-bold text-secondary small d-flex align-items-center gap-2" style="font-size: 0.68rem; letter-spacing: 0.05em;">
+                                <i class="bi bi-buildings-fill green-accent"></i> Accommodate
                             </div>
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_list' %}">
+                                <i class="bi bi-search me-2 text-secondary"></i> Explore Stays
+                            </a>
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:group_create' %}">
+                                <i class="bi bi-plus-circle me-2 text-secondary"></i> Create Listing
+                            </a>
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-white" href="{% url 'accommodate:my_groups' %}">
+                                <i class="bi bi-collection me-2 text-secondary"></i> My Stays
+                            </a>
+                            <a class="dropdown-item py-1.5 px-2 rounded small green-accent fw-semibold" href="/accommodate/">
+                                <i class="bi bi-info-circle me-2"></i> Accommodate Overview &rarr;
+                            </a>
+
+                            <div class="dropdown-divider border-secondary border-opacity-25 my-1"></div>
+
+                            <a class="dropdown-item py-1.5 px-2 rounded small text-center text-white fw-bold bg-dark border border-secondary border-opacity-25" href="{% url 'service_catalogue' %}">
+                                <i class="bi bi-grid me-1"></i> All Services Directory &rarr;
+                            </a>
                         </div>
-                        <a href="/coordinate/" class="mobile-nav-pill justify-content-center" title="Explore Ride Sharing">
-                            <i class="bi bi-car-front-fill green-accent me-1"></i>
-                            <span>Rides</span>
-                        </a>
-                        <a href="{% url 'enter_guest_demo' %}" class="mobile-nav-pill justify-content-center text-info" title="Try Guest Demo Mode">
-                            <i class="bi bi-incognito text-info me-1"></i>
-                            <span>Demo</span>
-                        </a>
-                        <a href="/#about" class="mobile-nav-pill justify-content-center" title="About Campus Nexus">
-                            <i class="bi bi-info-circle text-secondary me-1"></i>
-                            <span>About</span>
-                        </a>
-                        <a href="/#contributors" class="mobile-nav-pill justify-content-center" title="Contributors">
-                            <i class="bi bi-people green-accent me-1"></i>
-                            <span>Contributors</span>
-                        </a>
-                        <a href="/#contact" class="mobile-nav-pill justify-content-center" title="Contact Desk">
-                            <i class="bi bi-envelope green-accent me-1"></i>
-                            <span>Contact</span>
-                        </a>
-                    {% endif %}
+                    </div>
+
+                    <!-- Student Directory Quick-Action Pill -->
+                    <a href="{% url 'user_search' %}" class="mobile-nav-pill justify-content-center flex-shrink-0 {% if request.resolver_match.url_name == 'user_search' %}active{% endif %}" title="Verified Student Directory">
+                        <i class="bi bi-people-fill green-accent me-1"></i>
+                        <span>Directory</span>
+                    </a>
+
+                    <!-- Feedback & Bug Tracker Quick-Action Pill -->
+                    <a href="{% url 'feedback' %}" class="mobile-nav-pill justify-content-center flex-shrink-0 {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active{% endif %}" title="Feedback & Bug Tracker">
+                        <i class="bi bi-bug-fill green-accent me-1"></i>
+                        <span>Feedback</span>
+                    </a>
                 </div>
             </div>
+            {% endif %}
 
             <div class="collapse navbar-collapse" id="navbarMain">
                 <!-- Mobile Dropdown PWA Install Banner -->
@@ -1527,6 +1491,27 @@
                                 <i class="bi bi-people-fill me-1 green-accent"></i> Student Directory
                             </a>
                         </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'service_catalogue' %}active fw-semibold{% endif %}" href="{% url 'service_catalogue' %}">
+                                <i class="bi bi-grid-fill me-1 green-accent"></i> Services Directory
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'about' %}active fw-semibold{% endif %}" href="{% url 'about' %}">
+                                <i class="bi bi-info-circle me-1 green-accent"></i> About Nexus
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'contact' %}active fw-semibold{% endif %}" href="{% url 'contact' %}">
+                                <i class="bi bi-envelope me-1 green-accent"></i> Contact Desk
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'contributors' %}active fw-semibold{% endif %}" href="{% url 'contributors' %}">
+                                <i class="bi bi-people me-1 green-accent"></i> Contributors
+                            </a>
+                        </li>
                     {% endif %}
                     <li class="nav-item">
                         <a class="nav-link d-inline-flex align-items-center gap-1.5 {% if request.resolver_match.url_name == 'feedback' or request.resolver_match.url_name == 'feedback_submit' or request.resolver_match.url_name == 'report_bug' %}active fw-semibold{% endif %}" href="{% url 'feedback' %}" title="Feedback &amp; Bug Tracker">
@@ -1538,9 +1523,9 @@
                             <i class="bi bi-compass me-1"></i> Explore
                         </a>
                         <ul class="dropdown-menu shadow">
-                            <li><a class="dropdown-item py-2" href="/#contributors"><i class="bi bi-people me-2 green-accent"></i>Contributors</a></li>
-                            <li><a class="dropdown-item py-2" href="/#about"><i class="bi bi-info-circle me-2 text-secondary"></i>About Nexus</a></li>
-                            <li><a class="dropdown-item py-2" href="/#contact"><i class="bi bi-envelope me-2 green-accent"></i>Contact Desk</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'contributors' %}"><i class="bi bi-people me-2 green-accent"></i>Contributors</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'about' %}"><i class="bi bi-info-circle me-2 text-secondary"></i>About Nexus</a></li>
+                            <li><a class="dropdown-item py-2" href="{% url 'contact' %}"><i class="bi bi-envelope me-2 green-accent"></i>Contact Desk</a></li>
                         </ul>
                     </li>
                 </ul>

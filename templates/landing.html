@@ -5,6 +5,29 @@
 
 {% block extra_head %}
 <style>
+.pulse-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--green, #08B74F);
+    box-shadow: 0 0 0 0 rgba(8, 183, 79, 0.7);
+    animation: pulse-green 2s infinite;
+}
+@keyframes pulse-green {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(8, 183, 79, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(8, 183, 79, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(8, 183, 79, 0);
+    }
+}
 @media (max-width: 767.98px) {
     #firstLoginAnnouncementBanner { margin-bottom: 1rem !important; box-shadow: none !important; }
     #firstLoginAnnouncementBanner > .p-4 { padding: 1rem !important; }
@@ -57,7 +80,7 @@
                             </a>
                         </div>
                         <div class="col-6 col-sm-auto">
-                            <a href="#about" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
+                            <a href="{% url 'about' %}" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
                                 <i class="bi bi-info-circle text-secondary"></i>
                                 <span>About</span>
                             </a>
@@ -69,7 +92,7 @@
                             </a>
                         </div>
                         <div class="col-6 col-sm-auto">
-                            <a href="#contact" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
+                            <a href="{% url 'contact' %}" class="btn btn-dark-custom btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2 py-2 px-3">
                                 <i class="bi bi-envelope green-accent"></i>
                                 <span>Contact Desk</span>
                             </a>
@@ -697,8 +720,8 @@
         <!-- ========================================================================= -->
         <!-- PUBLIC UMBRELLA PLATFORM HERO                                             -->
         <!-- ========================================================================= -->
-        <div class="row align-items-center pt-1 pb-3 mb-5">
-            <div class="col-lg-6 col-xl-6 mb-4 mb-lg-0">
+        <div class="row align-items-center pt-2 pb-3 mb-5 g-4">
+            <div class="col-lg-6 col-xl-6 mb-2 mb-lg-0">
                 {% if early_launch_mode %}
                 <span class="badge bg-warning-subtle text-warning px-3 py-2 rounded-pill fw-semibold mb-3 border border-warning-subtle d-inline-flex align-items-center">
                     <i class="bi bi-mortarboard-fill me-2"></i> Campus access is open for NIT Srinagar students
@@ -713,102 +736,120 @@
                     Find your way<br>
                     across campus.
                 </h1>
-                <p class="hero-subtitle mb-3 text-secondary" style="max-width: 520px; font-size: 1.05rem;">
+                <p class="hero-subtitle mb-4 text-secondary" style="max-width: 520px; font-size: 1.05rem;">
                     Verified student cab sharing, campus utilities, and direct student communication — zero middleman fees.
                 </p>
-                <div class="mb-4">
-                    <div class="d-flex flex-wrap gap-2" style="max-width: 480px;">
-                        <a href="{% url 'apply_account' %}" class="btn btn-green px-4 py-2.5 fs-6 fw-bold d-inline-flex align-items-center justify-content-center text-nowrap shadow">
-                            <i class="bi bi-person-plus-fill me-2"></i> Get Started
-                        </a>
-                        <a href="{% url 'login' %}" class="btn btn-outline-green px-4 py-2.5 fs-6 fw-bold d-inline-flex align-items-center justify-content-center text-nowrap">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
-                        </a>
-                        <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info px-3 py-2.5 fs-6 fw-semibold d-inline-flex align-items-center justify-content-center text-nowrap" title="Explore platform features in Guest Demo Mode">
-                            <i class="bi bi-incognito me-1.5"></i> Guest Demo
-                        </a>
-                    </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
+                    <span class="badge bg-dark border border-secondary text-secondary py-1.5 px-2.5 rounded-pill small">
+                        ✈️ Srinagar Airport (SXR)
+                    </span>
+                    <span class="badge bg-dark border border-secondary text-secondary py-1.5 px-2.5 rounded-pill small">
+                        🚆 Railway Station
+                    </span>
+                    <span class="badge bg-dark border border-secondary text-secondary py-1.5 px-2.5 rounded-pill small">
+                        📍 Lal Chowk
+                    </span>
+                </div>
+                <div>
+                    <a href="{% url 'apply_account' %}" class="btn btn-green px-4 py-2.5 fs-6 fw-bold d-inline-flex align-items-center justify-content-center text-nowrap shadow">
+                        <i class="bi bi-person-plus-fill me-2"></i> Create Student Account
+                    </a>
                 </div>
             </div>
 
             <div class="col-lg-6 col-xl-6">
-                <div class="glass p-3 p-xl-4 glass-glow border-success-subtle">
-                    {% if early_launch_mode %}
-                        <span class="visually-hidden">Early Launch Mode Active Quick-Bypass Apply for Verified Permanent Account Welcome to Campus Nexus</span>
-                    {% else %}
-                        <span class="visually-hidden">Apply for Verification Welcome to Campus Nexus</span>
-                    {% endif %}
+                {% if early_launch_mode %}
+                    <span class="visually-hidden">Early Launch Mode Active Quick-Bypass Apply for Verified Permanent Account Welcome to Campus Nexus</span>
+                {% else %}
+                    <span class="visually-hidden">Apply for Verification Welcome to Campus Nexus</span>
+                {% endif %}
 
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                <!-- Realistic Blurred Rides Feed Showcase -->
+                <div class="position-relative overflow-hidden rounded-4 glass glass-glow border-success-subtle p-0 shadow-2xl">
+                    <!-- Top Status Bar (Unblurred) -->
+                    <div class="d-flex align-items-center justify-content-between p-3 border-bottom border-secondary border-opacity-25 bg-black bg-opacity-40">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="feature-icon" style="width: 32px; height: 32px; font-size: 1rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
-                                <i class="bi bi-car-front-fill"></i>
-                            </span>
-                            <div>
-                                <h5 class="fw-bold text-white mb-0 fs-6">Live Ride Coordination</h5>
-                                <span class="text-secondary small" style="font-size: 0.75rem;">Verified Student Commutes</span>
-                            </div>
+                            <span class="pulse-indicator"></span>
+                            <span class="fw-bold text-white small">Active Student Carpools</span>
                         </div>
                         <span class="badge bg-success-subtle green-accent rounded-pill px-2.5 py-1 small fw-semibold">
-                            <i class="bi bi-broadcast me-1"></i> Live
+                            <i class="bi bi-broadcast me-1"></i> Live Feed
                         </span>
                     </div>
 
-                    {% if public_upcoming_rides %}
-                        <div class="d-flex flex-column gap-2 mb-3">
-                            {% for ride in public_upcoming_rides %}
-                                <div class="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
-                                    <div class="min-w-0">
-                                        <div class="fw-semibold text-white small text-truncate d-flex align-items-center gap-1.5">
-                                            <span>{{ ride.from_location }}</span>
-                                            <i class="bi bi-arrow-right text-secondary small"></i>
-                                            <span>{{ ride.to_location }}</span>
-                                        </div>
-                                        <div class="text-secondary small d-flex align-items-center gap-2 mt-0.5" style="font-size: 0.72rem;">
-                                            <span><i class="bi bi-clock me-1"></i>{{ ride.departure_time|date:"M d, g:i A" }}</span>
-                                            <span>&middot;</span>
-                                            <span class="text-success"><i class="bi bi-person-check-fill me-1"></i>{{ ride.available_seats }} seat{{ ride.available_seats|pluralize }} left</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex-shrink-0 ms-2">
-                                        <a href="{% url 'login' %}?next=/coordinate/" class="btn btn-sm btn-outline-green py-1 px-2 text-nowrap" style="font-size: 0.74rem;">
-                                            Join <i class="bi bi-chevron-right ms-0.5"></i>
-                                        </a>
-                                    </div>
+                    <!-- Blurred Backdrop: Realistic Feed of Students Travelling -->
+                    <div class="p-3 d-flex flex-column gap-2" style="filter: blur(5px); opacity: 0.55; pointer-events: none; user-select: none;">
+                        <div class="p-2.5 rounded-3 bg-black bg-opacity-60 border border-secondary border-opacity-25">
+                            <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-success text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; font-size: 0.7rem;">SS</div>
+                                    <span class="text-white small fw-bold">Sanamdeep Singh (2024BCSE027)</span>
                                 </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <!-- Popular Routes Teaser -->
-                        <div class="d-flex flex-column gap-2 mb-3">
-                            <div class="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="fw-semibold text-white small">NIT Srinagar &harr; Srinagar Airport (SXR)</div>
-                                    <div class="text-secondary small" style="font-size: 0.72rem;">Direct student carpooling &middot; Split cab fare</div>
-                                </div>
-                                <span class="badge bg-secondary-subtle text-light small">Popular</span>
+                                <span class="badge bg-warning-subtle text-warning small">Host &middot; 2 seats left</span>
                             </div>
-                            <div class="p-2.5 rounded-3 bg-black bg-opacity-40 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="fw-semibold text-white small">NIT Srinagar &harr; Railway Station</div>
-                                    <div class="text-secondary small" style="font-size: 0.72rem;">Vacation & weekend student batches</div>
-                                </div>
-                                <span class="badge bg-secondary-subtle text-light small">Popular</span>
+                            <div class="text-white fw-semibold small d-flex align-items-center gap-1.5">
+                                <span>NIT Srinagar Main Gate</span>
+                                <i class="bi bi-arrow-right text-secondary"></i>
+                                <span>Srinagar Airport (SXR)</span>
+                            </div>
+                            <div class="text-secondary small mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-clock me-1"></i>Today &middot; 04:30 PM &bull; Sedan (AC) &bull; Est. ~₹180/seat
                             </div>
                         </div>
-                    {% endif %}
 
-                    <!-- Privacy & Teaser CTA Box -->
-                    <div class="p-2.5 rounded-3 bg-black bg-opacity-25 border border-secondary border-opacity-25 text-center">
-                        <p class="text-secondary small mb-2" style="font-size: 0.78rem;">
-                            <i class="bi bi-shield-lock-fill text-warning me-1"></i> Student profiles and ride chats are private to registered members.
+                        <div class="p-2.5 rounded-3 bg-black bg-opacity-60 border border-secondary border-opacity-25">
+                            <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-info text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; font-size: 0.7rem;">RS</div>
+                                    <span class="text-white small fw-bold">Rishabh Saraswat (2024BCSE025)</span>
+                                </div>
+                                <span class="badge bg-info-subtle text-info small">Host &middot; 1 seat left</span>
+                            </div>
+                            <div class="text-white fw-semibold small d-flex align-items-center gap-1.5">
+                                <span>NIT Srinagar Campus</span>
+                                <i class="bi bi-arrow-right text-secondary"></i>
+                                <span>Railway Station (Nowgam)</span>
+                            </div>
+                            <div class="text-secondary small mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-clock me-1"></i>Tomorrow &middot; 06:15 AM &bull; Innova &bull; Est. ~₹150/seat
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 rounded-3 bg-black bg-opacity-60 border border-secondary border-opacity-25">
+                            <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; font-size: 0.7rem;">AK</div>
+                                    <span class="text-white small fw-bold">Aiman Khan (2023BECE012)</span>
+                                </div>
+                                <span class="badge bg-success-subtle text-success small">Host &middot; 3 seats left</span>
+                            </div>
+                            <div class="text-white fw-semibold small d-flex align-items-center gap-1.5">
+                                <span>Srinagar Airport</span>
+                                <i class="bi bi-arrow-right text-secondary"></i>
+                                <span>NIT Srinagar Hostels</span>
+                            </div>
+                            <div class="text-secondary small mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-clock me-1"></i>Sunday &middot; 12:45 PM &bull; Shared Taxi &bull; Est. ~₹200/seat
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Glassy Focused Overlay -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-center"
+                         style="background: radial-gradient(circle at center, rgba(5, 11, 8, 0.78) 0%, rgba(5, 11, 8, 0.94) 100%);">
+                        <div class="feature-icon mb-2.5" style="width: 50px; height: 50px; font-size: 1.45rem; background: var(--green-dim, rgba(8, 183, 79, 0.2)); color: var(--green, #08B74F);">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <h4 class="fw-bold text-white mb-1 fs-5">Verified Student Carpools</h4>
+                        <p class="text-secondary small mb-3" style="max-width: 320px; font-size: 0.8rem; line-height: 1.45;">
+                            Students post upcoming travel plans and split cab fares together. Sign in to see departure times and coordinate your journey.
                         </p>
-                        <div class="d-flex gap-2 justify-content-center">
-                            <a href="{% url 'login' %}?next=/coordinate/" class="btn btn-green btn-sm fw-bold px-3 py-1.5" style="font-size: 0.8rem;">
-                                Sign in to coordinate rides &rarr;
+                        <div class="d-flex flex-column flex-sm-row gap-2 w-100 justify-content-center" style="max-width: 320px;">
+                            <a href="{% url 'login' %}?next=/coordinate/" class="btn btn-green fw-bold py-2.5 px-3 fs-6 d-inline-flex align-items-center justify-content-center gap-2 shadow">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign In to View Rides
                             </a>
-                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info btn-sm fw-semibold px-3 py-1.5" style="font-size: 0.8rem;">
-                                Try Guest Demo
+                            <a href="{% url 'enter_guest_demo' %}" class="btn btn-outline-info btn-sm py-2 px-3 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5" title="Explore in demo mode">
+                                <i class="bi bi-incognito"></i> Guest Demo
                             </a>
                         </div>
                     </div>
@@ -885,162 +926,6 @@
                     </div>
                 </div>
             {% endfor %}
-        </div>
-    </div>
-
-    <!-- ========================================================================= -->
-    <!-- ABOUT CAMPUS NEXUS (#about)                                               -->
-    <!-- ========================================================================= -->
-    <div id="about" class="pt-2 mb-5">
-        <div class="text-center mb-5">
-            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center">
-                <i class="bi bi-compass-fill me-2"></i> Built for NIT Srinagar Students
-            </span>
-            <h2 class="hero-title mb-3">One Platform. <span class="green-accent">All Campus Services.</span></h2>
-            <p class="hero-subtitle mx-auto text-secondary" style="max-width: 720px;">
-                Campus Nexus is a decentralized, privacy-preserving digital ecosystem connecting students across hostels, departments, and transit routes.
-            </p>
-        </div>
-
-        <!-- Core Philosophy Cards -->
-        <div class="row g-3 g-md-4 mb-5">
-            <div class="col-md-4">
-                <div class="glass p-3.5 p-md-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-2.5" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-                    <h4 class="fw-bold text-white mb-1.5 fs-5">Graduated Student Verification</h4>
-                    <p class="text-secondary small mb-0 flex-grow-1" style="line-height: 1.45;">
-                        Instant campus access on day one; institutional verification for ride coordination to protect student safety.
-                    </p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="glass p-3.5 p-md-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-2.5" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                        <i class="bi bi-cash-coin"></i>
-                    </div>
-                    <h4 class="fw-bold text-white mb-1.5 fs-5">Zero Commercial Middlemen</h4>
-                    <p class="text-secondary small mb-0 flex-grow-1" style="line-height: 1.45;">
-                        Direct peer-to-peer cab and flat sharing with transparent splits — no surge pricing or broker cuts.
-                    </p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="glass p-3.5 p-md-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-2.5" style="width: 42px; height: 42px; font-size: 1.2rem;">
-                        <i class="bi bi-diagram-3-fill"></i>
-                    </div>
-                    <h4 class="fw-bold text-white mb-1.5 fs-5">Modular Infrastructure</h4>
-                    <p class="text-secondary small mb-0 flex-grow-1" style="line-height: 1.45;">
-                        An open student ecosystem starting with rides and housing, designed for campus builders to plug in new tools.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Extensibility & Open Invitation Section -->
-        <div class="glass p-4 p-md-5 mb-5 glass-glow border-success-subtle">
-            <div class="row align-items-center g-4">
-                <div class="col-lg-8">
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 rounded-pill small fw-semibold mb-2">
-                        <i class="bi bi-lightbulb-fill me-1"></i> Open Invitation to Campus Builders
-                    </span>
-                    <h3 class="fw-bold text-white mb-3">Have an Idea or Utility for NIT Srinagar?</h3>
-                    <p class="text-secondary mb-3">
-                        Campus Nexus is not a static app — it is a living student collective. Whether you want to automate hostel laundry slots, digitize central library seat occupancy, track mess feedback, or organize campus hackathons:
-                    </p>
-                    <div class="row g-3 small text-white-50 mb-3">
-                        <div class="col-sm-6">
-                            <i class="bi bi-check2-circle text-success me-1"></i> Build a new Django module inside Nexus
-                        </div>
-                        <div class="col-sm-6">
-                            <i class="bi bi-check2-circle text-success me-1"></i> Integrate external apps via REST API v1
-                        </div>
-                        <div class="col-sm-6">
-                            <i class="bi bi-check2-circle text-success me-1"></i> Use verified student authentication
-                        </div>
-                        <div class="col-sm-6">
-                            <i class="bi bi-check2-circle text-success me-1"></i> Peer review code through open PRs
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-3 flex-wrap pt-2">
-                        <a href="{% url 'feedback_submit' %}?type=PROPOSAL" class="btn btn-green px-4">
-                            <i class="bi bi-send-fill me-1"></i> Propose a New Module
-                        </a>
-                        <a href="https://github.com/Abdus-Samad-Saiyed/Campus-Nexus" target="_blank" class="btn btn-dark-custom px-4">
-                            <i class="bi bi-github me-1"></i> View GitHub Repository
-                        </a>
-                    </div>
-                </div>
-
-                <div class="col-lg-4 text-center">
-                    <div class="p-4 rounded border border-secondary bg-black bg-opacity-40">
-                        <div class="feature-icon mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.8rem;">
-                            <i class="bi bi-code-slash"></i>
-                        </div>
-                        <h5 class="fw-bold text-white mb-2">Architecture Stack</h5>
-                        <div class="d-flex flex-wrap gap-1 justify-content-center">
-                            <span class="badge bg-secondary">Python 3.12</span>
-                            <span class="badge bg-secondary">Django 5.x</span>
-                            <span class="badge bg-secondary">Channels (ASGI)</span>
-                            <span class="badge bg-secondary">WebSockets</span>
-                            <span class="badge bg-secondary">PostgreSQL</span>
-                            <span class="badge bg-secondary">Redis</span>
-                            <span class="badge bg-secondary">Bootstrap 5</span>
-                            <span class="badge bg-secondary">REST API v1</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========================================================================= -->
-    <!-- NEXUS ARCHITECTURE (#nexus)                                               -->
-    <!-- ========================================================================= -->
-    <div id="nexus" class="pt-2 mb-5">
-        <div class="text-center mb-4">
-            <span class="badge bg-primary-subtle text-primary px-3 py-1.5 rounded-pill fw-semibold mb-2 border border-primary-subtle d-inline-flex align-items-center">
-                <i class="bi bi-cpu-fill me-1.5"></i> Platform Architecture
-            </span>
-            <h2 class="fw-bold text-white mb-2">The <span class="green-accent">Nexus</span> Architecture</h2>
-            <p class="text-secondary small mx-auto" style="max-width: 680px;">
-                How independent campus microservices unite under a unified identity, security boundary, and real-time event pipeline.
-            </p>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="glass p-4 h-100">
-                    <div class="feature-icon mb-3"><i class="bi bi-fingerprint"></i></div>
-                    <h5 class="fw-bold text-white mb-2">Centralized Single-Sign-On</h5>
-                    <p class="text-secondary small mb-0">
-                        Passkeys, biometric hardware security, and enrollment-based authentication work seamlessly across every present and future module.
-                    </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="glass p-4 h-100">
-                    <div class="feature-icon mb-3"><i class="bi bi-shield-shaded"></i></div>
-                    <h5 class="fw-bold text-white mb-2">Privacy &amp; Safety Gates</h5>
-                    <p class="text-secondary small mb-0">
-                        Strict role-based access control, cryptographic verification tokens, and session revocations prevent unauthorized access.
-                    </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="glass p-4 h-100">
-                    <div class="feature-icon mb-3"><i class="bi bi-broadcast-pin"></i></div>
-                    <h5 class="fw-bold text-white mb-2">Unified Messaging &amp; Events</h5>
-                    <p class="text-secondary small mb-0">
-                        A persistent WebSocket backbone delivers real-time notifications, peer chat, and ride departure updates with zero polling overhead.
-                    </p>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1237,115 +1122,19 @@
                         {% endif %}
                     </div>
 
-                    <div class="pt-2 border-top border-secondary border-opacity-25">
-                        <a href="{% url 'report_bug' %}" class="btn btn-outline-warning btn-sm w-100 fw-semibold">
-                            <i class="bi bi-bug me-1"></i> Report a Bug &amp; Contribute
+                    <div class="pt-2 border-top border-secondary border-opacity-25 d-flex gap-2">
+                        <a href="{% url 'report_bug' %}" class="btn btn-outline-warning btn-sm flex-fill fw-semibold">
+                            <i class="bi bi-bug me-1"></i> Report a Bug
+                        </a>
+                        <a href="{% url 'feedback_submit' %}?type=GENERAL" class="btn btn-dark-custom btn-sm flex-fill fw-semibold">
+                            <i class="bi bi-chat-dots me-1"></i> Feedback
                         </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- ========================================================================= -->
-    <!-- CONTACT DESK (#contact)                                                   -->
-    <!-- ========================================================================= -->
-    <div id="contact" class="pt-2 mb-4">
-        <div class="text-center mb-5">
-            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold mb-3 border border-success-subtle d-inline-flex align-items-center">
-                <i class="bi bi-envelope-paper-fill me-2"></i> Communications &amp; Support Directory
-            </span>
-            <h2 class="hero-title mb-2">Contact <span class="green-accent">Campus Nexus</span></h2>
-            <p class="hero-subtitle mx-auto text-secondary small">
-                Reach out to our student engineering lead, platform maintainers, or account verification team.
-            </p>
-        </div>
-
-        <div class="row g-4 justify-content-center mb-5">
-            <div class="col-md-6 col-lg-4">
-                <div class="glass p-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-3" style="width: 50px; height: 50px; font-size: 1.4rem;">
-                        <i class="bi bi-cpu-fill"></i>
-                    </div>
-                    <h3 class="fw-bold fs-5 mb-1 text-white">Technical &amp; Engineering Desk</h3>
-                    <p class="text-secondary small mb-3 flex-grow-1">
-                        For platform bugs, code contributions, server uptime questions, or repository development.
-                    </p>
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30">
-                        <div class="text-secondary small text-uppercase fw-semibold mb-1">Direct Contact</div>
-                        <a href="mailto:asaiyed_2024bcse065@nitsri.ac.in?subject=[Campus%20Nexus]%20Technical%20Inquiry" class="green-accent fw-bold font-monospace text-decoration-none">
-                            asaiyed_2024bcse065@nitsri.ac.in
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="glass p-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-3" style="width: 50px; height: 50px; font-size: 1.4rem;">
-                        <i class="bi bi-shield-lock-fill"></i>
-                    </div>
-                    <h3 class="fw-bold fs-5 mb-1 text-white">Identity &amp; Account Verification</h3>
-                    <p class="text-secondary small mb-3 flex-grow-1">
-                        For verification delays, enrollment number discrepancies, or account access assistance.
-                    </p>
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30">
-                        <div class="text-secondary small text-uppercase fw-semibold mb-1">Direct Contact</div>
-                        <a href="mailto:asaiyed_2024bcse065@nitsri.ac.in?subject=[Campus%20Nexus]%20Verification%20Inquiry" class="green-accent fw-bold font-monospace text-decoration-none">
-                            asaiyed_2024bcse065@nitsri.ac.in
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4">
-                <div class="glass p-4 h-100 d-flex flex-column">
-                    <div class="feature-icon mb-3" style="width: 50px; height: 50px; font-size: 1.4rem;">
-                        <i class="bi bi-shield-exclamation text-warning"></i>
-                    </div>
-                    <h3 class="fw-bold fs-5 mb-1 text-white">Safety &amp; Support Escalation</h3>
-                    <p class="text-secondary small mb-3 flex-grow-1">
-                        For urgent student ride reports, passenger safety issues, or general platform inquiries.
-                    </p>
-                    <div class="p-3 rounded border border-secondary bg-black bg-opacity-30">
-                        <div class="text-secondary small text-uppercase fw-semibold mb-1">Direct Contact</div>
-                        <a href="mailto:asaiyed_2024bcse065@nitsri.ac.in?subject=[Campus%20Nexus]%20Safety%20Escalation" class="green-accent fw-bold font-monospace text-decoration-none">
-                            asaiyed_2024bcse065@nitsri.ac.in
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Physical Location Notice -->
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="glass p-4 text-center border-secondary">
-                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning-subtle text-warning mb-3" style="width: 48px; height: 48px; font-size: 1.3rem;">
-                        <i class="bi bi-geo-alt-fill"></i>
-                    </div>
-                    <h4 class="fw-bold fs-5 mb-2 text-white">No Physical Location Yet</h4>
-                    <p class="text-secondary small mb-2">
-                        Campus Nexus currently operates as a fully digital, student-engineered campus utility. <strong>We do not have a physical location or campus office yet.</strong>
-                    </p>
-                    <p class="text-secondary small mb-4">
-                        All correspondence, account verification escalations, technical inquiries, and feedback are handled online. Please direct all replies and inquiries to <a href="mailto:asaiyed_2024bcse065@nitsri.ac.in" class="green-accent fw-bold font-monospace text-decoration-none">asaiyed_2024bcse065@nitsri.ac.in</a>.
-                    </p>
-                    <div class="d-flex justify-content-center gap-3 flex-wrap">
-                        <a href="mailto:asaiyed_2024bcse065@nitsri.ac.in" class="btn btn-green btn-sm px-3">
-                            <i class="bi bi-envelope-fill me-1"></i> Send Email
-                        </a>
-                        <a href="{% url 'feedback_submit' %}" class="btn btn-dark-custom btn-sm px-3">
-                            <i class="bi bi-chat-dots-fill me-1"></i> Submit Feedback / Bug Report
-                        </a>
-                        <a href="#about" class="btn btn-outline-green btn-sm px-3">
-                            <i class="bi bi-info-circle me-1"></i> About Campus Nexus
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+</div>
 </div>
 
 <!-- Early Launch & Verification Policy Modal -->
